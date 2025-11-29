@@ -8,7 +8,7 @@ import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import ModDetailModal from '@/components/mod/ModDetailModal';
 import FilterPanel from '@/components/filter/FilterPanel';
-import { ParsedMod } from '@/services/modLedgerApi';
+import type { ParsedMod } from '@/services/modLedgerApi';
 import styles from './ModGridPage.module.css';
 
 export default function ModGridPage() {
@@ -82,7 +82,7 @@ export default function ModGridPage() {
             <div className={styles.sortControls}>
               <Select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value)}
                 className={styles.sortSelect}
               >
                 <option value="character">Character</option>

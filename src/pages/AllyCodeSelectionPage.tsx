@@ -54,7 +54,7 @@ export default function AllyCodeSelectionPage() {
                   type="text"
                   placeholder="123-456-789"
                   value={newAllyCode}
-                  onChange={(e) => setNewAllyCode(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAllyCode(e.target.value)}
                   disabled={isAdding}
                 />
                 <Button
@@ -73,7 +73,7 @@ export default function AllyCodeSelectionPage() {
               <div className={styles.allyCodeGrid}>
                 {allyCodes.map((ac) => (
                   <Card
-                    key={ac.id}
+                    key={ac.ally_code}
                     chamfered
                     hoverable
                     onClick={() => handleSelectExisting(ac.ally_code)}
@@ -95,7 +95,7 @@ export default function AllyCodeSelectionPage() {
                     type="text"
                     placeholder="123-456-789"
                     value={newAllyCode}
-                    onChange={(e) => setNewAllyCode(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAllyCode(e.target.value)}
                     disabled={isAdding}
                   />
                   <Button

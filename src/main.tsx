@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, initializeApiClient } from '@psytor/astrogators-shared-ui';
-import '@psytor/astrogators-shared-ui/styles';
 import { ModProvider } from './contexts/ModContext';
 import { FilterProvider } from './contexts/FilterContext';
 import App from './App';

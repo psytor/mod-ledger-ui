@@ -1,4 +1,4 @@
-import { ParsedMod } from '@/services/modLedgerApi';
+import type { ParsedMod } from '@/services/modLedgerApi';
 import ModCard from './ModCard';
 import styles from './ModGrid.module.css';
 

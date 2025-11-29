@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { TopBar, Footer, Container } from '@psytor/astrogators-shared-ui';
 
 interface LayoutProps {

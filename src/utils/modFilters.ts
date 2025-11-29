@@ -1,5 +1,5 @@
-import { ParsedMod } from '@/services/modLedgerApi';
-import { ModFilters } from '@/contexts/FilterContext';
+import type { ParsedMod } from '@/services/modLedgerApi';
+import type { ModFilters } from '@/contexts/FilterContext';
 
 /**
  * Apply all active filters to the mods array

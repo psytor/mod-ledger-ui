@@ -20,7 +20,7 @@ export default function FilterPanel() {
     const newArray = checked
       ? [...currentArray, value]
       : currentArray.filter((v) => v !== value);
-    setFilter(key, newArray);
+    setFilter(key, newArray as any); // Type assertion needed due to union type complexity
   };
 
   return (

@@ -1,4 +1,4 @@
-import { ParsedMod } from '@/services/modLedgerApi';
+import type { ParsedMod } from '@/services/modLedgerApi';
 
 /**
  * Sort mods by the specified field and order
