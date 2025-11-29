@@ -1,35 +1,64 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth, Loader } from '@psytor/astrogators-shared-ui';
+import AllyCodeSelectionPage from './pages/AllyCodeSelectionPage';
+import ModGridPage from './pages/ModGridPage';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Routes>
+      {/* Protected routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <ModLedgerRouter />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Catch all - redirect to root */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
-export default App
+// Protected Route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
+      }}>
+        <Loader size="large" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    // Redirect to hub login page
+    window.location.href = 'http://localhost:5173/login';
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+// Router that checks for ally code selection
+function ModLedgerRouter() {
+  const { allyCodes, selectedAllyCode } = useAuth();
+
+  // If no ally codes saved, show selection page
+  if (allyCodes.length === 0 || !selectedAllyCode) {
+    return <AllyCodeSelectionPage />;
+  }
+
+  // Show mod grid with selected ally code
+  return <ModGridPage />;
+}
+
+export default App;
