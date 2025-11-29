@@ -1,0 +1,101 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin: 0;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary, #999);
+  margin: 0;
+  text-align: center;
+}
+
+.inputCard {
+  width: 100%;
+  max-width: 500px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.inputCard h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.description {
+  color: var(--color-text-secondary, #999);
+  margin: 0 0 1.5rem 0;
+}
+
+.inputGroup {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.inputGroup input {
+  flex: 1;
+}
+
+.error {
+  color: var(--color-error, #ff4444);
+  margin: 1rem 0 0 0;
+  font-size: 0.875rem;
+}
+
+.allyCodeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.allyCodeCard {
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.allyCodeCard:hover {
+  transform: scale(1.02);
+}
+
+.playerName {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.allyCode {
+  color: var(--color-text-secondary, #999);
+  font-family: monospace;
+  font-size: 1rem;
+}
+
+.addAnother {
+  width: 100%;
+  max-width: 600px;
+  padding: 1.5rem;
+  border-top: 2px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.addAnother h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--color-text-secondary, #999);
+  text-align: center;
+}
