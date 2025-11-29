@@ -30,9 +30,8 @@ A React/TypeScript/Vite frontend for SWGOH mod analysis and management. This app
 
 - Node.js 18+
 - npm or yarn
-- Running instances of:
-  - **astrogators-table** (port 8000) - For authentication
-  - **mod-ledger** (port 8001) - For mod data API
+- Docker and Docker Compose (backend services run in Docker)
+- GitHub Packages authentication configured for @psytor/astrogators-shared-ui
 
 ### Environment Setup
 
@@ -60,30 +59,30 @@ A React/TypeScript/Vite frontend for SWGOH mod analysis and management. This app
 
 ### Development Workflow
 
-You need **3 services running** for full functionality:
+You need **3 terminal windows** for full functionality:
 
 ```bash
-# Terminal 1: Docker services (PostgreSQL, Redis)
+# Terminal 1: Docker services (ALL backend services)
 ./scripts/docker_up.sh
+# This starts:
+# - PostgreSQL (port 5432)
+# - Redis (port 6379)
+# - Comlink (port 3000)
+# - AE2 (port 3201)
+# - astrogators-table (port 8000) - runs in Docker
+# - mod-ledger (port 8001) - runs in Docker
+# - nginx (port 80)
 
-# Terminal 2: astrogators-table (authentication API)
-cd astrogators-table
-source venv/bin/activate
-uvicorn src.main:app --reload
-
-# Terminal 3: mod-ledger (mod data API)
-cd mod-ledger
-source venv/bin/activate
-uvicorn src.main:app --reload --port 8001
-
-# Terminal 4: astrogators-hub (for login/auth UI)
+# Terminal 2: astrogators-hub (frontend for login/auth UI)
 cd astrogators-hub
 npm run dev
 
-# Terminal 5: mod-ledger-ui (THIS APP)
+# Terminal 3: mod-ledger-ui (THIS APP - frontend)
 cd mod-ledger-ui
 npm run dev
 ```
+
+**Note**: Both backend services (astrogators-table and mod-ledger) run inside Docker containers, not as separate uvicorn processes. This is the standard deployment configuration.
 
 ### Available Scripts
 
@@ -157,8 +156,9 @@ VITE_MOD_LEDGER_PORT=8001
 ### Development
 
 - Runs as **standalone app** on port 5174
-- Requires 3 backend services (Docker, astrogators-table, mod-ledger)
-- Access via http://localhost:5174 or through astrogators-hub
+- Backend services run in Docker (started with `./scripts/docker_up.sh`)
+- Access via http://localhost:5174 or through astrogators-hub link
+- All backend APIs (auth, mod data) available through Docker services
 
 ### Production
 
