@@ -1,0 +1,44 @@
+.modSprite {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 2px solid;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.modSprite:hover {
+  transform: scale(1.05);
+}
+
+.shapeIcon {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Tier color variants */
+.tierGold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+  border-color: #b8860b;
+}
+
+.tierSilver {
+  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 50%, #c0c0c0 100%);
+  border-color: #808080;
+}
+
+.tierBronze {
+  background: linear-gradient(135deg, #cd7f32 0%, #e09856 50%, #cd7f32 100%);
+  border-color: #8b4513;
+}
+
+.tierGray {
+  background: linear-gradient(135deg, #555 0%, #777 50%, #555 100%);
+  border-color: #333;
+}
