@@ -1,5 +1,6 @@
 import { Modal, Badge } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
+import { formatDisplayValue } from '@/utils/formatters';
 import ModSprite from './ModSprite';
 import PipIndicator from './PipIndicator';
 import styles from './ModDetailModal.module.css';
@@ -37,7 +38,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
         <div className={styles.section}>
           <h4>Primary Stat</h4>
           <div className={styles.primaryStat}>
-            <span className={styles.statValue}>{mod.primary_stat.display_value}</span>
+            <span className={styles.statValue}>{formatDisplayValue(mod.primary_stat.display_value)}</span>
             <span className={styles.statName}>{mod.primary_stat.stat_name}</span>
           </div>
         </div>
@@ -50,7 +51,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
               {mod.secondary_stats.map((stat, index) => (
                 <div key={index} className={styles.secondaryStat}>
                   <div className={styles.statInfo}>
-                    <span className={styles.statValue}>{stat.display_value}</span>
+                    <span className={styles.statValue}>{formatDisplayValue(stat.display_value)}</span>
                     <span className={styles.statName}>{stat.stat_name}</span>
                   </div>
                   {stat.efficiency !== undefined && (

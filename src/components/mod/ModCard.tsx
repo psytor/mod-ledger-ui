@@ -1,5 +1,6 @@
 import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
+import { formatDisplayValue } from '@/utils/formatters';
 import ModSprite from './ModSprite';
 import PipIndicator from './PipIndicator';
 import styles from './ModCard.module.css';
@@ -19,7 +20,7 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
     <Card chamfered hoverable onClick={onClick} className={styles.modCard}>
       {/* TOP: Primary stat */}
       <div className={styles.primaryStat}>
-        <span className={styles.primaryValue}>{mod.primary_stat.display_value}</span>
+        <span className={styles.primaryValue}>{formatDisplayValue(mod.primary_stat.display_value)}</span>
         <span className={styles.primaryName}>{mod.primary_stat.stat_name}</span>
       </div>
 
@@ -41,7 +42,7 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
             <div key={index} className={styles.secondaryStat}>
               {stat ? (
                 <>
-                  <span className={styles.statValue}>{stat.display_value}</span>
+                  <span className={styles.statValue}>{formatDisplayValue(stat.display_value)}</span>
                   <span className={styles.statName}>{stat.stat_name}</span>
                 </>
               ) : (
