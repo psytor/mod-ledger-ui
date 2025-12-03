@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth, Button, Input, Card, Container } from '@psytor/astrogators-shared-ui';
+import { useAuth, Button, Input, Card, Container } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import styles from './AllyCodeSelectionPage.module.css';
 

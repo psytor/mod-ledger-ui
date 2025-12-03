@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { TopBar, Footer, Container } from '@psytor/astrogators-shared-ui';
+import { TopBar, Footer, Container } from 'astrogators-shared-ui';
 
 interface LayoutProps {
   children: ReactNode;

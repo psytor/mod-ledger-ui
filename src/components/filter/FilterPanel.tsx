@@ -1,4 +1,4 @@
-import { Button } from '@psytor/astrogators-shared-ui';
+import { Button } from 'astrogators-shared-ui';
 import { useFilters } from '@/contexts/FilterContext';
 import { useMods } from '@/contexts/ModContext';
 import { getFilterOptions } from '@/utils/modFilters';

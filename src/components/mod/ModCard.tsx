@@ -1,4 +1,4 @@
-import { Card } from '@psytor/astrogators-shared-ui';
+import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import ModSprite from './ModSprite';
 import PipIndicator from './PipIndicator';

@@ -1,4 +1,4 @@
-import { Modal, Badge } from '@psytor/astrogators-shared-ui';
+import { Modal, Badge } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import ModSprite from './ModSprite';
 import PipIndicator from './PipIndicator';

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider, initializeApiClient } from '@psytor/astrogators-shared-ui';
+import { AuthProvider, initializeApiClient } from 'astrogators-shared-ui';
 import { ModProvider } from './contexts/ModContext';
 import { FilterProvider } from './contexts/FilterContext';
 import App from './App';
@@ -14,16 +14,18 @@ const apiBaseURL = apiPort === '80' || apiPort === '443'
   : `http://${apiHost}:${apiPort}`;
 
 // Initialize API client for authentication
+// Note: Mod Ledger doesn't require authentication, so no redirect on unauthorized
 initializeApiClient({
   baseURL: apiBaseURL,
   onUnauthorized: () => {
-    window.location.href = '/login';
+    // Do nothing - mod ledger works without auth
+    console.log('API unauthorized - continuing without authentication');
   },
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/mod-ledger">
       <AuthProvider>
         <ModProvider>
           <FilterProvider>

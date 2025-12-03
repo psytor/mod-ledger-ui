@@ -4,6 +4,8 @@ import { resolve } from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Base path must match nginx location
+  base: '/mod-ledger/',
   plugins: [react()],
   resolve: {
     alias: {

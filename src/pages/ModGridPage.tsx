@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth, Button, Select, Loader } from '@psytor/astrogators-shared-ui';
+import { useAuth, Button, Select, Loader } from 'astrogators-shared-ui';
 import { useMods } from '@/contexts/ModContext';
 import { useFilters } from '@/contexts/FilterContext';
 import { applyFilters } from '@/utils/modFilters';
