@@ -5,6 +5,7 @@ import { AuthProvider } from 'astrogators-shared-ui';
 import { ModProvider } from './contexts/ModContext';
 import { FilterProvider } from './contexts/FilterContext';
 import App from './App';
+import './index.css';
 
 // Get API base URL for astrogators-table (authentication)
 // Defaults to nginx proxy path for development

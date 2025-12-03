@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { modLedgerApi } from '@/services/modLedgerApi';
 import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
@@ -24,7 +24,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
   const [modsError, setModsError] = useState<string | null>(null);
   const [evaluationsError, setEvaluationsError] = useState<string | null>(null);
 
-  const fetchMods = async (allyCode: string) => {
+  const fetchMods = useCallback(async (allyCode: string) => {
     setIsLoadingMods(true);
     setModsError(null);
     try {
@@ -37,9 +37,9 @@ export function ModProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoadingMods(false);
     }
-  };
+  }, []);
 
-  const fetchEvaluations = async (allyCode: string, profileName?: string) => {
+  const fetchEvaluations = useCallback(async (allyCode: string, profileName?: string) => {
     setIsLoadingEvaluations(true);
     setEvaluationsError(null);
     try {
@@ -52,7 +52,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoadingEvaluations(false);
     }
-  };
+  }, []);
 
   return (
     <ModContext.Provider
