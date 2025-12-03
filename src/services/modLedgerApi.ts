@@ -63,16 +63,15 @@ class ModLedgerApiClient {
   private baseUrl: string;
 
   constructor() {
-    const host = import.meta.env.VITE_MOD_LEDGER_HOST || 'localhost';
-    const port = import.meta.env.VITE_MOD_LEDGER_PORT || '8001';
-    this.baseUrl = `http://${host}:${port}`;
+    // Get full URL including nginx proxy path
+    this.baseUrl = import.meta.env.VITE_MOD_LEDGER_URL || 'http://localhost/mod-ledger';
   }
 
   /**
    * Fetch all mods for a player by ally code
    */
   async fetchPlayerMods(allyCode: string): Promise<ModListResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/mod-ledger/player/${allyCode}`);
+    const response = await fetch(`${this.baseUrl}/api/v1/player/${allyCode}`);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
@@ -86,7 +85,7 @@ class ModLedgerApiClient {
    * Evaluate player mods with optional profile selection
    */
   async evaluatePlayerMods(allyCode: string, profileName?: string): Promise<EvaluationResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/mod-ledger/evaluate/${allyCode}`, {
+    const response = await fetch(`${this.baseUrl}/api/v1/evaluate/${allyCode}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
