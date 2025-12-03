@@ -11,26 +11,26 @@
 /* Responsive breakpoints: 5 → 4 → 3 → 2 → 1 */
 @media (max-width: 1400px) {
   .modGrid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 240px));
   }
 }
 
 @media (max-width: 1024px) {
   .modGrid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 240px));
   }
 }
 
 @media (max-width: 768px) {
   .modGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 240px));
     gap: 1rem;
   }
 }
 
 @media (max-width: 480px) {
   .modGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 240px);
   }
 }
 
