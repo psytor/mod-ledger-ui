@@ -1,8 +1,11 @@
 .modGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1.5rem;
-  width: 100%;
+  grid-template-columns: repeat(5, minmax(0, 240px));
+  gap: 1rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  justify-content: center;
 }
 
 /* Responsive breakpoints: 5 → 4 → 3 → 2 → 1 */

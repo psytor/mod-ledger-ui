@@ -10,12 +10,17 @@ interface ModCardProps {
 }
 
 export default function ModCard({ mod, onClick }: ModCardProps) {
+  // Ensure we always have 4 secondary slots
+  const secondarySlots = Array(4).fill(null).map((_, index) => {
+    return mod.secondary_stats[index] || null;
+  });
+
   return (
     <Card chamfered hoverable onClick={onClick} className={styles.modCard}>
       {/* TOP: Primary stat */}
       <div className={styles.primaryStat}>
-        <div className={styles.primaryValue}>{mod.primary_stat.display_value}</div>
-        <div className={styles.primaryName}>{mod.primary_stat.stat_name}</div>
+        <span className={styles.primaryValue}>{mod.primary_stat.display_value}</span>
+        <span className={styles.primaryName}>{mod.primary_stat.stat_name}</span>
       </div>
 
       {/* MIDDLE ROW */}
@@ -30,18 +35,20 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
           </div>
         </div>
 
-        {/* MIDDLE-RIGHT: Secondary stats */}
+        {/* MIDDLE-RIGHT: Secondary stats - always 4 slots */}
         <div className={styles.middleRight}>
-          {mod.secondary_stats.length > 0 ? (
-            mod.secondary_stats.map((stat, index) => (
-              <div key={index} className={styles.secondaryStat}>
-                <span className={styles.statValue}>{stat.display_value}</span>
-                <span className={styles.statName}>{stat.stat_name}</span>
-              </div>
-            ))
-          ) : (
-            <div className={styles.noSecondaries}>No secondaries</div>
-          )}
+          {secondarySlots.map((stat, index) => (
+            <div key={index} className={styles.secondaryStat}>
+              {stat ? (
+                <>
+                  <span className={styles.statValue}>{stat.display_value}</span>
+                  <span className={styles.statName}>{stat.stat_name}</span>
+                </>
+              ) : (
+                <span className={styles.emptySlot}>—</span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
