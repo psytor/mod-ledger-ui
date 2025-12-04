@@ -1,44 +1,58 @@
-.modSprite {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.modSpriteContainer {
   position: relative;
-  border: 2px solid;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
+  display: inline-block;
+  /* Size set via inline style */
 }
 
-.modSprite:hover {
-  transform: scale(1.05);
+.modSpriteInner80px {
+  position: relative;
+  /* Built at 80px then scaled down - size and transform set via inline style */
+  /* Crisp rendering for scaled pixel art */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 
-.shapeIcon {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+.modShapeMain,
+.modShapeInner {
+  position: absolute;
+  background-repeat: no-repeat;
+  /* Crisp pixel art rendering */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 
-/* Tier color variants */
-.tierGold {
-  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
-  border-color: #b8860b;
+.modShapeSetIconContainer {
+  position: absolute;
+  background-repeat: no-repeat;
+  /* Better rendering for scaled icons */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
 }
 
-.tierSilver {
-  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 50%, #c0c0c0 100%);
-  border-color: #808080;
+/* Tier color CSS filters - convert white sprites to target colors */
+.tintGrey {
+  filter: brightness(0) saturate(100%) invert(85%) sepia(10%) saturate(1300%) hue-rotate(170deg) brightness(110%) contrast(90%);
 }
 
-.tierBronze {
-  background: linear-gradient(135deg, #cd7f32 0%, #e09856 50%, #cd7f32 100%);
-  border-color: #8b4513;
+.tintGreen {
+  filter: brightness(0) saturate(100%) invert(77%) sepia(96%) saturate(642%) hue-rotate(38deg) brightness(105%) contrast(95%);
 }
 
-.tierGray {
-  background: linear-gradient(135deg, #555 0%, #777 50%, #555 100%);
-  border-color: #333;
+.tintBlue {
+  filter: brightness(0) saturate(100%) invert(52%) sepia(73%) saturate(2375%) hue-rotate(188deg) brightness(102%) contrast(101%);
+}
+
+.tintPurple {
+  filter: brightness(0) saturate(100%) invert(32%) sepia(98%) saturate(1255%) hue-rotate(248deg) brightness(97%) contrast(92%);
+}
+
+.tintGold {
+  filter: brightness(0) saturate(100%) invert(85%) sepia(56%) saturate(552%) hue-rotate(353deg) brightness(101%) contrast(104%);
 }

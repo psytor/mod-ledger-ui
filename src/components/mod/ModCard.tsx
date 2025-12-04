@@ -28,7 +28,13 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
       <div className={styles.middleRow}>
         {/* MIDDLE-LEFT: Sprite, level, tier, pips */}
         <div className={styles.middleLeft}>
-          <ModSprite shape={mod.shape} tier={mod.tier} />
+          <ModSprite
+            shape={mod.shape}
+            tier={mod.tier}
+            set={mod.set}
+            is6Dot={mod.dots === 6}
+            size={80}
+          />
           <div className={styles.modMeta}>
             <div className={styles.modLevel}>Lvl {mod.level}</div>
             <div className={styles.modTier}>{mod.tier_name}</div>

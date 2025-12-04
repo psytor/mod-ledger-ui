@@ -1,38 +1,125 @@
 import styles from './ModSprite.module.css';
+import {
+  MOD_SHAPE_SPRITES_1TO5DOT,
+  MOD_SHAPE_SPRITES_6DOT,
+  MOD_SET_SPRITES,
+  SET_ICON_LAYOUT_CONFIG,
+  type ModShape,
+  type ModSet,
+  type ModTierColor
+} from '@/utils/modSpriteConfig';
 
 interface ModSpriteProps {
   shape: string;
   tier: number;
+  set: string;
+  is6Dot: boolean;
+  size?: number;
 }
 
-export default function ModSprite({ shape, tier }: ModSpriteProps) {
-  // Determine tier color based on tier number
-  const getTierClass = (tier: number): string => {
-    if (tier >= 5) return styles.tierGold;   // A tier
-    if (tier >= 4) return styles.tierSilver; // B tier
-    if (tier >= 3) return styles.tierBronze; // C tier
-    return styles.tierGray;                  // D/E tier
+export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSpriteProps) {
+  // Map tier number to color name
+  const getTierColor = (tier: number): ModTierColor => {
+    if (tier >= 5) return 'Gold';
+    if (tier >= 4) return 'Purple';
+    if (tier >= 3) return 'Blue';
+    if (tier >= 2) return 'Green';
+    return 'Grey';
   };
 
-  // Map shape to display name (for accessibility/tooltip)
-  const getShapeName = (shape: string): string => {
-    const shapeMap: Record<string, string> = {
-      'Arrow': 'Arrow',
-      'Circle': 'Circle',
-      'Cross': 'Cross',
-      'Diamond': 'Diamond',
-      'Square': 'Square',
-      'Triangle': 'Triangle',
-    };
-    return shapeMap[shape] || shape;
+  // Select sprite atlas based on is6Dot
+  const shapeSpriteData = is6Dot ? MOD_SHAPE_SPRITES_6DOT : MOD_SHAPE_SPRITES_1TO5DOT;
+  const shapeCoords = shapeSpriteData[shape as ModShape];
+
+  // Handle unknown shape gracefully
+  if (!shapeCoords) {
+    console.warn(`Unknown mod shape: ${shape}`);
+    return (
+      <div
+        className={styles.modSpriteContainer}
+        style={{ width: size, height: size }}
+        title={`Unknown shape: ${shape}`}
+      />
+    );
+  }
+
+  const tierColor = getTierColor(tier);
+
+  // Calculate centering offsets for Main layer
+  const mainLeftOffset = (size - shapeCoords.Main.w) / 2;
+  const mainTopOffset = (size - shapeCoords.Main.h) / 2;
+
+  // Calculate centering offsets for Inner layer
+  const innerLeftOffset = (size - shapeCoords.Inner.w) / 2;
+  const innerTopOffset = (size - shapeCoords.Inner.h) / 2;
+
+  // Render set icon with 3x upscaling
+  const renderSetIcon = () => {
+    const setCoords = MOD_SET_SPRITES[set as ModSet];
+    const layoutConfig = SET_ICON_LAYOUT_CONFIG[shape as ModShape]?.[set as ModSet];
+
+    if (!setCoords || !layoutConfig) {
+      return null;
+    }
+
+    const upscaleFactor = 3;
+    const targetSize = layoutConfig.size;
+    const containerSizeScaled = targetSize * upscaleFactor;
+    const scaleX = (targetSize * upscaleFactor) / setCoords.w;
+    const scaleY = (targetSize * upscaleFactor) / setCoords.h;
+
+    return (
+      <div
+        className={`${styles.modShapeSetIconContainer} ${styles[`tint${tierColor}`]}`}
+        style={{
+          width: containerSizeScaled,
+          height: containerSizeScaled,
+          left: layoutConfig.offsetX,
+          top: layoutConfig.offsetY,
+          backgroundImage: `url(/mod-ledger/assets/sprites/misc_atlas.png)`,
+          backgroundPosition: `-${setCoords.x * scaleX}px -${setCoords.y * scaleY}px`,
+          backgroundSize: `${2048 * scaleX}px ${2048 * scaleY}px`,
+          transform: `scale(${1 / upscaleFactor})`,
+          transformOrigin: '0 0'
+        }}
+      />
+    );
   };
 
   return (
     <div
-      className={`${styles.modSprite} ${getTierClass(tier)}`}
-      title={`${getShapeName(shape)} - Tier ${tier}`}
+      className={styles.modSpriteContainer}
+      style={{ width: size, height: size }}
+      title={`${shape} - Tier ${tier} (${tierColor})`}
     >
-      <span className={styles.shapeIcon}>{shape.charAt(0)}</span>
+      {/* Layer 1: Main Shape (untinted) */}
+      <div
+        className={styles.modShapeMain}
+        style={{
+          width: shapeCoords.Main.w,
+          height: shapeCoords.Main.h,
+          left: mainLeftOffset,
+          top: mainTopOffset,
+          backgroundImage: `url(/mod-ledger/assets/sprites/charactermods_datacard_atlas.png)`,
+          backgroundPosition: `-${shapeCoords.Main.x}px -${shapeCoords.Main.y}px`
+        }}
+      />
+
+      {/* Layer 2: Inner Shape (tinted based on tier) */}
+      <div
+        className={`${styles.modShapeInner} ${styles[`tint${tierColor}`]}`}
+        style={{
+          width: shapeCoords.Inner.w,
+          height: shapeCoords.Inner.h,
+          left: innerLeftOffset,
+          top: innerTopOffset,
+          backgroundImage: `url(/mod-ledger/assets/sprites/charactermods_datacard_atlas.png)`,
+          backgroundPosition: `-${shapeCoords.Inner.x}px -${shapeCoords.Inner.y}px`
+        }}
+      />
+
+      {/* Layer 3: Set Icon (with upscaling) */}
+      {renderSetIcon()}
     </div>
   );
 }
