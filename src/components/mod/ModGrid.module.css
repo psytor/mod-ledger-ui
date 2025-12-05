@@ -1,36 +1,30 @@
 .modGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 240px));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
-  justify-content: center;
+  padding: 0 1rem;
 }
 
-/* Responsive breakpoints: 5 → 4 → 3 → 2 → 1 */
-@media (max-width: 1400px) {
+/* Responsive breakpoints for column counts */
+@media (max-width: 1200px) {
   .modGrid {
-    grid-template-columns: repeat(4, minmax(0, 240px));
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 920px) {
   .modGrid {
-    grid-template-columns: repeat(3, minmax(0, 240px));
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .modGrid {
-    grid-template-columns: repeat(2, minmax(0, 240px));
-    gap: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .modGrid {
-    grid-template-columns: minmax(0, 240px);
+    grid-template-columns: 1fr;
+    max-width: 400px;
   }
 }
 

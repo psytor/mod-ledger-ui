@@ -37,7 +37,6 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
           />
           <div className={styles.modMeta}>
             <div className={styles.modLevel}>Lvl {mod.level}</div>
-            <div className={styles.modTier}>{mod.tier_name}</div>
             <PipIndicator dots={mod.dots} />
           </div>
         </div>
