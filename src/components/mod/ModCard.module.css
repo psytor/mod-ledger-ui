@@ -1,139 +1,353 @@
+/* ========== CARD WRAPPER (for external glow) ========== */
+
+.cardWrapper {
+  position: relative;
+}
+
+/* External glow background - tier-colored, shows on hover */
+.glowBackground {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  opacity: 0;
+  transition: all 300ms ease-in-out;
+  z-index: 0;
+}
+
+.cardWrapper:hover .glowBackground {
+  opacity: 1;
+  filter: blur(16px);
+}
+
+/* Tier-specific glow gradients */
+.glowGrey {
+  background: linear-gradient(to right, rgba(180, 186, 199, 0.2), rgba(180, 186, 199, 0.2));
+}
+
+.glowGreen {
+  background: linear-gradient(to right, rgba(132, 204, 22, 0.2), rgba(34, 197, 94, 0.2));
+}
+
+.glowBlue {
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.3));
+}
+
+.glowPurple {
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.3));
+}
+
+.glowGold {
+  background: linear-gradient(to right, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.3));
+}
+
+/* ========== MAIN MOD CARD ========== */
+
 .modCard {
+  position: relative;
+  background: rgba(17, 24, 39, 0.9);
+  backdrop-filter: blur(8px);
+  border: 2px solid var(--border-color, var(--color-border));
+  min-height: 200px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 1;
+}
+
+.cardWrapper:hover .modCard {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Tier-based border colors (using CSS custom property) */
+.modCard.tierGrey {
+  --border-color: #b4bac7;
+}
+
+.modCard.tierGreen {
+  --border-color: #84cc16;
+}
+
+.modCard.tierBlue {
+  --border-color: #3b82f6;
+}
+
+.modCard.tierPurple {
+  --border-color: #8b5cf6;
+}
+
+.modCard.tierGold {
+  --border-color: #fbbf24;
+}
+
+/* 6-Dot special styling with gradient border effect */
+.modCard.sixDot {
+  background: linear-gradient(135deg,
+    rgba(17, 24, 39, 0.9) 0%,
+    rgba(42, 53, 72, 0.8) 100%
+  );
+}
+
+.modCard.sixDot::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #60a5fa, #a855f7, #f59e0b);
+  border-radius: inherit;
+  opacity: 0.08; /* Very subtle gradient effect */
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ========== BADGES (Positioned Absolute) ========== */
+
+.badge {
+  position: absolute;
+  top: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 10;
+  color: white;
+}
+
+.badgeTopLeft {
+  left: 8px;
+}
+
+/* Evaluation badge colors */
+.badgeKeep {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+}
+
+.badgeSell {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+}
+
+.badgeUpgrade {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+.badgeSlice {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+}
+
+.badgeSlicePriority {
+  background: linear-gradient(135deg, #0891b2, #06b6d4);
+}
+
+/* 6-Dot badge */
+.sixDotBadge {
+  background: linear-gradient(135deg, #4338ca, #7c3aed);
+  font-weight: 700;
+}
+
+/* ========== LOCK INDICATOR ========== */
+
+.lockIndicator {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 8px;
+  background: rgba(31, 41, 55, 0.8);
+  border: 1px solid rgba(75, 85, 99, 0.6);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  z-index: 10;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.lockIndicator:hover {
+  transform: scale(1.1);
+  background: rgba(55, 65, 81, 0.8);
+}
+
+/* ========== MAIN CARD CONTENT ========== */
+
+.cardContent {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  min-height: 220px;
+  height: 100%;
+  padding: 2.5rem 1rem 1rem 1rem; /* Increased top padding for badge space */
 }
 
-/* TOP SECTION: Primary stat - single line */
-.primaryStat {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  background: var(--color-surface-light, rgba(255, 255, 255, 0.05));
-  border-radius: 4px;
-}
+/* ========== TOP SECTION (Left + Right columns) ========== */
 
-.primaryValue {
-  font-size: 1rem;
-  font-weight: bold;
-  color: var(--color-primary, #4a9eff);
-}
-
-.primaryName {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary, #999);
-  letter-spacing: 0.05em;
-}
-
-/* MIDDLE SECTION */
-.middleRow {
+.topSection {
   display: flex;
   gap: 1rem;
   flex: 1;
+  margin-bottom: 1rem;
 }
 
-/* MIDDLE-LEFT: Sprite and meta */
-.middleLeft {
+/* LEFT COLUMN: Dots, Sprite, Level */
+.leftColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  min-width: 90px;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.dotsContainer {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.dotActive {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #facc15;
+}
+
+.dotInactive {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4b5563;
+}
+
+.spriteContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 .modMeta {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
+  gap: 4px;
 }
 
 .modLevel {
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-primary, #fff);
+  color: #f3f4f6;
+  text-align: center;
 }
 
-.modTier {
-  font-size: 0.7rem;
-  color: var(--color-text-secondary, #999);
-  font-weight: 500;
-}
-
-/* MIDDLE-RIGHT: Secondary stats */
-.middleRight {
+/* RIGHT COLUMN: Primary + Secondary stats */
+.rightColumn {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  justify-content: center;
+  gap: 8px;
+}
+
+/* PRIMARY STAT */
+.primaryStat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(26, 32, 44, 0.8);
+  border-radius: 6px;
+}
+
+.primaryName {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.primaryValue {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+/* SECONDARY STATS */
+.secondaryStats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .secondaryStat {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.2rem 0.5rem;
-  background: var(--color-surface-light, rgba(255, 255, 255, 0.03));
-  border-radius: 3px;
-  font-size: 0.8rem;
-  min-height: 24px;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(26, 32, 44, 0.8);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  min-height: 28px;
 }
 
 .statValue {
   font-weight: 600;
-  color: var(--color-text-primary, #fff);
+  color: #f3f4f6;
   min-width: 42px;
 }
 
 .statName {
-  color: var(--color-text-secondary, #999);
-  font-size: 0.75rem;
+  color: #9ca3af;
   flex: 1;
 }
 
 .emptySlot {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.15));
+  color: rgba(156, 163, 175, 0.3);
   font-size: 0.75rem;
   text-align: center;
   width: 100%;
 }
 
-/* BOTTOM SECTION */
-.bottomRow {
+/* ========== BOTTOM SECTION ========== */
+
+.bottomSection {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 0.375rem;
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-  font-size: 0.8rem;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(75, 85, 99, 0.4);
 }
 
-.character {
-  font-weight: 500;
-  color: var(--color-text-primary, #fff);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bottomRight {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.calibrationRow {
+  text-align: center;
 }
 
 .calibration {
-  color: var(--color-accent, #ffa500);
-  font-size: 0.8rem;
+  color: #22d3ee;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
-.lockIcon {
-  font-size: 1rem;
+.characterRow {
+  text-align: center;
+}
+
+.character {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* ========== RESPONSIVE ========== */
+
+@media (max-width: 768px) {
+  .cardContent {
+    padding: 1.5rem 0.75rem 0.75rem 0.75rem;
+  }
+
+  .leftColumn {
+    width: 70px;
+  }
+
+  .spriteContainer {
+    transform: scale(0.9);
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    padding: 4px 8px;
+  }
 }
