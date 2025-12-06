@@ -148,6 +148,9 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
                       <>
                         <span className={styles.statValue}>{formatDisplayValue(stat.display_value)}</span>
                         <span className={styles.statName}>{stat.stat_name}</span>
+                        {stat.efficiency !== undefined && stat.efficiency !== null && (
+                          <span className={styles.efficiency}>({stat.efficiency.toFixed(1)}%)</span>
+                        )}
                       </>
                     ) : (
                       <span className={styles.emptySlot}>—</span>

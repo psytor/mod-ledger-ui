@@ -294,6 +294,13 @@
   flex: 1;
 }
 
+.efficiency {
+  color: #60a5fa;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-left: auto;
+}
+
 .emptySlot {
   color: rgba(156, 163, 175, 0.3);
   font-size: 0.75rem;
