@@ -1,9 +1,14 @@
-import type { ParsedMod } from '@/services/modLedgerApi';
+import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
 
 /**
  * Sort mods by the specified field and order
  */
-export function sortMods(mods: ParsedMod[], sortBy: string, sortOrder: 'asc' | 'desc'): ParsedMod[] {
+export function sortMods(
+  mods: ParsedMod[],
+  sortBy: string,
+  sortOrder: 'asc' | 'desc',
+  evaluations: Record<string, ModEvaluation> | null = null
+): ParsedMod[] {
   const sorted = [...mods];
 
   sorted.sort((a, b) => {
@@ -46,6 +51,34 @@ export function sortMods(mods: ParsedMod[], sortBy: string, sortOrder: 'asc' | '
         const aEfficiency = calculateAverageEfficiency(a);
         const bEfficiency = calculateAverageEfficiency(b);
         comparison = aEfficiency - bEfficiency;
+        break;
+
+      case 'overall':
+        // Sort by overall evaluation score
+        const aOverall = evaluations?.[a.mod_id]?.scores.overall || 0;
+        const bOverall = evaluations?.[b.mod_id]?.scores.overall || 0;
+        comparison = aOverall - bOverall;
+        break;
+
+      case 'eval_quality':
+        // Sort by quality evaluation score
+        const aQuality = evaluations?.[a.mod_id]?.scores.quality || 0;
+        const bQuality = evaluations?.[b.mod_id]?.scores.quality || 0;
+        comparison = aQuality - bQuality;
+        break;
+
+      case 'synergy':
+        // Sort by synergy evaluation score
+        const aSynergy = evaluations?.[a.mod_id]?.scores.synergy || 0;
+        const bSynergy = evaluations?.[b.mod_id]?.scores.synergy || 0;
+        comparison = aSynergy - bSynergy;
+        break;
+
+      case 'speed_bonus':
+        // Sort by speed bonus evaluation score
+        const aSpeedBonus = evaluations?.[a.mod_id]?.scores.speed_bonus || 0;
+        const bSpeedBonus = evaluations?.[b.mod_id]?.scores.speed_bonus || 0;
+        comparison = aSpeedBonus - bSpeedBonus;
         break;
 
       default:

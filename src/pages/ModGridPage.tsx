@@ -13,7 +13,16 @@ import styles from './ModGridPage.module.css';
 
 export default function ModGridPage() {
   const { selectedAllyCode } = useAuth();
-  const { mods, isLoadingMods, modsError, fetchMods } = useMods();
+  const {
+    mods,
+    isLoadingMods,
+    modsError,
+    fetchMods,
+    evaluations,
+    isLoadingEvaluations,
+    evaluationsError,
+    fetchEvaluations,
+  } = useMods();
   const { filters, sortBy, sortOrder, setSortBy, setSortOrder, togglePanel, isPanelOpen } = useFilters();
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
@@ -27,8 +36,8 @@ export default function ModGridPage() {
   }, [selectedAllyCode, fetchMods]);
 
   // Apply filters and sorting
-  const filteredMods = applyFilters(mods, filters);
-  const sortedMods = sortMods(filteredMods, sortBy, sortOrder);
+  const filteredMods = applyFilters(mods, filters, evaluations);
+  const sortedMods = sortMods(filteredMods, sortBy, sortOrder, evaluations);
 
   const handleModClick = (mod: ParsedMod) => {
     setSelectedMod(mod);
@@ -74,6 +83,7 @@ export default function ModGridPage() {
             <h1>Mods</h1>
             <p className={styles.modCount}>
               Showing {sortedMods.length} of {mods.length} mods
+              {isLoadingEvaluations && <span className={styles.evaluatingText}> • Evaluating...</span>}
             </p>
           </div>
 
@@ -93,6 +103,10 @@ export default function ModGridPage() {
                 <option value="tier">Tier</option>
                 <option value="speed">Speed</option>
                 <option value="quality">Quality</option>
+                <option value="overall">Overall Score</option>
+                <option value="eval_quality">Eval Quality</option>
+                <option value="synergy">Synergy</option>
+                <option value="speed_bonus">Speed Bonus</option>
               </Select>
 
               <Button
@@ -113,8 +127,22 @@ export default function ModGridPage() {
           </div>
         </div>
 
+        {/* Evaluation error banner (non-blocking) */}
+        {evaluationsError && (
+          <div className={styles.evaluationError}>
+            <span>⚠️ Evaluation failed: {evaluationsError}</span>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={() => selectedAllyCode && fetchEvaluations(selectedAllyCode)}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
+
         {/* Mod grid */}
-        <ModGrid mods={sortedMods} onModClick={handleModClick} />
+        <ModGrid mods={sortedMods} onModClick={handleModClick} evaluations={evaluations} />
 
         {/* Filter panel */}
         <FilterPanel />
@@ -124,6 +152,7 @@ export default function ModGridPage() {
           mod={selectedMod}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
+          evaluation={selectedMod ? evaluations?.[selectedMod.mod_id] : undefined}
         />
       </div>
     </Layout>

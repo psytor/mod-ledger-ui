@@ -129,7 +129,7 @@
 }
 
 .badgeUpgrade {
-  background: linear-gradient(135deg, #d97706, #f59e0b);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
 }
 
 .badgeSlice {
@@ -137,7 +137,17 @@
 }
 
 .badgeSlicePriority {
-  background: linear-gradient(135deg, #0891b2, #06b6d4);
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  animation: priority-pulse 2s ease-in-out infinite;
+}
+
+@keyframes priority-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.8);
+  }
 }
 
 /* 6-Dot badge */

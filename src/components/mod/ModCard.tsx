@@ -1,5 +1,5 @@
 import { Card } from 'astrogators-shared-ui';
-import type { ParsedMod } from '@/services/modLedgerApi';
+import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
 import { formatDisplayValue } from '@/utils/formatters';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
@@ -7,9 +7,7 @@ import styles from './ModCard.module.css';
 interface ModCardProps {
   mod: ParsedMod;
   onClick: () => void;
-  evaluation?: {
-    recommendation: 'SELL' | 'UPGRADE' | 'KEEP' | 'SLICE' | 'SLICE-PRIORITY';
-  };
+  evaluation?: ModEvaluation;
 }
 
 // Tier color mapping for borders

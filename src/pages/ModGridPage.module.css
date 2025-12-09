@@ -71,6 +71,38 @@
   min-width: 150px;
 }
 
+.evaluatingText {
+  color: var(--color-primary, #3b82f6);
+  font-style: italic;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.evaluationError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 8px;
+  color: var(--color-text-primary, #fff);
+  margin-bottom: 1rem;
+}
+
+.evaluationError span {
+  flex: 1;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .header {

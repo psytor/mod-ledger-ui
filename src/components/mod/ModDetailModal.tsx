@@ -1,5 +1,5 @@
 import { Modal } from 'astrogators-shared-ui';
-import type { ParsedMod } from '@/services/modLedgerApi';
+import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
 import { formatDisplayValue } from '@/utils/formatters';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
@@ -8,10 +8,29 @@ interface ModDetailModalProps {
   mod: ParsedMod | null;
   isOpen: boolean;
   onClose: () => void;
+  evaluation?: ModEvaluation;
 }
 
-export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalProps) {
+export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: ModDetailModalProps) {
   if (!isOpen || !mod) return null;
+
+  // Helper to format recommendation labels
+  const formatRecommendation = (rec: string): string => {
+    if (rec === 'SLICE-PRIORITY') return 'Slice Priority';
+    return rec.charAt(0) + rec.slice(1).toLowerCase();
+  };
+
+  // Helper to get recommendation badge class
+  const getRecommendationClass = (rec: string): string => {
+    switch (rec) {
+      case 'KEEP': return styles.badgeKeep;
+      case 'SELL': return styles.badgeSell;
+      case 'UPGRADE': return styles.badgeUpgrade;
+      case 'SLICE': return styles.badgeSlice;
+      case 'SLICE-PRIORITY': return styles.badgeSlicePriority;
+      default: return '';
+    }
+  };
 
   return (
     // The shared Modal component creates the overlay and a base modal-content div.
@@ -57,6 +76,60 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
             )}
           </div>
         </div>
+
+        {/* Evaluation section */}
+        {evaluation && (
+          <div className={styles['modal-evaluation-section']}>
+            <h3>Evaluation Results</h3>
+
+            <div className={styles['evaluation-recommendation']}>
+              <span className={styles['eval-label']}>Recommendation:</span>
+              <span className={`${styles['eval-badge']} ${getRecommendationClass(evaluation.recommendation)}`}>
+                {formatRecommendation(evaluation.recommendation)}
+              </span>
+            </div>
+
+            <div className={styles['evaluation-scores']}>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Overall</span>
+                <span className={styles['score-value']}>{evaluation.scores.overall.toFixed(1)}</span>
+              </div>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Synergy</span>
+                <span className={styles['score-value']}>{evaluation.scores.synergy.toFixed(1)}</span>
+              </div>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Quality</span>
+                <span className={styles['score-value']}>{evaluation.scores.quality.toFixed(1)}</span>
+              </div>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Versatility</span>
+                <span className={styles['score-value']}>{evaluation.scores.versatility.toFixed(1)}</span>
+              </div>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Speed Bonus</span>
+                <span className={styles['score-value']}>{evaluation.scores.speed_bonus.toFixed(1)}</span>
+              </div>
+              {evaluation.scores.upgrade_potential !== null && (
+                <div className={styles['score-item']}>
+                  <span className={styles['score-label']}>Upgrade Potential</span>
+                  <span className={styles['score-value']}>{evaluation.scores.upgrade_potential.toFixed(1)}</span>
+                </div>
+              )}
+              {evaluation.scores.slice_value !== null && (
+                <div className={styles['score-item']}>
+                  <span className={styles['score-label']}>Slice Value</span>
+                  <span className={styles['score-value']}>{evaluation.scores.slice_value.toFixed(1)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className={styles['evaluation-reasoning']}>
+              <h4>Reasoning</h4>
+              <p>{evaluation.reasoning}</p>
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );

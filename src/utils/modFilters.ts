@@ -1,10 +1,14 @@
-import type { ParsedMod } from '@/services/modLedgerApi';
+import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
 import type { ModFilters } from '@/contexts/FilterContext';
 
 /**
  * Apply all active filters to the mods array
  */
-export function applyFilters(mods: ParsedMod[], filters: ModFilters): ParsedMod[] {
+export function applyFilters(
+  mods: ParsedMod[],
+  filters: ModFilters,
+  evaluations: Record<string, ModEvaluation> | null = null
+): ParsedMod[] {
   return mods.filter((mod) => {
     // Filter by set
     if (filters.sets.length > 0 && !filters.sets.includes(mod.set)) {
@@ -42,6 +46,14 @@ export function applyFilters(mods: ParsedMod[], filters: ModFilters): ParsedMod[
     }
     if (filters.locked === 'unlocked' && mod.locked) {
       return false;
+    }
+
+    // Filter by recommendation
+    if (filters.recommendations.length > 0 && evaluations) {
+      const evaluation = evaluations[mod.mod_id];
+      if (!evaluation || !filters.recommendations.includes(evaluation.recommendation)) {
+        return false;
+      }
     }
 
     return true;

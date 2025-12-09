@@ -40,8 +40,8 @@ export interface EvaluationScores {
   quality: number;
   versatility: number;
   speed_bonus: number;
-  upgrade_potential: number;
-  slice_value: number;
+  upgrade_potential: number | null;
+  slice_value: number | null;
   overall: number;
 }
 
@@ -57,6 +57,17 @@ export interface EvaluationResponse {
   profile_name: string;
   evaluations: Record<string, ModEvaluation>;
   cached: boolean;
+}
+
+export interface ProfileMetadata {
+  name: string;
+  description: string;
+  version: string;
+}
+
+export interface ProfileListResponse {
+  total: number;
+  profiles: ProfileMetadata[];
 }
 
 class ModLedgerApiClient {
@@ -96,6 +107,20 @@ class ModLedgerApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
       throw new Error(error.detail || `Failed to evaluate mods: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * List all available evaluation profiles
+   */
+  async listProfiles(): Promise<ProfileListResponse> {
+    const response = await fetch(`${this.baseUrl}/api/v1/profiles`);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || `Failed to fetch profiles: ${response.statusText}`);
     }
 
     return response.json();

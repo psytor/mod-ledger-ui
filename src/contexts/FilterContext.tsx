@@ -9,6 +9,7 @@ export interface ModFilters {
   primaries: string[];
   characters: string[];
   locked: 'all' | 'locked' | 'unlocked';
+  recommendations: string[];
 }
 
 interface FilterContextType {
@@ -32,6 +33,7 @@ const defaultFilters: ModFilters = {
   primaries: [],
   characters: [],
   locked: 'all',
+  recommendations: [],
 };
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);

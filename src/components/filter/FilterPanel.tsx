@@ -2,14 +2,37 @@ import { Button } from 'astrogators-shared-ui';
 import { useFilters } from '@/contexts/FilterContext';
 import { useMods } from '@/contexts/ModContext';
 import { getFilterOptions } from '@/utils/modFilters';
+import { useAuth } from 'astrogators-shared-ui';
 import styles from './FilterPanel.module.css';
 
 export default function FilterPanel() {
   const { isPanelOpen, closePanel, filters, setFilter, clearFilters } = useFilters();
-  const { mods } = useMods();
+  const {
+    mods,
+    selectedProfile,
+    setSelectedProfile,
+    availableProfiles,
+    isLoadingProfiles,
+    fetchEvaluations,
+  } = useMods();
+  const { selectedAllyCode } = useAuth();
 
   // Get available filter options from current mods
   const options = getFilterOptions(mods);
+
+  // Helper to format recommendation labels
+  const formatRecommendation = (rec: string): string => {
+    if (rec === 'SLICE-PRIORITY') return 'Slice Priority';
+    return rec.charAt(0) + rec.slice(1).toLowerCase();
+  };
+
+  // Handle profile change
+  const handleProfileChange = (newProfile: string) => {
+    setSelectedProfile(newProfile);
+    if (selectedAllyCode) {
+      fetchEvaluations(selectedAllyCode, newProfile);
+    }
+  };
 
   const handleCheckboxChange = (
     key: keyof typeof filters,
@@ -43,6 +66,43 @@ export default function FilterPanel() {
             <Button variant="secondary" onClick={clearFilters} fullWidth>
               Clear All Filters
             </Button>
+          </div>
+
+          {/* Evaluation Profile */}
+          <div className={styles.filterSection}>
+            <h4>Evaluation Profile</h4>
+            <select
+              className={styles.profileSelect}
+              value={selectedProfile}
+              onChange={(e) => handleProfileChange(e.target.value)}
+              disabled={isLoadingProfiles}
+            >
+              {availableProfiles.map((profile) => (
+                <option key={profile.name} value={profile.name} title={profile.description}>
+                  {profile.name}
+                </option>
+              ))}
+            </select>
+            {selectedProfile && (
+              <p className={styles.profileDescription}>
+                {availableProfiles.find((p) => p.name === selectedProfile)?.description}
+              </p>
+            )}
+          </div>
+
+          {/* Recommendations */}
+          <div className={styles.filterSection}>
+            <h4>Recommendations</h4>
+            {['SELL', 'UPGRADE', 'KEEP', 'SLICE', 'SLICE-PRIORITY'].map((rec) => (
+              <label key={rec} className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={(filters.recommendations as string[]).includes(rec)}
+                  onChange={(e) => handleCheckboxChange('recommendations', rec, e.target.checked)}
+                />
+                <span>{formatRecommendation(rec)}</span>
+              </label>
+            ))}
           </div>
 
           {/* Mod Sets */}
