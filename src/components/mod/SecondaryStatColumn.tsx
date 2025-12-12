@@ -12,7 +12,7 @@ interface RollDetail {
 
 // Define the type for a secondary stat
 interface SecondaryStat {
-  stat_name: keyof typeof STAT_NAMES;
+  stat_name: string;
   display_value: string;
   rolls_details?: RollDetail[];
 }
@@ -22,6 +22,21 @@ interface SecondaryStatColumnProps {
 }
 
 const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
+  // Color coding based on efficiency percentage - Blue scale from dark to bright
+  const getBarColorClass = (efficiency: number): string => {
+    if (efficiency >= 80) return styles.fillExcellent;    // blue-500
+    if (efficiency >= 60) return styles.fillGood;         // blue-600
+    if (efficiency >= 40) return styles.fillAverage;      // blue-700
+    if (efficiency >= 20) return styles.fillBelowAverage; // blue-800
+    return styles.fillPoor;                               // blue-900
+  };
+
+  // Text color based on efficiency (lighter text on darker backgrounds)
+  const getTextColorClass = (efficiency: number): string => {
+    if (efficiency >= 60) return styles.textLight;
+    return styles.textDark;
+  };
+
   const renderRolls = () => {
     const rolls = stat.rolls_details || [];
     const rollElements = [];
@@ -34,11 +49,11 @@ const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
           <div key={i} className={styles.statRoll}>
             {/* The filling bar, positioned absolutely from the left */}
             <div
-              className={styles.efficiencyBar}
-              style={{ width: `${efficiency}%` }}
+              className={`${styles.efficiencyBar} ${getBarColorClass(efficiency)}`}
+              style={{ width: `${Math.max(efficiency, 8)}%` }} // Minimum 8% for visibility
             />
             {/* The text, centered absolutely */}
-            <span className={styles.efficiencyText}>
+            <span className={`${styles.efficiencyText} ${getTextColorClass(efficiency)}`}>
               {efficiency.toFixed(1)}%
             </span>
           </div>

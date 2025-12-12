@@ -167,10 +167,30 @@
   position: absolute; /* Positioned relative to .statRoll */
   left: 0;
   top: 0;
-  background: linear-gradient(to right, #2563eb, #3b82f6);
   height: 100%;
   transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   z-index: 1; /* Bar is below the text */
+}
+
+/* Blue gradient scale based on efficiency */
+.fillExcellent {
+  background: #3b82f6; /* blue-500 - Excellent rolls (80%+) */
+}
+
+.fillGood {
+  background: #2563eb; /* blue-600 - Good rolls (60-80%) */
+}
+
+.fillAverage {
+  background: #1d4ed8; /* blue-700 - Average rolls (40-60%) */
+}
+
+.fillBelowAverage {
+  background: #1e40af; /* blue-800 - Below average rolls (20-40%) */
+}
+
+.fillPoor {
+  background: #1e3a8a; /* blue-900 - Poor rolls (<20%) */
 }
 
 .efficiencyText {
@@ -180,12 +200,19 @@
   top: 50%;
   transform: translateY(-50%);
   text-align: center;
-  color: #ffffff;
   font-size: 12px;
   font-weight: 600;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
   z-index: 2; /* Text is above the bar */
+}
+
+.textLight {
+  color: #ffffff;
+}
+
+.textDark {
+  color: #d1d5db;
 }
 
 /* Evaluation Section Styles */

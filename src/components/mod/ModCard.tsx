@@ -78,13 +78,16 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
 
       <Card
         chamfered
-        chamferSize="md"
+        chamferSize="asymmetric"
+        showDiagonalBorders
+        diagonalBorderColor={tierBorderColor}
         hoverable
         padding="none"
         onClick={onClick}
         className={`${styles.modCard} ${tierClass} ${isSixDot ? styles.sixDot : ''}`}
         style={{ '--border-color': tierBorderColor } as React.CSSProperties}
       >
+
         {/* Evaluation Badge - Top Left */}
         {evaluationDisplay && (
           <div className={`${styles.badge} ${styles.badgeTopLeft} ${evaluationDisplay.class}`}>
