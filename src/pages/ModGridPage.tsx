@@ -23,7 +23,7 @@ export default function ModGridPage() {
     evaluationsError,
     fetchEvaluations,
   } = useMods();
-  const { filters, sortBy, sortOrder, setSortBy, setSortOrder, togglePanel, isPanelOpen } = useFilters();
+  const { filters, sortBy, sortOrder, setSortBy, setSortOrder } = useFilters();
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -116,14 +116,6 @@ export default function ModGridPage() {
                 {sortOrder === 'asc' ? '↑' : '↓'}
               </Button>
             </div>
-
-            {/* Filter toggle */}
-            <Button
-              variant={isPanelOpen ? 'primary' : 'secondary'}
-              onClick={togglePanel}
-            >
-              Filters {isPanelOpen ? '✕' : '☰'}
-            </Button>
           </div>
         </div>
 
