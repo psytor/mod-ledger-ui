@@ -39,3 +39,146 @@ a:hover {
   color: var(--color-primary-light, #6bb0ff);
   text-decoration: underline;
 }
+
+/* ========== GLOBAL UTILITIES ========== */
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(31 41 55); /* gray-800 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(75 85 99); /* gray-600 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128); /* gray-500 */
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(59, 130, 246, 0.3); /* blue-500 with opacity */
+}
+
+/* Loading skeleton animation */
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgb(55 65 81) 25%, rgb(75 85 99) 50%, rgb(55 65 81) 75%);
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+/* Responsive grid utilities for mod cards */
+.mod-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr)); /* Mobile: 1 column */
+}
+
+@media (min-width: 640px) {
+  .mod-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* sm: 2 columns */
+  }
+}
+
+@media (min-width: 768px) {
+  .mod-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* md: 3 columns */
+  }
+}
+
+@media (min-width: 1024px) {
+  .mod-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)); /* lg: 4 columns */
+  }
+}
+
+@media (min-width: 1280px) {
+  .mod-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)); /* xl: 5 columns */
+  }
+}
+
+@media (min-width: 1536px) {
+  .mod-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)); /* 2xl: 6 columns */
+  }
+}
+
+/* Compact mod grid for smaller cards */
+.mod-grid-compact {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* Mobile: 2 columns */
+}
+
+@media (min-width: 640px) {
+  .mod-grid-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* sm: 3 columns */
+  }
+}
+
+@media (min-width: 768px) {
+  .mod-grid-compact {
+    grid-template-columns: repeat(4, minmax(0, 1fr)); /* md: 4 columns */
+  }
+}
+
+@media (min-width: 1024px) {
+  .mod-grid-compact {
+    grid-template-columns: repeat(6, minmax(0, 1fr)); /* lg: 6 columns */
+  }
+}
+
+@media (min-width: 1280px) {
+  .mod-grid-compact {
+    grid-template-columns: repeat(8, minmax(0, 1fr)); /* xl: 8 columns */
+  }
+}
+
+/* Smooth transitions for interactive elements */
+.smooth-transition {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Glassmorphism effect */
+.glass {
+  backdrop-filter: blur(8px);
+  background: rgba(17, 24, 39, 0.8); /* gray-900 with opacity */
+  border: 1px solid rgba(75, 85, 99, 0.3); /* gray-600 with opacity */
+}
+
+/* Evaluation result colors */
+.text-evaluation-keep {
+  color: #10b981; /* green-500 */
+}
+
+.text-evaluation-sell {
+  color: #ef4444; /* red-500 */
+}
+
+.text-evaluation-upgrade {
+  color: #f59e0b; /* amber-500 */
+}
+
+.text-evaluation-slice {
+  color: #8b5cf6; /* violet-500 */
+}
+
+.text-evaluation-calibrate {
+  color: #06b6d4; /* cyan-500 */
+}
