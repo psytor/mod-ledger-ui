@@ -20,10 +20,10 @@
 
 .panel {
   position: fixed;
-  top: 0;
+  top: 64px; /* Account for top bar */
   right: 0;
   bottom: 0;
-  width: 320px;
+  width: 380px;
   background: var(--color-surface, #1a1a1a);
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
@@ -35,6 +35,49 @@
 
 .panel.open {
   transform: translateX(0);
+}
+
+/* Vertical FILTERS tab */
+.filterTab {
+  position: absolute;
+  left: -24px;
+  top: 25%;
+  transform: translateY(-50%);
+  background: var(--color-primary, #3b82f6);
+  color: white;
+  padding: 16px 10px;
+  border-radius: 6px 0 0 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: -1;
+}
+
+.filterTab:hover {
+  background: var(--color-primary-active, #2563eb);
+}
+
+.filterTabText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+}
+
+.filterTabText span {
+  display: block;
+}
+
+/* Active filter indicator dot */
+.filterIndicator {
+  width: 6px;
+  height: 6px;
+  background: rgb(191, 219, 254); /* blue-200 */
+  border-radius: 50%;
+  margin-top: 4px;
 }
 
 .panelHeader {
@@ -88,6 +131,16 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-disabled, #666);
+  text-transform: none;
 }
 
 .checkboxLabel,

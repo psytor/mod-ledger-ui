@@ -15,6 +15,7 @@ export interface ModFilters {
 interface FilterContextType {
   isPanelOpen: boolean;
   togglePanel: () => void;
+  openPanel: () => void;
   closePanel: () => void;
   filters: ModFilters;
   setFilter: (key: keyof ModFilters, value: ModFilters[keyof ModFilters]) => void;
@@ -45,6 +46,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const [sortOrder, setSortOrderState] = useState<'asc' | 'desc'>('asc');
 
   const togglePanel = () => setIsPanelOpen((prev) => !prev);
+  const openPanel = () => setIsPanelOpen(true);
   const closePanel = () => setIsPanelOpen(false);
 
   const setFilter = (key: keyof ModFilters, value: ModFilters[keyof ModFilters]) => {
@@ -68,6 +70,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       value={{
         isPanelOpen,
         togglePanel,
+        openPanel,
         closePanel,
         filters,
         setFilter,

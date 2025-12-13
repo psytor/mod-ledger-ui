@@ -6,7 +6,7 @@ import { useAuth } from 'astrogators-shared-ui';
 import styles from './FilterPanel.module.css';
 
 export default function FilterPanel() {
-  const { isPanelOpen, closePanel, filters, setFilter, clearFilters } = useFilters();
+  const { isPanelOpen, openPanel, closePanel, filters, setFilter, clearFilters } = useFilters();
   const {
     mods,
     selectedProfile,
@@ -46,6 +46,19 @@ export default function FilterPanel() {
     setFilter(key, newArray as any); // Type assertion needed due to union type complexity
   };
 
+  // Check if there are any active filters
+  const hasActiveFilters = () => {
+    return (
+      filters.recommendations.length > 0 ||
+      filters.sets.length > 0 ||
+      filters.slots.length > 0 ||
+      filters.tiers.length > 0 ||
+      filters.dots.length > 0 ||
+      filters.primaries.length > 0 ||
+      filters.locked !== 'all'
+    );
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -53,6 +66,17 @@ export default function FilterPanel() {
 
       {/* Sliding panel */}
       <div className={`${styles.panel} ${isPanelOpen ? styles.open : ''}`}>
+        {/* Vertical FILTERS tab */}
+        <div className={styles.filterTab} onClick={() => isPanelOpen ? closePanel() : openPanel()}>
+          <div className={styles.filterTabText}>
+            {'FILTERS'.split('').map((letter, index) => (
+              <span key={index}>{letter}</span>
+            ))}
+          </div>
+          {hasActiveFilters() && (
+            <div className={styles.filterIndicator} />
+          )}
+        </div>
         <div className={styles.panelHeader}>
           <h3>Filters</h3>
           <button className={styles.closeButton} onClick={closePanel}>
@@ -107,7 +131,7 @@ export default function FilterPanel() {
 
           {/* Mod Sets */}
           <div className={styles.filterSection}>
-            <h4>Mod Sets</h4>
+            <h4>Mod Sets <span className={styles.count}>({filters.sets.length}/{options.sets.length})</span></h4>
             {options.sets.map((set) => (
               <label key={set} className={styles.checkboxLabel}>
                 <input
@@ -122,7 +146,7 @@ export default function FilterPanel() {
 
           {/* Slots */}
           <div className={styles.filterSection}>
-            <h4>Slots</h4>
+            <h4>Slots <span className={styles.count}>({filters.slots.length}/{options.slots.length})</span></h4>
             {options.slots.map((slot) => (
               <label key={slot} className={styles.checkboxLabel}>
                 <input
@@ -137,7 +161,7 @@ export default function FilterPanel() {
 
           {/* Tiers */}
           <div className={styles.filterSection}>
-            <h4>Tiers</h4>
+            <h4>Tiers <span className={styles.count}>({filters.tiers.length}/{options.tiers.length})</span></h4>
             {options.tiers.map((tier) => (
               <label key={tier} className={styles.checkboxLabel}>
                 <input
@@ -152,7 +176,7 @@ export default function FilterPanel() {
 
           {/* Dots (Pips) */}
           <div className={styles.filterSection}>
-            <h4>Dots</h4>
+            <h4>Dots <span className={styles.count}>({filters.dots.length}/{options.dots.length})</span></h4>
             {options.dots.map((dot) => (
               <label key={dot} className={styles.checkboxLabel}>
                 <input
@@ -167,7 +191,7 @@ export default function FilterPanel() {
 
           {/* Primary Stats */}
           <div className={styles.filterSection}>
-            <h4>Primary Stats</h4>
+            <h4>Primary Stats <span className={styles.count}>({filters.primaries.length}/{options.primaries.length})</span></h4>
             {options.primaries.map((primary) => (
               <label key={primary} className={styles.checkboxLabel}>
                 <input
