@@ -1,0 +1,38 @@
+# --- Stage 1: Build the frontend application ---
+FROM node:25-alpine as builder
+
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy all source code
+COPY . .
+
+# Build the application for production
+# This command creates the production-ready static assets in the 'dist' folder
+RUN npm run build
+
+
+# --- Stage 2: Serve the static assets with Nginx ---
+FROM nginx:alpine
+
+# Copy custom Nginx configuration for this frontend
+# (assuming you might need specific configs per frontend)
+# If not, you can rely on the main nginx service's conf
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Remove default nginx html directory
+RUN rm -rf /usr/share/nginx/html
+
+# Copy built assets from the builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Expose Nginx default port (for internal Docker network communication)
+EXPOSE 80
+
+# Run Nginx in the foreground
+CMD ["nginx", "-g", "daemon off;"]
