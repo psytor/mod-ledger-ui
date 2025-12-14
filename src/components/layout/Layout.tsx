@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import { TopBar, Footer, Container, Button, AllyCodeDropdown, useAuth } from 'astrogators-shared-ui';
 
 interface LayoutProps {
