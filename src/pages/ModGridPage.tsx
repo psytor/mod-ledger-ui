@@ -53,7 +53,7 @@ export default function ModGridPage() {
     return (
       <Layout>
         <div className={styles.loaderContainer}>
-          <Loader size="large" />
+          <Loader size="lg" />
           <p>Loading your mods...</p>
         </div>
       </Layout>
@@ -125,7 +125,7 @@ export default function ModGridPage() {
             <span>⚠️ Evaluation failed: {evaluationsError}</span>
             <Button
               variant="secondary"
-              size="small"
+              size="sm"
               onClick={() => selectedAllyCode && fetchEvaluations(selectedAllyCode)}
             >
               Retry

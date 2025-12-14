@@ -35,7 +35,7 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
   return (
     // The shared Modal component creates the overlay and a base modal-content div.
     // We can pass 'size="large"' which sets max-width to 800px, aligning with the original CSS.
-    <Modal isOpen={isOpen} onClose={onClose} title="Mod Details" size="large">
+    <Modal isOpen={isOpen} onClose={onClose} title="Mod Details" size="lg">
       {/* The content inside the modal body should follow the original structure. */}
       <div className={styles['modal-body']}>
         {/* Basic mod info section */}
