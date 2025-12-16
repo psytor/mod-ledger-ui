@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
 import { formatDisplayValue } from '@/utils/formatters';
@@ -29,6 +30,8 @@ const tierColorNames = {
 } as const;
 
 export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
+  const [showTooltip, setShowTooltip] = React.useState(false);
+
   // Ensure we always have 4 secondary slots
   const secondarySlots = Array(4).fill(null).map((_, index) => {
     return mod.secondary_stats[index] || null;
@@ -85,6 +88,13 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
       {/* External glow background - matches mod tier color */}
       <div className={`${styles.glowBackground} ${glowGradientClass}`}></div>
 
+      {/* Tooltip - rendered outside Card so it's not clipped */}
+      {showTooltip && averageEfficiency !== null && (
+        <div className={styles.tooltip}>
+          Average efficiency of all secondary stats
+        </div>
+      )}
+
       <Card
         chamfered
         chamferSize="asymmetric"
@@ -109,7 +119,11 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
             </div>
             <div className={styles.topRight}>
               {averageEfficiency !== null && (
-                <div className={styles.averagePercentage}>
+                <div
+                  className={styles.averagePercentage}
+                  onMouseEnter={() => setShowTooltip(true)}
+                  onMouseLeave={() => setShowTooltip(false)}
+                >
                   {averageEfficiency.toFixed(1)}%
                 </div>
               )}
