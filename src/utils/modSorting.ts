@@ -39,47 +39,53 @@ export function sortMods(
         comparison = a.tier - b.tier;
         break;
 
-      case 'speed':
+    case 'speed': {
         // Sort by speed secondary stat value
         const aSpeed = a.secondary_stats.find((s) => s.stat_name === 'Speed')?.value || 0;
         const bSpeed = b.secondary_stats.find((s) => s.stat_name === 'Speed')?.value || 0;
         comparison = aSpeed - bSpeed;
         break;
+      }
 
-      case 'quality':
+      case 'quality': {
         // Sort by average secondary efficiency
         const aEfficiency = calculateAverageEfficiency(a);
         const bEfficiency = calculateAverageEfficiency(b);
         comparison = aEfficiency - bEfficiency;
         break;
+      }
 
-      case 'overall':
+      case 'overall': {
         // Sort by overall evaluation score
         const aOverall = evaluations?.[a.mod_id]?.scores.overall || 0;
         const bOverall = evaluations?.[b.mod_id]?.scores.overall || 0;
         comparison = aOverall - bOverall;
         break;
+      }
 
-      case 'eval_quality':
+      case 'eval_quality': {
         // Sort by quality evaluation score
         const aQuality = evaluations?.[a.mod_id]?.scores.quality || 0;
         const bQuality = evaluations?.[b.mod_id]?.scores.quality || 0;
         comparison = aQuality - bQuality;
         break;
+      }
 
-      case 'synergy':
+      case 'synergy': {
         // Sort by synergy evaluation score
         const aSynergy = evaluations?.[a.mod_id]?.scores.synergy || 0;
         const bSynergy = evaluations?.[b.mod_id]?.scores.synergy || 0;
         comparison = aSynergy - bSynergy;
         break;
+      }
 
-      case 'speed_bonus':
+      case 'speed_bonus': {
         // Sort by speed bonus evaluation score
         const aSpeedBonus = evaluations?.[a.mod_id]?.scores.speed_bonus || 0;
         const bSpeedBonus = evaluations?.[b.mod_id]?.scores.speed_bonus || 0;
         comparison = aSpeedBonus - bSpeedBonus;
         break;
+      }
 
       default:
         comparison = 0;

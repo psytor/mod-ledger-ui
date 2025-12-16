@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
+import { defaultFilters } from './defaultFilters';
 
 export interface ModFilters {
   sets: string[];
@@ -25,17 +26,6 @@ interface FilterContextType {
   setSortBy: (sortBy: string) => void;
   setSortOrder: (order: 'asc' | 'desc') => void;
 }
-
-const defaultFilters: ModFilters = {
-  sets: [],
-  slots: [],
-  tiers: [],
-  dots: [],
-  primaries: [],
-  characters: [],
-  locked: 'all',
-  recommendations: [],
-};
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 

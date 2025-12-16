@@ -34,6 +34,15 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
     return mod.secondary_stats[index] || null;
   });
 
+  // Calculate average efficiency from secondary stats
+  const secondaryStatsWithEfficiency = mod.secondary_stats.filter(
+    stat => stat.efficiency !== undefined && stat.efficiency !== null
+  );
+  const averageEfficiency = secondaryStatsWithEfficiency.length > 0
+    ? secondaryStatsWithEfficiency.reduce((sum, stat) => sum + stat.efficiency!, 0) /
+      secondaryStatsWithEfficiency.length
+    : null;
+
   // Determine tier class
   const getTierClass = (tier: number): string => {
     if (tier >= 5) return styles.tierGold;
@@ -87,23 +96,28 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
         className={`${styles.modCard} ${tierClass} ${isSixDot ? styles.sixDot : ''}`}
         style={{ '--border-color': tierBorderColor } as React.CSSProperties}
       >
-
-        {/* Evaluation Badge - Top Left */}
-        {evaluationDisplay && (
-          <div className={`${styles.badge} ${styles.badgeTopLeft} ${evaluationDisplay.class}`}>
-            {evaluationDisplay.emoji} {evaluationDisplay.label}
-          </div>
-        )}
-
-        {/* Lock indicator - Bottom Right */}
-        <div className={styles.lockIndicator}>
-          {mod.locked ? '🔒' : '🔓'}
-        </div>
-
         {/* Main content */}
         <div className={styles.cardContent}>
-          {/* Top section: Left and Right */}
-          <div className={styles.topSection}>
+          {/* TOP ROW: Evaluation Badge (left) and Average Percentage (right) */}
+          <div className={styles.topRow}>
+            <div className={styles.topLeft}>
+              {evaluationDisplay && (
+                <div className={`${styles.badge} ${evaluationDisplay.class}`}>
+                  {evaluationDisplay.emoji} {evaluationDisplay.label}
+                </div>
+              )}
+            </div>
+            <div className={styles.topRight}>
+              {averageEfficiency !== null && (
+                <div className={styles.averagePercentage}>
+                  {averageEfficiency.toFixed(1)}%
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* MIDDLE ROW: Mod Shape (left) and Stats (right) */}
+          <div className={styles.middleRow}>
             {/* Left side - Dots, Sprite, Level */}
             <div className={styles.leftColumn}>
               {/* Dots indicator */}
@@ -162,7 +176,7 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
             </div>
           </div>
 
-          {/* Bottom section */}
+          {/* BOTTOM ROW: Character name, Lock status, and Calibration info */}
           <div className={styles.bottomSection}>
             {/* Calibrations for 6-dot mods */}
             {isSixDot && mod.reroll_count !== undefined && (
@@ -176,6 +190,11 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
               <span className={styles.character}>{mod.character || 'Unassigned'}</span>
             </div>
           </div>
+
+        {/* Lock indicator - Bottom Right */}
+        <div className={styles.lockIndicator}>
+          {mod.locked ? '🔒' : '🔓'}
+        </div>
         </div>
       </Card>
     </div>

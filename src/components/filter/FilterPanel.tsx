@@ -1,5 +1,5 @@
 import { Button } from 'astrogators-shared-ui';
-import { useFilters } from '@/contexts/FilterContext';
+import { useFilters, type ModFilters } from '@/contexts/FilterContext';
 import { useMods } from '@/contexts/ModContext';
 import { getFilterOptions } from '@/utils/modFilters';
 import { useAuth } from 'astrogators-shared-ui';
@@ -43,7 +43,7 @@ export default function FilterPanel() {
     const newArray = checked
       ? [...currentArray, value]
       : currentArray.filter((v) => v !== value);
-    setFilter(key, newArray as any); // Type assertion needed due to union type complexity
+    setFilter(key, newArray as ModFilters[typeof key]); // Refined type assertion
   };
 
   // Check if there are any active filters

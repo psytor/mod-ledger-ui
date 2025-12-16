@@ -101,26 +101,45 @@
   pointer-events: none;
 }
 
-/* ========== BADGES (Positioned Absolute) ========== */
+/* ========== MAIN CARD CONTENT ========== */
 
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.75rem;
+  gap: 0.5rem;
+}
+
+/* ========== TOP ROW: Evaluation Badge (left) + Average Percentage (right) ========== */
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px;
+}
+
+.topLeft {
+  flex: 1;
+}
+
+.topRight {
+  flex-shrink: 0;
+}
+
+/* Evaluation badge */
 .badge {
-  position: absolute;
-  top: 8px;
-  padding: 6px 12px;
-  border-radius: 8px;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  z-index: 10;
   color: white;
 }
 
-.badgeTopLeft {
-  left: 8px;
-}
-
-/* Evaluation badge colors */
 .badgeKeep {
   background: linear-gradient(135deg, #16a34a, #22c55e);
 }
@@ -151,49 +170,19 @@
   }
 }
 
-/* 6-Dot badge */
-.sixDotBadge {
-  background: linear-gradient(135deg, #4338ca, #7c3aed);
-  font-weight: 700;
-}
-
-/* ========== LOCK INDICATOR ========== */
-
-.lockIndicator {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  padding: 6px 8px;
-  background: rgba(31, 41, 55, 0.8);
-  border: 1px solid rgba(75, 85, 99, 0.6);
-  border-radius: 6px;
+/* Average percentage */
+.averagePercentage {
   font-size: 0.875rem;
-  z-index: 10;
-  cursor: pointer;
-  transition: transform 0.15s, background 0.15s;
+  font-weight: 600;
+  color: #3b82f6;
 }
 
-.lockIndicator:hover {
-  transform: scale(1.1);
-  background: rgba(55, 65, 81, 0.8);
-}
+/* ========== MIDDLE ROW: Mod Shape (left) + Stats (right) ========== */
 
-/* ========== MAIN CARD CONTENT ========== */
-
-.cardContent {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 2.5rem 1rem 1rem 1rem; /* Increased top padding for badge space */
-}
-
-/* ========== TOP SECTION (Left + Right columns) ========== */
-
-.topSection {
+.middleRow {
   display: flex;
   gap: 1rem;
   flex: 1;
-  margin-bottom: 1rem;
 }
 
 /* LEFT COLUMN: Dots, Sprite, Level */
@@ -347,6 +336,27 @@
   color: #9ca3af;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+/* ========== LOCK INDICATOR ========== */
+
+.lockIndicator {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 8px;
+  background: rgba(31, 41, 55, 0.8);
+  border: 1px solid rgba(75, 85, 99, 0.6);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  z-index: 10;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.lockIndicator:hover {
+  transform: scale(1.1);
+  background: rgba(55, 65, 81, 0.8);
 }
 
 /* ========== RESPONSIVE ========== */
