@@ -80,7 +80,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load profiles:', error);
       // Set default profile if API fails
       setAvailableProfiles([
-        { name: 'standard-v1', description: 'Balanced evaluation for general players', version: '1.0' }
+        { name: 'standard-v1', profile_name: 'Standard Evaluation v1', description: 'Balanced evaluation for general players', version: '1.0' }
       ]);
     } finally {
       setIsLoadingProfiles(false);

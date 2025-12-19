@@ -103,7 +103,7 @@ export default function FilterPanel() {
             >
               {availableProfiles.map((profile) => (
                 <option key={profile.name} value={profile.name} title={profile.description}>
-                  {profile.name}
+                  {profile.profile_name}
                 </option>
               ))}
             </select>

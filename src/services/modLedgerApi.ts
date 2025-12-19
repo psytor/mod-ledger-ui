@@ -61,6 +61,7 @@ export interface EvaluationResponse {
 
 export interface ProfileMetadata {
   name: string;
+  profile_name: string;
   description: string;
   version: string;
 }
