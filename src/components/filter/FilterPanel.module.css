@@ -196,6 +196,11 @@
   cursor: not-allowed;
 }
 
+.profileSelect option {
+  background-color: var(--color-surface, #1a1a1a);
+  color: var(--color-text-primary, #fff);
+}
+
 .profileDescription {
   margin: 0.5rem 0 0 0;
   padding: 0.5rem;
