@@ -1,10 +1,45 @@
 .pageContainer {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2rem;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Background Image Layer */
+.pageContainer::before {
+  content: '';
+  position: fixed;
+  top: 70px; /* Start below TopBar */
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: url('/ModLedger_Background_blue.png');
+  background-size: 60%;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.4;
+  z-index: -2;
+}
+
+/* Dark Overlay for Text Readability */
+.pageContainer::after {
+  content: '';
+  position: fixed;
+  top: 64px; /* Start below TopBar */
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(10, 14, 39, 0.7) 0%,
+    rgba(10, 14, 39, 0.5) 50%,
+    rgba(10, 14, 39, 0.7) 100%
+  );
+  z-index: -1;
 }
 
 .loaderContainer,
