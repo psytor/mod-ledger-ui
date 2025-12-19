@@ -44,8 +44,8 @@
 
 .modCard {
   position: relative;
-  background: rgba(17, 24, 39, 0.9);
-  backdrop-filter: blur(8px);
+  background: rgba(17, 24, 39, 0.2) !important;
+  backdrop-filter: blur(3px);
   border: 1px solid var(--border-color, var(--color-border));
   min-height: 200px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -82,9 +82,9 @@
 /* 6-Dot special styling with gradient border effect */
 .modCard.sixDot {
   background: linear-gradient(135deg,
-    rgba(17, 24, 39, 0.9) 0%,
-    rgba(42, 53, 72, 0.8) 100%
-  );
+    rgba(17, 24, 39, 0) 0%,
+    rgba(42, 53, 72, 0) 100%
+  ) !important;
 }
 
 .modCard.sixDot::before {
@@ -282,7 +282,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(26, 32, 44, 0.8);
+  background: rgba(26, 32, 44, 0.9);
   border-radius: 6px;
 }
 
@@ -309,7 +309,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: rgba(26, 32, 44, 0.8);
+  background: rgba(26, 32, 44, 0.9);
   border-radius: 6px;
   font-size: 0.75rem;
   min-height: 28px;
@@ -377,7 +377,7 @@
   bottom: 12px;
   right: 12px;
   padding: 6px 8px;
-  background: rgba(31, 41, 55, 0.8);
+  background: rgba(31, 41, 55, 0.9);
   border: 1px solid rgba(75, 85, 99, 0.6);
   border-radius: 6px;
   font-size: 0.875rem;
