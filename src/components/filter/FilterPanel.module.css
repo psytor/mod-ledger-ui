@@ -212,6 +212,20 @@
   border-radius: 4px;
 }
 
+.profileLink {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-primary, #3b82f6);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.profileLink:hover {
+  color: var(--color-primary-active, #2563eb);
+  text-decoration: underline;
+}
+
 /* Mobile responsive */
 @media (max-width: 480px) {
   .panel {

@@ -64,6 +64,7 @@ export interface ProfileMetadata {
   profile_name: string;
   description: string;
   version: string;
+  frontend_link?: string;
 }
 
 export interface ProfileListResponse {

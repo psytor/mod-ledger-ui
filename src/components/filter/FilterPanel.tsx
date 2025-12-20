@@ -107,11 +107,26 @@ export default function FilterPanel() {
                 </option>
               ))}
             </select>
-            {selectedProfile && (
-              <p className={styles.profileDescription}>
-                {availableProfiles.find((p) => p.name === selectedProfile)?.description}
-              </p>
-            )}
+            {selectedProfile && (() => {
+              const currentProfile = availableProfiles.find((p) => p.name === selectedProfile);
+              return (
+                <>
+                  <p className={styles.profileDescription}>
+                    {currentProfile?.description}
+                  </p>
+                  {currentProfile?.frontend_link && (
+                    <a
+                      href={currentProfile.frontend_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.profileLink}
+                    >
+                      Learn more about this profile
+                    </a>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Recommendations */}
