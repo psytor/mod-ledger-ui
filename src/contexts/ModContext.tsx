@@ -28,7 +28,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
   const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
   const [modsError, setModsError] = useState<string | null>(null);
   const [evaluationsError, setEvaluationsError] = useState<string | null>(null);
-  const [selectedProfile, setSelectedProfile] = useState<string>('standard-v1');
+  const [selectedProfile, setSelectedProfile] = useState<string>('beginner-v1');
   const [availableProfiles, setAvailableProfiles] = useState<ProfileMetadata[]>([]);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
   const [currentAllyCode, setCurrentAllyCode] = useState<string | null>(null);
@@ -80,7 +80,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load profiles:', error);
       // Set default profile if API fails
       setAvailableProfiles([
-        { name: 'standard-v1', profile_name: 'Standard Evaluation v1', description: 'Balanced evaluation for general players', version: '1.0' }
+        { name: 'beginner-v1', profile_name: 'Beginner (Speed focused)', description: 'Beginner-focused evaluation focusing on speed bonuses', version: '1.0' }
       ]);
     } finally {
       setIsLoadingProfiles(false);
