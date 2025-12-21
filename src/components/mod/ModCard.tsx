@@ -193,9 +193,9 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
           {/* BOTTOM ROW: Character name, Lock status, and Calibration info */}
           <div className={styles.bottomSection}>
             {/* Calibrations for 6-dot mods */}
-            {isSixDot && mod.reroll_count !== undefined && (
+            {isSixDot && mod.calibrations_left !== undefined && mod.calibration_limit !== undefined && (
               <div className={styles.calibrationRow}>
-                <span className={styles.calibration}>🔄 Calibrations left ({5 - mod.reroll_count}/5)</span>
+                <span className={styles.calibration}>🔄 Calibrations left: {mod.calibrations_left} / {mod.calibration_limit}</span>
               </div>
             )}
 

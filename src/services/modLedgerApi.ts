@@ -26,6 +26,8 @@ export interface ParsedMod {
   character: string;
   locked: boolean;
   reroll_count?: number;
+  calibrations_left?: number;
+  calibration_limit?: number;
 }
 
 export interface ModListResponse {
