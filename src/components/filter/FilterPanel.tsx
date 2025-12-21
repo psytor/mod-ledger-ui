@@ -66,17 +66,6 @@ export default function FilterPanel() {
 
       {/* Sliding panel */}
       <div className={`${styles.panel} ${isPanelOpen ? styles.open : ''}`}>
-        {/* Vertical FILTERS tab */}
-        <div className={styles.filterTab} onClick={() => isPanelOpen ? closePanel() : openPanel()}>
-          <div className={styles.filterTabText}>
-            {'FILTERS'.split('').map((letter, index) => (
-              <span key={index}>{letter}</span>
-            ))}
-          </div>
-          {hasActiveFilters() && (
-            <div className={styles.filterIndicator} />
-          )}
-        </div>
         <div className={styles.panelHeader}>
           <h3>Filters</h3>
           <button className={styles.closeButton} onClick={closePanel}>

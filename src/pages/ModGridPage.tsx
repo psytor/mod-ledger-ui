@@ -101,9 +101,9 @@ export default function ModGridPage() {
             {/* Sort controls */}
             <div className={styles.sortControls}>
               <Button
-                variant={hasActiveFilters ? 'primary' : 'secondary'}
+                variant={hasActiveFilters ? 'primary' : 'outline'}
                 onClick={openPanel}
-                className={styles.desktopFilterButton}
+                className={styles.filterButton}
               >
                 Filters
                 {hasActiveFilters && <span className={styles.filterDot} />}
@@ -129,8 +129,9 @@ export default function ModGridPage() {
               </Select>
 
               <Button
-                variant="secondary"
+                variant="outline"
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className={styles.orderButton}
               >
                 {sortOrder === 'asc' ? '↑' : '↓'}
               </Button>
@@ -143,7 +144,7 @@ export default function ModGridPage() {
           <div className={styles.evaluationError}>
             <span>⚠️ Evaluation failed: {evaluationsError}</span>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={() => selectedAllyCode && fetchEvaluations(selectedAllyCode)}
             >

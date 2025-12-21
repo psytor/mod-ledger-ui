@@ -35,52 +35,6 @@
   transform: translateX(0);
 }
 
-/* Vertical FILTERS tab - Hidden on Desktop */
-.filterTab {
-  display: none;
-  position: absolute;
-  left: -24px;
-  top: 25%;
-  transform: translateY(-50%);
-  background: var(--color-primary);
-  color: var(--color-text-primary);
-  padding: 16px 8px;
-  border-radius: 6px 0 0 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.3);
-  z-index: -1;
-  font-family: var(--font-heading);
-}
-
-.filterTab:hover {
-  background: var(--color-primary-hover);
-}
-
-.filterTabText {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 1px;
-}
-
-.filterTabText span {
-  display: block;
-}
-
-/* Active filter indicator dot */
-.filterIndicator {
-  width: 6px;
-  height: 6px;
-  background: var(--color-warning);
-  border-radius: 50%;
-  margin-top: 6px;
-  box-shadow: 0 0 4px var(--color-warning);
-}
-
 .panelHeader {
   display: flex;
   justify-content: space-between;
@@ -255,9 +209,5 @@
   .panel {
     width: 100%;
     top: 56px; /* Adjust for mobile topbar if needed */
-  }
-
-  .filterTab {
-    display: block;
   }
 }
