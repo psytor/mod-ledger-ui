@@ -1,4 +1,4 @@
-import { Button } from 'astrogators-shared-ui';
+import { Button, Select } from 'astrogators-shared-ui';
 import { useFilters, type ModFilters } from '@/contexts/FilterContext';
 import { useMods } from '@/contexts/ModContext';
 import { getFilterOptions } from '@/utils/modFilters';
@@ -95,10 +95,9 @@ export default function FilterPanel() {
           {/* Evaluation Profile */}
           <div className={styles.filterSection}>
             <h4>Evaluation Profile</h4>
-            <select
-              className={styles.profileSelect}
+            <Select
               value={selectedProfile}
-              onChange={(e) => handleProfileChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleProfileChange(e.target.value)}
               disabled={isLoadingProfiles}
             >
               {availableProfiles.map((profile) => (
@@ -106,7 +105,7 @@ export default function FilterPanel() {
                   {profile.profile_name}
                 </option>
               ))}
-            </select>
+            </Select>
             {selectedProfile && (() => {
               const currentProfile = availableProfiles.find((p) => p.name === selectedProfile);
               return (
