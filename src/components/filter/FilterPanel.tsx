@@ -6,7 +6,7 @@ import { useAuth } from 'astrogators-shared-ui';
 import styles from './FilterPanel.module.css';
 
 export default function FilterPanel() {
-  const { isPanelOpen, openPanel, closePanel, filters, setFilter, clearFilters } = useFilters();
+  const { isPanelOpen, closePanel, filters, setFilter, clearFilters } = useFilters();
   const {
     mods,
     selectedProfile,
@@ -44,19 +44,6 @@ export default function FilterPanel() {
       ? [...currentArray, value]
       : currentArray.filter((v) => v !== value);
     setFilter(key, newArray as ModFilters[typeof key]); // Refined type assertion
-  };
-
-  // Check if there are any active filters
-  const hasActiveFilters = () => {
-    return (
-      filters.recommendations.length > 0 ||
-      filters.sets.length > 0 ||
-      filters.slots.length > 0 ||
-      filters.tiers.length > 0 ||
-      filters.dots.length > 0 ||
-      filters.primaries.length > 0 ||
-      filters.locked !== 'all'
-    );
   };
 
   return (
