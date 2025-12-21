@@ -77,6 +77,27 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
           </div>
         </div>
 
+        {/* Calibration Section for 6-dot mods */}
+        {mod.dots === 6 && mod.calibrations_left !== undefined && (
+          <div className={styles['modal-stats-section']}>
+            <h3>Calibration Status</h3>
+            <div className={styles['calibration-details']}>
+              <div className={styles['mod-info-item']}>
+                <span className={styles['info-label']}>Calibrations Left:</span>
+                <span className={styles['info-value']}>{mod.calibrations_left} / {mod.calibration_limit}</span>
+              </div>
+              {mod.calibrations_left > 0 && mod.calibration_costs && (
+                <div className={styles['mod-info-item']}>
+                  <span className={styles['info-label']}>Next Reroll Cost:</span>
+                  <span className={styles['info-value']}>
+                    {mod.calibration_costs.find(c => c.attempt_number === (mod.reroll_count || 0) + 1)?.cost || 'Maxed'} Micro Attenuators
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Evaluation section */}
         {evaluation && (
           <div className={styles['modal-evaluation-section']}>
