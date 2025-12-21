@@ -37,8 +37,9 @@
   transform: translateX(0);
 }
 
-/* Vertical FILTERS tab */
+/* Vertical FILTERS tab - Hidden on Desktop */
 .filterTab {
+  display: none;
   position: absolute;
   left: -24px;
   top: 25%;
@@ -227,8 +228,12 @@
 }
 
 /* Mobile responsive */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .panel {
     width: 100%;
+  }
+
+  .filterTab {
+    display: block; /* Show tab on mobile */
   }
 }

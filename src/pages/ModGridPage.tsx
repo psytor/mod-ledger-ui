@@ -23,10 +23,20 @@ export default function ModGridPage() {
     evaluationsError,
     fetchEvaluations,
   } = useMods();
-  const { filters, sortBy, sortOrder, setSortBy, setSortOrder } = useFilters();
+  const { filters, sortBy, sortOrder, setSortBy, setSortOrder, openPanel } = useFilters();
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Check if there are any active filters
+  const hasActiveFilters = 
+    filters.recommendations.length > 0 ||
+    filters.sets.length > 0 ||
+    filters.slots.length > 0 ||
+    filters.tiers.length > 0 ||
+    filters.dots.length > 0 ||
+    filters.primaries.length > 0 ||
+    filters.locked !== 'all';
 
   // Fetch mods on mount
   useEffect(() => {
@@ -90,6 +100,15 @@ export default function ModGridPage() {
           <div className={styles.headerRight}>
             {/* Sort controls */}
             <div className={styles.sortControls}>
+              <Button
+                variant={hasActiveFilters ? 'primary' : 'secondary'}
+                onClick={openPanel}
+                className={styles.desktopFilterButton}
+              >
+                Filters
+                {hasActiveFilters && <span className={styles.filterDot} />}
+              </Button>
+
               <Select
                 value={sortBy}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value)}

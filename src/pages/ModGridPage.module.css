@@ -106,6 +106,21 @@
   min-width: 150px;
 }
 
+/* Desktop Filter Button Styles */
+.desktopFilterButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterDot {
+  width: 8px;
+  height: 8px;
+  background-color: white;
+  border-radius: 50%;
+  display: inline-block;
+}
+
 .evaluatingText {
   color: var(--color-primary, #3b82f6);
   font-style: italic;
@@ -160,5 +175,10 @@
   .sortSelect {
     flex: 1;
     min-width: auto;
+  }
+  
+  /* Hide the desktop filter button on mobile */
+  .desktopFilterButton {
+    display: none;
   }
 }
