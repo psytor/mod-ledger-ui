@@ -1,3 +1,66 @@
+/* Enhanced ModDetailModal Styles */
+
+/* Tooltips */
+.tooltipContainer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  margin-left: 4px;
+}
+
+.helpIcon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.helpIcon:hover {
+  color: #60a5fa;
+  border-color: #60a5fa;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  width: max-content;
+  max-width: 200px;
+  z-index: 100;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.tooltipContainer:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* Original Modal Styles Restored */
 .modal-overlay {
   position: fixed;
@@ -305,10 +368,17 @@
   border-radius: 6px;
   border: 1px solid #334155;
   transition: border-color 0.2s ease;
+  position: relative; /* Context for tooltip */
 }
 
 .score-item:hover {
   border-color: #3b82f6;
+}
+
+.score-label-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .score-label {

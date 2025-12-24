@@ -11,6 +11,30 @@ interface ModDetailModalProps {
   evaluation?: ModEvaluation;
 }
 
+// Tooltip content definitions
+const TOOLTIPS = {
+  overall: "Weighted combination of all scores. Represents general mod value.",
+  synergy: "How well secondary stats match the Mod Set (e.g. Speed on Speed set).",
+  quality: "Average efficiency of secondary stat rolls (based on max possible values).",
+  versatility: "How useful this mod is across different characters and roles.",
+  speed_bonus: "Bonus score based on Speed secondary value and roll quality.",
+  upgrade_potential: "Probability of this mod becoming good if upgraded to Level 15.",
+  slice_value: "Value of slicing this mod to 6E (or higher 6-dot tiers)."
+};
+
+const ScoreItem = ({ label, value, tooltipKey }: { label: string, value: string | number, tooltipKey: keyof typeof TOOLTIPS }) => (
+  <div className={styles['score-item']}>
+    <div className={styles['score-label-container']}>
+      <span className={styles['score-label']}>{label}</span>
+      <div className={styles.tooltipContainer}>
+        <span className={styles.helpIcon}>?</span>
+        <div className={styles.tooltip}>{TOOLTIPS[tooltipKey]}</div>
+      </div>
+    </div>
+    <span className={styles['score-value']}>{value}</span>
+  </div>
+);
+
 export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: ModDetailModalProps) {
   if (!isOpen || !mod) return null;
 
@@ -111,37 +135,17 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
             </div>
 
             <div className={styles['evaluation-scores']}>
-              <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Overall</span>
-                <span className={styles['score-value']}>{evaluation.scores.overall.toFixed(1)}</span>
-              </div>
-              <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Synergy</span>
-                <span className={styles['score-value']}>{evaluation.scores.synergy.toFixed(1)}</span>
-              </div>
-              <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Quality</span>
-                <span className={styles['score-value']}>{evaluation.scores.quality.toFixed(1)}</span>
-              </div>
-              <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Versatility</span>
-                <span className={styles['score-value']}>{evaluation.scores.versatility.toFixed(1)}</span>
-              </div>
-              <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Speed Bonus</span>
-                <span className={styles['score-value']}>{evaluation.scores.speed_bonus.toFixed(1)}</span>
-              </div>
+              <ScoreItem label="Overall" value={evaluation.scores.overall.toFixed(1)} tooltipKey="overall" />
+              <ScoreItem label="Synergy" value={evaluation.scores.synergy.toFixed(1)} tooltipKey="synergy" />
+              <ScoreItem label="Quality" value={evaluation.scores.quality.toFixed(1)} tooltipKey="quality" />
+              <ScoreItem label="Versatility" value={evaluation.scores.versatility.toFixed(1)} tooltipKey="versatility" />
+              <ScoreItem label="Speed Bonus" value={evaluation.scores.speed_bonus.toFixed(1)} tooltipKey="speed_bonus" />
+              
               {evaluation.scores.upgrade_potential !== null && (
-                <div className={styles['score-item']}>
-                  <span className={styles['score-label']}>Upgrade Potential</span>
-                  <span className={styles['score-value']}>{evaluation.scores.upgrade_potential.toFixed(1)}</span>
-                </div>
+                <ScoreItem label="Upgrade Potential" value={evaluation.scores.upgrade_potential.toFixed(1)} tooltipKey="upgrade_potential" />
               )}
               {evaluation.scores.slice_value !== null && (
-                <div className={styles['score-item']}>
-                  <span className={styles['score-label']}>Slice Value</span>
-                  <span className={styles['score-value']}>{evaluation.scores.slice_value.toFixed(1)}</span>
-                </div>
+                <ScoreItem label="Slice Value" value={evaluation.scores.slice_value.toFixed(1)} tooltipKey="slice_value" />
               )}
             </div>
 
