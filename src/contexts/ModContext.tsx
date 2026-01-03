@@ -28,7 +28,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
   const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
   const [modsError, setModsError] = useState<string | null>(null);
   const [evaluationsError, setEvaluationsError] = useState<string | null>(null);
-  const [selectedProfile, setSelectedProfile] = useState<string>('beginner-v1');
+  const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [availableProfiles, setAvailableProfiles] = useState<ProfileMetadata[]>([]);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
   const [currentAllyCode, setCurrentAllyCode] = useState<string | null>(null);
@@ -76,28 +76,41 @@ export function ModProvider({ children }: { children: ReactNode }) {
     try {
       const response = await modLedgerApi.listProfiles();
       setAvailableProfiles(response.profiles);
+      // Auto-select first profile if none selected
+      if (response.profiles.length > 0 && !selectedProfile) {
+        setSelectedProfile(response.profiles[0].profile_name);
+      }
     } catch (error) {
       console.error('Failed to load profiles:', error);
       // Set default profile if API fails
-      setAvailableProfiles([
-        { name: 'beginner-v1', profile_name: 'Beginner (Speed focused)', description: 'Beginner-focused evaluation focusing on speed bonuses', version: '1.0' }
-      ]);
+      const fallbackProfile = {
+        name: 'Standard Profile',
+        profile_name: 'standard-v1',
+        description: 'General-purpose evaluation profile',
+        version: '1.0'
+      };
+      setAvailableProfiles([fallbackProfile]);
+      if (!selectedProfile) {
+        setSelectedProfile(fallbackProfile.profile_name);
+      }
     } finally {
       setIsLoadingProfiles(false);
     }
-  }, []);
+  }, [selectedProfile]);
 
   // Load profiles on mount
   useEffect(() => {
     loadProfiles();
-  }, [loadProfiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-trigger evaluation after mods load successfully
   useEffect(() => {
-    if (mods.length > 0 && currentAllyCode && !evaluations && !isLoadingEvaluations) {
+    if (mods.length > 0 && currentAllyCode && !evaluations && !isLoadingEvaluations && selectedProfile) {
       fetchEvaluations(currentAllyCode, selectedProfile);
     }
-  }, [mods, currentAllyCode, evaluations, isLoadingEvaluations, fetchEvaluations, selectedProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mods, currentAllyCode, evaluations, isLoadingEvaluations, selectedProfile]);
 
   return (
     <ModContext.Provider

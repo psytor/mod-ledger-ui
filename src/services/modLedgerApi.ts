@@ -122,12 +122,15 @@ class ModLedgerApiClient {
    * Evaluate player mods with optional profile selection
    */
   async evaluatePlayerMods(allyCode: string, profileName?: string): Promise<EvaluationResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/evaluate/${allyCode}`, {
+    const response = await fetch(`${this.baseUrl}/api/v1/evaluate/player`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ profile_name: profileName }),
+      body: JSON.stringify({ 
+        ally_code: allyCode,
+        profile: profileName 
+      }),
     });
 
     if (!response.ok) {
@@ -135,7 +138,30 @@ class ModLedgerApiClient {
       throw new Error(error.detail || `Failed to evaluate mods: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+
+    // Transform backend list results to frontend evaluations record
+    const evaluations: Record<string, ModEvaluation> = {};
+    if (data.results && Array.isArray(data.results)) {
+      data.results.forEach((result: any) => {
+        // The backend returns the full transformed mod AND the scores
+        // We just need the evaluation part for the evaluations record
+        evaluations[result.mod.mod_id] = {
+          mod_id: result.mod.mod_id,
+          scores: result.scores,
+          recommendation: result.recommendation,
+          detailed_analysis: result.detailed_analysis,
+          target_level: result.target_level
+        };
+      });
+    }
+
+    return {
+      ally_code: data.player_info?.ally_code || allyCode,
+      profile_name: profileName || 'standard-v1',
+      evaluations: evaluations,
+      cached: false
+    };
   }
 
   /**

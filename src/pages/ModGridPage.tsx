@@ -29,12 +29,12 @@ export default function ModGridPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Check if there are any active filters
-  const hasActiveFilters = 
+  const hasActiveFilters =
     filters.recommendations.length > 0 ||
     filters.sets.length > 0 ||
     filters.slots.length > 0 ||
     filters.tiers.length > 0 ||
-    filters.dots.length > 0 ||
+    filters.rarity.length > 0 ||  // CLEAN BREAK: Changed from "dots"
     filters.primaries.length > 0 ||
     filters.locked !== 'all';
 
