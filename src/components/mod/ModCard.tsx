@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
-import { formatDisplayValue } from '@/utils/formatters';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
 
@@ -20,15 +19,6 @@ const tierBorderColors = {
   5: '#fbbf24',  // Gold
 } as const;
 
-// Tier color names for glow gradients
-const tierColorNames = {
-  1: 'Grey',
-  2: 'Green',
-  3: 'Blue',
-  4: 'Purple',
-  5: 'Gold',
-} as const;
-
 export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
   const [showTooltip, setShowTooltip] = React.useState(false);
 
@@ -37,12 +27,12 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
     return mod.secondary_stats[index] || null;
   });
 
-  // Calculate average efficiency from secondary stats
+  // Calculate average roll efficiency from secondary stats
   const secondaryStatsWithEfficiency = mod.secondary_stats.filter(
-    stat => stat.efficiency !== undefined && stat.efficiency !== null
+    stat => stat.roll_efficiency !== undefined && stat.roll_efficiency !== null
   );
   const averageEfficiency = secondaryStatsWithEfficiency.length > 0
-    ? secondaryStatsWithEfficiency.reduce((sum, stat) => sum + stat.efficiency!, 0) /
+    ? secondaryStatsWithEfficiency.reduce((sum, stat) => sum + stat.roll_efficiency!, 0) /
       secondaryStatsWithEfficiency.length
     : null;
 
@@ -56,11 +46,20 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
   };
 
   const tierClass = getTierClass(mod.tier);
-  const isSixDot = mod.dots === 6;
+  const isSixDot = mod.rarity === 6;  // CLEAN BREAK: Changed from "dots"
   const tierBorderColor = tierBorderColors[Math.min(5, Math.max(1, mod.tier)) as keyof typeof tierBorderColors];
-  const tierColorName = tierColorNames[Math.min(5, Math.max(1, mod.tier)) as keyof typeof tierColorNames];
 
-  // Glow gradient classes based on tier
+  // CLEAN BREAK: Use tier_color from API (backend provides it)
+  const tierColorName = mod.tier_color || (() => {
+    // Fallback if tier_color not in evaluation (shouldn't happen with new API)
+    if (mod.tier >= 5) return 'Gold';
+    if (mod.tier >= 4) return 'Purple';
+    if (mod.tier >= 3) return 'Blue';
+    if (mod.tier >= 2) return 'Green';
+    return 'Grey';
+  })();
+
+  // Glow gradient classes based on tier color
   const glowGradientClass = {
     'Grey': styles.glowGrey,
     'Green': styles.glowGreen,
@@ -69,14 +68,13 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
     'Gold': styles.glowGold,
   }[tierColorName];
 
-  // Evaluation display
+  // Evaluation display (CLEAN BREAK: Removed SLICE-PRIORITY)
   const getEvaluationDisplay = (rec: string) => {
     switch (rec) {
       case 'KEEP': return { emoji: '✅', label: 'Keep', class: styles.badgeKeep };
       case 'SELL': return { emoji: '💰', label: 'Sell', class: styles.badgeSell };
       case 'UPGRADE': return { emoji: '⬆️', label: 'Upgrade', class: styles.badgeUpgrade };
       case 'SLICE': return { emoji: '🔪', label: 'Slice', class: styles.badgeSlice };
-      case 'SLICE-PRIORITY': return { emoji: '🔪', label: 'Slice!', class: styles.badgeSlicePriority };
       default: return null;
     }
   };
@@ -134,12 +132,12 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
           <div className={styles.middleRow}>
             {/* Left side - Dots, Sprite, Level */}
             <div className={styles.leftColumn}>
-              {/* Dots indicator */}
+              {/* Rarity indicator (CLEAN BREAK: Changed from "dots") */}
               <div className={styles.dotsContainer}>
                 {Array.from({ length: 7 }, (_, i) => (
                   <div
                     key={i}
-                    className={i < mod.dots ? styles.dotActive : styles.dotInactive}
+                    className={i < mod.rarity ? styles.dotActive : styles.dotInactive}
                   />
                 ))}
               </div>
@@ -150,7 +148,7 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
                   shape={mod.shape}
                   tier={mod.tier}
                   set={mod.set}
-                  is6Dot={mod.dots === 6}
+                  is6Dot={mod.rarity === 6}
                   size={80}
                 />
               </div>
@@ -166,7 +164,7 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
               {/* Primary stat */}
               <div className={styles.primaryStat}>
                 <span className={styles.primaryName}>{mod.primary_stat.stat_name}</span>
-                <span className={styles.primaryValue}>{formatDisplayValue(mod.primary_stat.display_value)}</span>
+                <span className={styles.primaryValue}>{mod.primary_stat.display_value}</span>
               </div>
 
               {/* Secondary stats */}
@@ -175,10 +173,10 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
                   <div key={index} className={styles.secondaryStat}>
                     {stat ? (
                       <>
-                        <span className={styles.statValue}>{formatDisplayValue(stat.display_value)}</span>
+                        <span className={styles.statValue}>{stat.display_value}</span>
                         <span className={styles.statName}>{stat.stat_name}</span>
-                        {stat.efficiency !== undefined && stat.efficiency !== null && (
-                          <span className={styles.efficiency}>{stat.efficiency.toFixed(1)}%</span>
+                        {stat.roll_efficiency !== undefined && stat.roll_efficiency !== null && (
+                          <span className={styles.efficiency}>{stat.roll_efficiency.toFixed(1)}%</span>
                         )}
                       </>
                     ) : (

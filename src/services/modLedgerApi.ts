@@ -9,18 +9,26 @@ interface ModStat {
   value: number;
   is_percent: boolean;
   rolls?: number;
-  efficiency?: number;
+  roll_efficiency?: number;  // CLEAN BREAK: Changed from "efficiency"
+  is_speed?: boolean;
+  is_offensive?: boolean;
+  is_defensive?: boolean;
+  is_revealed?: boolean;  // For secondary stats only
 }
 
 export interface ParsedMod {
   mod_id: string;
+  definition_id: string;
   set: string;
+  set_id: number;
   slot: string;
+  slot_id: number;
   shape: string;
   level: number;
-  dots: number;
+  rarity: number;  // CLEAN BREAK: Changed from "dots"
   tier: number;
   tier_name: string;
+  tier_color: string;  // NEW: Backend provides tier color ("Gold", "Purple", etc.)
   primary_stat: ModStat;
   secondary_stats: ModStat[];
   character: string;
@@ -39,20 +47,33 @@ export interface ModListResponse {
 }
 
 export interface EvaluationScores {
-  synergy: number;
-  quality: number;
-  versatility: number;
-  speed_bonus: number;
-  upgrade_potential: number | null;
-  slice_value: number | null;
-  overall: number;
+  synergy: number;        // Count of strategic stat matches (0-4)
+  quality: number;        // Weighted roll efficiency score (0-100)
+  scalability: number;    // Slicing potential indicator (0-4)
+  archetype: string;      // Strategic classification ("High Roller", "Synergy Bomb", etc.)
+}
+
+export interface ThresholdCheck {
+  metric: string;         // Metric name (e.g., "synergy", "quality", "speed")
+  actual: number;         // Actual value from mod
+  threshold: number;      // Required threshold value
+  operator: string;       // Comparison operator (">=" | "<=" | "==" | ">", "<")
+  passed: boolean;        // Whether threshold was met
+}
+
+export interface DetailedAnalysis {
+  primary_reason: string;           // Main reason for decision (e.g., "High Synergy AND High Speed")
+  sub_reasons: string[];            // Supporting reasons (e.g., ["Synergy Score: 4 matches", "Speed Value: 21"])
+  decision_path: string;            // Rule path taken (e.g., "Level 15 → Slice (Synergy >= 3)")
+  thresholds_checked: ThresholdCheck[];  // All threshold evaluations for transparency
 }
 
 export interface ModEvaluation {
   mod_id: string;
   scores: EvaluationScores;
-  recommendation: 'SELL' | 'UPGRADE' | 'KEEP' | 'SLICE' | 'SLICE-PRIORITY';
-  reasoning: string;
+  recommendation: 'SELL' | 'UPGRADE' | 'KEEP' | 'SLICE';  // CLEAN BREAK: Removed "SLICE-PRIORITY"
+  detailed_analysis: DetailedAnalysis;  // CLEAN BREAK: Changed from "reasoning: string"
+  target_level?: number;  // For UPGRADE recommendations
 }
 
 export interface EvaluationResponse {

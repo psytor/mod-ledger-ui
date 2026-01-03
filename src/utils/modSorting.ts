@@ -31,8 +31,8 @@ export function sortMods(
         comparison = a.level - b.level;
         break;
 
-      case 'dots':
-        comparison = a.dots - b.dots;
+      case 'rarity':  // CLEAN BREAK: Changed from "dots"
+        comparison = a.rarity - b.rarity;
         break;
 
       case 'tier':
@@ -55,13 +55,7 @@ export function sortMods(
         break;
       }
 
-      case 'overall': {
-        // Sort by overall evaluation score
-        const aOverall = evaluations?.[a.mod_id]?.scores.overall || 0;
-        const bOverall = evaluations?.[b.mod_id]?.scores.overall || 0;
-        comparison = aOverall - bOverall;
-        break;
-      }
+      // CLEAN BREAK: Removed deprecated "overall" sort (score no longer exists)
 
       case 'eval_quality': {
         // Sort by quality evaluation score
@@ -79,13 +73,15 @@ export function sortMods(
         break;
       }
 
-      case 'speed_bonus': {
-        // Sort by speed bonus evaluation score
-        const aSpeedBonus = evaluations?.[a.mod_id]?.scores.speed_bonus || 0;
-        const bSpeedBonus = evaluations?.[b.mod_id]?.scores.speed_bonus || 0;
-        comparison = aSpeedBonus - bSpeedBonus;
+      case 'scalability': {
+        // Sort by scalability score (NEW in Clean Break API)
+        const aScalability = evaluations?.[a.mod_id]?.scores.scalability || 0;
+        const bScalability = evaluations?.[b.mod_id]?.scores.scalability || 0;
+        comparison = aScalability - bScalability;
         break;
       }
+
+      // CLEAN BREAK: Removed deprecated "speed_bonus" sort (score no longer exists)
 
       default:
         comparison = 0;
@@ -98,13 +94,14 @@ export function sortMods(
 }
 
 /**
- * Calculate average efficiency of secondary stats
+ * Calculate average roll efficiency of secondary stats
+ * CLEAN BREAK: Changed from "efficiency" to "roll_efficiency"
  */
 function calculateAverageEfficiency(mod: ParsedMod): number {
   if (mod.secondary_stats.length === 0) return 0;
 
   const totalEfficiency = mod.secondary_stats.reduce((sum, stat) => {
-    return sum + (stat.efficiency || 0);
+    return sum + (stat.roll_efficiency || 0);
   }, 0);
 
   return totalEfficiency / mod.secondary_stats.length;

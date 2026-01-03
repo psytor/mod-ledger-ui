@@ -6,7 +6,7 @@ export interface ModFilters {
   sets: string[];
   slots: string[];
   tiers: string[];
-  dots: number[];
+  rarity: number[];  // CLEAN BREAK: Changed from "dots"
   primaries: string[];
   characters: string[];
   locked: 'all' | 'locked' | 'unlocked';

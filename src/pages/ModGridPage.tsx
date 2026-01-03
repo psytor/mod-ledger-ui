@@ -118,14 +118,14 @@ export default function ModGridPage() {
                 <option value="set">Set</option>
                 <option value="slot">Slot</option>
                 <option value="level">Level</option>
-                <option value="dots">Dots</option>
+                <option value="rarity">Rarity</option>
                 <option value="tier">Tier</option>
                 <option value="speed">Speed</option>
                 <option value="quality">Quality</option>
-                <option value="overall">Overall Score</option>
+                {/* CLEAN BREAK: Removed deprecated "overall" and "speed_bonus" scores */}
                 <option value="eval_quality">Eval Quality</option>
                 <option value="synergy">Synergy</option>
-                <option value="speed_bonus">Speed Bonus</option>
+                <option value="scalability">Scalability</option>
               </Select>
 
               <Button

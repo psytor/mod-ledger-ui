@@ -4,17 +4,12 @@ import styles from './ModDetailModal.module.css';
 
 const MAX_ROLLS = 5;
 
-// Define the type for a single roll, mirroring the backend schema
-interface RollDetail {
-  value: number;
-  efficiency: number;
-}
-
-// Define the type for a secondary stat
+// Define the type for a secondary stat (CLEAN BREAK: Using API's actual data)
 interface SecondaryStat {
   stat_name: string;
   display_value: string;
-  rolls_details?: RollDetail[];
+  roll_efficiency?: number;  // Aggregate average efficiency from API
+  rolls?: number;            // Total roll count from API
 }
 
 interface SecondaryStatColumnProps {
@@ -37,38 +32,45 @@ const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
     return styles.textDark;
   };
 
-  const renderRolls = () => {
-    const rolls = stat.rolls_details || [];
-    const rollElements = [];
+  // CLEAN BREAK: Aggregate visualization using roll_efficiency and rolls count
+  const renderRollVisualization = () => {
+    const rollCount = stat.rolls || 0;
+    const efficiency = stat.roll_efficiency || 0;
 
+    // Visual pips showing roll count (max 5)
+    const rollPips = [];
     for (let i = 0; i < MAX_ROLLS; i++) {
-      if (i < rolls.length) {
-        const roll = rolls[i];
-        const efficiency = roll.efficiency || 0;
-        rollElements.push(
-          <div key={i} className={styles.statRoll}>
-            {/* The filling bar, positioned absolutely from the left */}
+      rollPips.push(
+        <div
+          key={i}
+          className={i < rollCount ? styles.rollPipActive : styles.rollPipInactive}
+          title={i < rollCount ? `Roll ${i + 1}` : 'No roll'}
+        />
+      );
+    }
+
+    // Aggregate efficiency bar
+    return (
+      <>
+        {/* Roll count pips */}
+        <div className={styles.rollPipsContainer}>
+          {rollPips}
+        </div>
+
+        {/* Aggregate efficiency bar */}
+        {rollCount > 0 && (
+          <div className={styles.aggregateEfficiencyBar}>
             <div
-              className={`${styles.efficiencyBar} ${getBarColorClass(efficiency)}`}
+              className={`${styles.efficiencyBarFill} ${getBarColorClass(efficiency)}`}
               style={{ width: `${Math.max(efficiency, 8)}%` }} // Minimum 8% for visibility
             />
-            {/* The text, centered absolutely */}
-            <span className={`${styles.efficiencyText} ${getTextColorClass(efficiency)}`}>
-              {efficiency.toFixed(1)}%
+            <span className={`${styles.efficiencyBarText} ${getTextColorClass(efficiency)}`}>
+              {efficiency.toFixed(1)}% avg
             </span>
           </div>
-        );
-      } else {
-        // Render a disabled/empty roll slot
-        rollElements.push(
-          <div
-            key={i}
-            className={`${styles.statRoll} ${styles.disabled}`}
-          />
-        );
-      }
-    }
-    return rollElements;
+        )}
+      </>
+    );
   };
 
   return (
@@ -77,7 +79,7 @@ const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
         <span className={styles.statName}>{stat.stat_name}</span>
         <span className={styles.statValue}>{stat.display_value}</span>
       </div>
-      <div className={styles.rollsContainer}>{renderRolls()}</div>
+      <div className={styles.rollsContainer}>{renderRollVisualization()}</div>
     </div>
   );
 };

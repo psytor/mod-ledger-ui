@@ -25,8 +25,8 @@ export function applyFilters(
       return false;
     }
 
-    // Filter by dots (pips)
-    if (filters.dots.length > 0 && !filters.dots.includes(mod.dots)) {
+    // Filter by rarity (CLEAN BREAK: Changed from "dots")
+    if (filters.rarity.length > 0 && !filters.rarity.includes(mod.rarity)) {
       return false;
     }
 
@@ -67,7 +67,7 @@ export function getFilterOptions(mods: ParsedMod[]) {
   const sets = new Set<string>();
   const slots = new Set<string>();
   const tiers = new Set<string>();
-  const dots = new Set<number>();
+  const rarity = new Set<number>();  // CLEAN BREAK: Changed from "dots"
   const primaries = new Set<string>();
   const characters = new Set<string>();
 
@@ -75,7 +75,7 @@ export function getFilterOptions(mods: ParsedMod[]) {
     sets.add(mod.set);
     slots.add(mod.slot);
     tiers.add(mod.tier_name);
-    dots.add(mod.dots);
+    rarity.add(mod.rarity);
     primaries.add(mod.primary_stat.stat_name);
     characters.add(mod.character);
   });
@@ -84,7 +84,7 @@ export function getFilterOptions(mods: ParsedMod[]) {
     sets: Array.from(sets).sort(),
     slots: Array.from(slots).sort(),
     tiers: Array.from(tiers).sort(),
-    dots: Array.from(dots).sort((a, b) => b - a), // Descending for dots
+    rarity: Array.from(rarity).sort((a, b) => b - a), // Descending for rarity
     primaries: Array.from(primaries).sort(),
     characters: Array.from(characters).sort(),
   };

@@ -4,7 +4,7 @@ export const defaultFilters: ModFilters = {
   sets: [],
   slots: [],
   tiers: [],
-  dots: [],
+  rarity: [],  // CLEAN BREAK: Changed from "dots"
   primaries: [],
   characters: [],
   locked: 'all',

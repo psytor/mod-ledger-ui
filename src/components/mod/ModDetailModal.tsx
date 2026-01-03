@@ -1,6 +1,5 @@
 import { Modal } from 'astrogators-shared-ui';
 import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
-import { formatDisplayValue } from '@/utils/formatters';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
 
@@ -11,47 +10,21 @@ interface ModDetailModalProps {
   evaluation?: ModEvaluation;
 }
 
-// Tooltip content definitions
-const TOOLTIPS = {
-  overall: "Weighted combination of all scores. Represents general mod value.",
-  synergy: "How well secondary stats match the Mod Set (e.g. Speed on Speed set).",
-  quality: "Average efficiency of secondary stat rolls (based on max possible values).",
-  versatility: "How useful this mod is across different characters and roles.",
-  speed_bonus: "Bonus score based on Speed secondary value and roll quality.",
-  upgrade_potential: "Probability of this mod becoming good if upgraded to Level 15.",
-  slice_value: "Value of slicing this mod to 6E (or higher 6-dot tiers)."
-};
-
-const ScoreItem = ({ label, value, tooltipKey }: { label: string, value: string | number, tooltipKey: keyof typeof TOOLTIPS }) => (
-  <div className={styles['score-item']}>
-    <div className={styles['score-label-container']}>
-      <span className={styles['score-label']}>{label}</span>
-      <div className={styles.tooltipContainer}>
-        <span className={styles.helpIcon}>?</span>
-        <div className={styles.tooltip}>{TOOLTIPS[tooltipKey]}</div>
-      </div>
-    </div>
-    <span className={styles['score-value']}>{value}</span>
-  </div>
-);
-
 export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: ModDetailModalProps) {
   if (!isOpen || !mod) return null;
 
-  // Helper to format recommendation labels
+  // Helper to format recommendation labels (CLEAN BREAK: Removed SLICE-PRIORITY)
   const formatRecommendation = (rec: string): string => {
-    if (rec === 'SLICE-PRIORITY') return 'Slice Priority';
     return rec.charAt(0) + rec.slice(1).toLowerCase();
   };
 
-  // Helper to get recommendation badge class
+  // Helper to get recommendation badge class (CLEAN BREAK: Removed SLICE-PRIORITY)
   const getRecommendationClass = (rec: string): string => {
     switch (rec) {
       case 'KEEP': return styles.badgeKeep;
       case 'SELL': return styles.badgeSell;
       case 'UPGRADE': return styles.badgeUpgrade;
       case 'SLICE': return styles.badgeSlice;
-      case 'SLICE-PRIORITY': return styles.badgeSlicePriority;
       default: return '';
     }
   };
@@ -82,9 +55,9 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
           </div>
         </div>
 
-        {/* Primary Stat Section - Added for completeness */}
+        {/* Primary Stat Section */}
         <div className={styles['modal-stats-section']}>
-            <h3>Primary Stat: {formatDisplayValue(mod.primary_stat.display_value)} {mod.primary_stat.stat_name}</h3>
+            <h3>Primary Stat: {mod.primary_stat.display_value} {mod.primary_stat.stat_name}</h3>
         </div>
 
         {/* Secondary stats section */}
@@ -101,8 +74,8 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
           </div>
         </div>
 
-        {/* Calibration Section for 6-dot mods */}
-        {mod.dots === 6 && mod.calibrations_left !== undefined && (
+        {/* Calibration Section for 6-rarity mods (CLEAN BREAK: Changed from "dots") */}
+        {mod.rarity === 6 && mod.calibrations_left !== undefined && (
           <div className={styles['modal-stats-section']}>
             <h3>Calibration Status</h3>
             <div className={styles['calibration-details']}>
@@ -122,36 +95,101 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
           </div>
         )}
 
-        {/* Evaluation section */}
+        {/* Evaluation section - CLEAN BREAK: New schema */}
         {evaluation && (
           <div className={styles['modal-evaluation-section']}>
             <h3>Evaluation Results</h3>
 
+            {/* Recommendation Badge */}
             <div className={styles['evaluation-recommendation']}>
               <span className={styles['eval-label']}>Recommendation:</span>
               <span className={`${styles['eval-badge']} ${getRecommendationClass(evaluation.recommendation)}`}>
                 {formatRecommendation(evaluation.recommendation)}
               </span>
+              {evaluation.target_level && (
+                <span className={styles['target-level']}>→ Level {evaluation.target_level}</span>
+              )}
             </div>
 
+            {/* Core Scores Section */}
             <div className={styles['evaluation-scores']}>
-              <ScoreItem label="Overall" value={evaluation.scores.overall.toFixed(1)} tooltipKey="overall" />
-              <ScoreItem label="Synergy" value={evaluation.scores.synergy.toFixed(1)} tooltipKey="synergy" />
-              <ScoreItem label="Quality" value={evaluation.scores.quality.toFixed(1)} tooltipKey="quality" />
-              <ScoreItem label="Versatility" value={evaluation.scores.versatility.toFixed(1)} tooltipKey="versatility" />
-              <ScoreItem label="Speed Bonus" value={evaluation.scores.speed_bonus.toFixed(1)} tooltipKey="speed_bonus" />
-              
-              {evaluation.scores.upgrade_potential !== null && (
-                <ScoreItem label="Upgrade Potential" value={evaluation.scores.upgrade_potential.toFixed(1)} tooltipKey="upgrade_potential" />
-              )}
-              {evaluation.scores.slice_value !== null && (
-                <ScoreItem label="Slice Value" value={evaluation.scores.slice_value.toFixed(1)} tooltipKey="slice_value" />
-              )}
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Synergy</span>
+                <span className={styles['score-value']}>{evaluation.scores.synergy}/4</span>
+                <span className={styles['score-hint']}>Strategic stat matches</span>
+              </div>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Quality</span>
+                <span className={styles['score-value']}>{evaluation.scores.quality.toFixed(1)}%</span>
+                <span className={styles['score-hint']}>Roll efficiency</span>
+              </div>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Scalability</span>
+                <span className={styles['score-value']}>{evaluation.scores.scalability}/4</span>
+                <span className={styles['score-hint']}>Slicing potential</span>
+              </div>
             </div>
 
-            <div className={styles['evaluation-reasoning']}>
-              <h4>Reasoning</h4>
-              <p>{evaluation.reasoning}</p>
+            {/* Archetype Badge */}
+            <div className={styles['archetype-section']}>
+              <span className={styles['archetype-label']}>Archetype:</span>
+              <span className={styles['archetype-badge']}>{evaluation.scores.archetype}</span>
+            </div>
+
+            {/* Decision Transparency Section */}
+            <div className={styles['detailed-analysis-section']}>
+              <h4>Decision Analysis</h4>
+
+              {/* Primary Reason */}
+              <div className={styles['analysis-primary-reason']}>
+                <strong>Primary Reason:</strong> {evaluation.detailed_analysis.primary_reason}
+              </div>
+
+              {/* Decision Path */}
+              <div className={styles['analysis-decision-path']}>
+                <strong>Decision Path:</strong> {evaluation.detailed_analysis.decision_path}
+              </div>
+
+              {/* Sub-reasons */}
+              {evaluation.detailed_analysis.sub_reasons.length > 0 && (
+                <div className={styles['analysis-sub-reasons']}>
+                  <strong>Supporting Reasons:</strong>
+                  <ul>
+                    {evaluation.detailed_analysis.sub_reasons.map((reason, idx) => (
+                      <li key={idx}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Transparency Table */}
+              {evaluation.detailed_analysis.thresholds_checked.length > 0 && (
+                <div className={styles['transparency-table']}>
+                  <strong>Thresholds Evaluated:</strong>
+                  <table className={styles['threshold-table']}>
+                    <thead>
+                      <tr>
+                        <th>Metric</th>
+                        <th>Actual</th>
+                        <th>Operator</th>
+                        <th>Threshold</th>
+                        <th>Result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {evaluation.detailed_analysis.thresholds_checked.map((tc, idx) => (
+                        <tr key={idx} className={tc.passed ? styles['threshold-passed'] : styles['threshold-failed']}>
+                          <td>{tc.metric}</td>
+                          <td>{tc.actual}</td>
+                          <td>{tc.operator}</td>
+                          <td>{tc.threshold}</td>
+                          <td>{tc.passed ? '✅ Pass' : '❌ Fail'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}

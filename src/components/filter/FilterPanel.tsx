@@ -20,9 +20,8 @@ export default function FilterPanel() {
   // Get available filter options from current mods
   const options = getFilterOptions(mods);
 
-  // Helper to format recommendation labels
+  // Helper to format recommendation labels (CLEAN BREAK: Removed SLICE-PRIORITY)
   const formatRecommendation = (rec: string): string => {
-    if (rec === 'SLICE-PRIORITY') return 'Slice Priority';
     return rec.charAt(0) + rec.slice(1).toLowerCase();
   };
 
@@ -104,10 +103,10 @@ export default function FilterPanel() {
             })()}
           </div>
 
-          {/* Recommendations */}
+          {/* Recommendations - CLEAN BREAK: Removed SLICE-PRIORITY */}
           <div className={styles.filterSection}>
             <h4>Recommendations</h4>
-            {['SELL', 'UPGRADE', 'KEEP', 'SLICE', 'SLICE-PRIORITY'].map((rec) => (
+            {['SELL', 'UPGRADE', 'KEEP', 'SLICE'].map((rec) => (
               <label key={rec} className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
@@ -164,17 +163,17 @@ export default function FilterPanel() {
             ))}
           </div>
 
-          {/* Dots (Pips) */}
+          {/* Rarity (Dots/Pips) - CLEAN BREAK: Changed from "dots" to "rarity" */}
           <div className={styles.filterSection}>
-            <h4>Dots <span className={styles.count}>({filters.dots.length}/{options.dots.length})</span></h4>
-            {options.dots.map((dot) => (
-              <label key={dot} className={styles.checkboxLabel}>
+            <h4>Rarity <span className={styles.count}>({filters.rarity.length}/{options.rarity.length})</span></h4>
+            {options.rarity.map((rarityValue) => (
+              <label key={rarityValue} className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
-                  checked={(filters.dots as number[]).includes(dot)}
-                  onChange={(e) => handleCheckboxChange('dots', dot, e.target.checked)}
+                  checked={(filters.rarity as number[]).includes(rarityValue)}
+                  onChange={(e) => handleCheckboxChange('rarity', rarityValue, e.target.checked)}
                 />
-                <span>{dot} Dots</span>
+                <span>{rarityValue} Dots</span>
               </label>
             ))}
           </div>
