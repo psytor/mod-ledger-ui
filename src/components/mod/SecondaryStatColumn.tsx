@@ -8,8 +8,9 @@ const MAX_ROLLS = 5;
 interface SecondaryStat {
   stat_name: string;
   display_value: string;
-  roll_efficiency?: number;  // Aggregate average efficiency from API
-  rolls?: number;            // Total roll count from API
+  roll_efficiency?: number;      // Average efficiency for fallback
+  roll_efficiencies?: number[];  // Individual roll efficiencies for 5-bar visualization
+  rolls?: number;                // Total roll count from API
 }
 
 interface SecondaryStatColumnProps {
@@ -32,41 +33,56 @@ const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
     return styles.textDark;
   };
 
-  // CLEAN BREAK: Aggregate visualization using roll_efficiency and rolls count
+  // 5-Bar Visualization: Renders individual horizontal efficiency bars for each roll
   const renderRollVisualization = () => {
     const rollCount = stat.rolls || 0;
-    const efficiency = stat.roll_efficiency || 0;
+    const efficiencies = stat.roll_efficiencies || [];
+    const fallbackEfficiency = stat.roll_efficiency || 0;
 
-    // Visual pips showing roll count (max 5)
-    const rollPips = [];
+    // Calculate average efficiency from granular data or use fallback
+    const avgEfficiency = efficiencies.length > 0
+      ? efficiencies.reduce((sum, eff) => sum + eff, 0) / efficiencies.length
+      : fallbackEfficiency;
+
+    // Create exactly 5 horizontal bars (max possible rolls)
+    const bars = [];
     for (let i = 0; i < MAX_ROLLS; i++) {
-      rollPips.push(
+      const hasRoll = i < rollCount;
+
+      // Use granular data if available, fallback to average for legacy data
+      const rollEff = efficiencies[i] !== undefined ? efficiencies[i] : fallbackEfficiency;
+
+      // Bar width: 0% for empty slots, minimum 8% for visibility on actual rolls
+      const barWidth = hasRoll ? Math.max(rollEff, 8) : 0;
+
+      // Color class based on efficiency
+      const barColorClass = hasRoll ? getBarColorClass(rollEff) : '';
+
+      // Tooltip text
+      const tooltipText = hasRoll
+        ? `Roll ${i + 1}: ${rollEff.toFixed(1)}%`
+        : 'Unused Slot';
+
+      bars.push(
         <div
           key={i}
-          className={i < rollCount ? styles.rollPipActive : styles.rollPipInactive}
-          title={i < rollCount ? `Roll ${i + 1}` : 'No roll'}
-        />
+          className={`${styles.rollBarContainer} ${hasRoll ? '' : styles.rollBarInactive}`}
+          title={tooltipText}
+        >
+          <div
+            className={`${styles.rollBarFill} ${barColorClass}`}
+            style={{ width: `${barWidth}%` }}
+          />
+        </div>
       );
     }
 
-    // Aggregate efficiency bar
     return (
       <>
-        {/* Roll count pips */}
-        <div className={styles.rollPipsContainer}>
-          {rollPips}
-        </div>
-
-        {/* Aggregate efficiency bar */}
+        <div className={styles.rollBarsWrapper}>{bars}</div>
         {rollCount > 0 && (
-          <div className={styles.aggregateEfficiencyBar}>
-            <div
-              className={`${styles.efficiencyBarFill} ${getBarColorClass(efficiency)}`}
-              style={{ width: `${Math.max(efficiency, 8)}%` }} // Minimum 8% for visibility
-            />
-            <span className={`${styles.efficiencyBarText} ${getTextColorClass(efficiency)}`}>
-              {efficiency.toFixed(1)}% avg
-            </span>
+          <div className={styles.rollAverageLabel}>
+            {avgEfficiency.toFixed(1)}% avg Slice Quality
           </div>
         )}
       </>

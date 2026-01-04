@@ -494,6 +494,51 @@
   z-index: 2;
 }
 
+/* 5-Bar Roll Visualization Styles - Horizontal Bars */
+.rollBarsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rollBarContainer {
+  height: 18px;
+  background-color: #334155;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: help;
+}
+
+.rollBarContainer:hover {
+  background-color: #475569;
+}
+
+.rollBarInactive {
+  opacity: 0.3;
+  background-color: #1e293b;
+}
+
+.rollBarFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  border-radius: 3px;
+}
+
+.rollAverageLabel {
+  margin-top: 6px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
 /* CLEAN BREAK API - New Evaluation Section Styles */
 .target-level {
   color: #94a3b8;

@@ -9,7 +9,8 @@ interface ModStat {
   value: number;
   is_percent: boolean;
   rolls?: number;
-  roll_efficiency?: number;  // CLEAN BREAK: Changed from "efficiency"
+  roll_efficiency?: number;  // Average efficiency for scoring
+  roll_efficiencies?: number[];  // Individual roll efficiencies for 5-bar visualization
   is_speed?: boolean;
   is_offensive?: boolean;
   is_defensive?: boolean;
