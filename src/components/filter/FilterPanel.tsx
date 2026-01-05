@@ -76,13 +76,13 @@ export default function FilterPanel() {
               disabled={isLoadingProfiles}
             >
               {availableProfiles.map((profile) => (
-                <option key={profile.name} value={profile.name} title={profile.description}>
-                  {profile.profile_name}
+                <option key={profile.profile_name} value={profile.profile_name} title={profile.description}>
+                  {profile.name}
                 </option>
               ))}
             </Select>
             {selectedProfile && (() => {
-              const currentProfile = availableProfiles.find((p) => p.name === selectedProfile);
+              const currentProfile = availableProfiles.find((p) => p.profile_name === selectedProfile);
               return (
                 <>
                   <p className={styles.profileDescription}>
