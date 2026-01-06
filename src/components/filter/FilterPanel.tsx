@@ -82,7 +82,7 @@ export default function FilterPanel() {
       {/* Sliding panel */}
       <div className={`${styles.panel} ${isPanelOpen ? styles.open : ''}`}>
         <div className={styles.panelHeader}>
-          <h3>Filters (v2)</h3>
+          <h3>Filters</h3>
           <button className={styles.closeButton} onClick={closePanel}>
             ✕
           </button>
