@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { modLedgerApi } from '@/services/modLedgerApi';
+import { gameDataApi, type ModSlotDefinition } from '@/services/gameDataApi';
 import type { ParsedMod, ModEvaluation, ProfileMetadata } from '@/services/modLedgerApi';
 
 interface ModContextType {
   mods: ParsedMod[];
   evaluations: Record<string, ModEvaluation> | null;
+  modSlots: ModSlotDefinition[];
   isLoadingMods: boolean;
   isLoadingEvaluations: boolean;
   modsError: string | null;
@@ -24,6 +26,7 @@ const ModContext = createContext<ModContextType | undefined>(undefined);
 export function ModProvider({ children }: { children: ReactNode }) {
   const [mods, setMods] = useState<ParsedMod[]>([]);
   const [evaluations, setEvaluations] = useState<Record<string, ModEvaluation> | null>(null);
+  const [modSlots, setModSlots] = useState<ModSlotDefinition[]>([]);
   const [isLoadingMods, setIsLoadingMods] = useState(false);
   const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
   const [modsError, setModsError] = useState<string | null>(null);
@@ -98,9 +101,19 @@ export function ModProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedProfile]);
 
-  // Load profiles on mount
+  const loadGameData = useCallback(async () => {
+    try {
+      const slots = await gameDataApi.fetchModSlots();
+      setModSlots(slots);
+    } catch (error) {
+      console.error('Failed to load game data:', error);
+    }
+  }, []);
+
+  // Load profiles and game data on mount
   useEffect(() => {
     loadProfiles();
+    loadGameData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -117,6 +130,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
       value={{
         mods,
         evaluations,
+        modSlots,
         isLoadingMods,
         isLoadingEvaluations,
         modsError,

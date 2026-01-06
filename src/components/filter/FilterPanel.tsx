@@ -14,6 +14,7 @@ export default function FilterPanel() {
     availableProfiles,
     isLoadingProfiles,
     fetchEvaluations,
+    modSlots, // Get dynamic slot definitions
   } = useMods();
   const { selectedAllyCode } = useAuth();
 
@@ -24,6 +25,34 @@ export default function FilterPanel() {
   const formatRecommendation = (rec: string): string => {
     return rec.charAt(0) + rec.slice(1).toLowerCase();
   };
+
+  // Custom sort order for slots (requested by user)
+  // Square(1), Diamond(3), Circle(5), Arrow(2), Triangle(4), Cross(6)
+  const SLOT_ORDER = ['Square', 'Diamond', 'Circle', 'Arrow', 'Triangle', 'Cross'];
+
+  // Map shape to descriptive name using fetched game data
+  // Fallback to shape name if data not loaded yet
+  const getSlotDisplayName = (shape: string) => {
+    const def = modSlots.find(s => s.shape === shape);
+    if (def) {
+      // Format: "Transmitter (Square)"
+      // API returns Name="Transmitter", Shape="Square"
+      // Remove shape from name if it's already there to avoid "Transmitter (Square) (Square)"
+      const cleanName = def.name.replace(`(${shape})`, '').trim();
+      return `${cleanName} (${shape})`;
+    }
+    return shape;
+  };
+
+  // Sort slots based on fixed custom order
+  const sortedSlots = [...options.slots].sort((a, b) => {
+    const indexA = SLOT_ORDER.indexOf(a);
+    const indexB = SLOT_ORDER.indexOf(b);
+    // If not in list, put at end
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
 
   // Handle profile change
   const handleProfileChange = (newProfile: string) => {
@@ -53,7 +82,7 @@ export default function FilterPanel() {
       {/* Sliding panel */}
       <div className={`${styles.panel} ${isPanelOpen ? styles.open : ''}`}>
         <div className={styles.panelHeader}>
-          <h3>Filters</h3>
+          <h3>Filters (v2)</h3>
           <button className={styles.closeButton} onClick={closePanel}>
             ✕
           </button>
@@ -136,16 +165,49 @@ export default function FilterPanel() {
           {/* Slots */}
           <div className={styles.filterSection}>
             <h4>Slots <span className={styles.count}>({filters.slots.length}/{options.slots.length})</span></h4>
-            {options.slots.map((slot) => (
-              <label key={slot} className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={(filters.slots as string[]).includes(slot)}
-                  onChange={(e) => handleCheckboxChange('slots', slot, e.target.checked)}
-                />
-                <span>{slot}</span>
-              </label>
-            ))}
+            {(() => {
+              // Custom sort order (Square, Diamond, Circle, Arrow, Triangle, Cross)
+              // But options.slots contains NAMES (Transmitter, etc.), so we map names
+              const SLOT_ORDER = [
+                'Transmitter', // Square
+                'Processor',   // Diamond
+                'Data-Bus',    // Circle
+                'Receiver',    // Arrow
+                'Holo-Array',  // Triangle
+                'Multiplexer'  // Cross
+              ];
+
+              // Map Slot Name -> "Name (Shape)"
+              const getSlotDisplayName = (slotName: string) => {
+                // Try to find definition by Name
+                const def = modSlots.find(s => s.name === slotName);
+                if (def) {
+                  // Returns "Transmitter (Square)"
+                  return `${def.name} (${def.shape})`;
+                }
+                // Fallback: Just return the name (e.g. "Transmitter")
+                return slotName;
+              };
+
+              const sortedSlots = [...options.slots].sort((a, b) => {
+                const indexA = SLOT_ORDER.indexOf(a);
+                const indexB = SLOT_ORDER.indexOf(b);
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+              });
+
+              return sortedSlots.map((slot) => (
+                <label key={slot} className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={(filters.slots as string[]).includes(slot)}
+                    onChange={(e) => handleCheckboxChange('slots', slot, e.target.checked)}
+                  />
+                  <span>{getSlotDisplayName(slot)}</span>
+                </label>
+              ));
+            })()}
           </div>
 
           {/* Tiers */}
