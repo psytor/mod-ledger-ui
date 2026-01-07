@@ -125,7 +125,7 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
               </div>
               <div className={styles['score-item']}>
                 <span className={styles['score-label']}>Scalability</span>
-                <span className={styles['score-value']}>{evaluation.scores.scalability}/4</span>
+                <span className={styles['score-value']}>{evaluation.scores.scalability}</span>
                 <span className={styles['score-hint']}>Slicing potential</span>
               </div>
             </div>
