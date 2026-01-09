@@ -65,11 +65,11 @@ export function sortMods(
         break;
       }
 
-      case 'synergy': {
-        // Sort by synergy evaluation score
-        const aSynergy = evaluations?.[a.mod_id]?.scores.synergy || 0;
-        const bSynergy = evaluations?.[b.mod_id]?.scores.synergy || 0;
-        comparison = aSynergy - bSynergy;
+      case 'matches': {
+        // Sort by match count evaluation score
+        const aMatches = evaluations?.[a.mod_id]?.scores.match_count || 0;
+        const bMatches = evaluations?.[b.mod_id]?.scores.match_count || 0;
+        comparison = aMatches - bMatches;
         break;
       }
 

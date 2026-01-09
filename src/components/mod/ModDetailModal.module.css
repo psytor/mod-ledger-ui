@@ -555,33 +555,7 @@
   margin-top: 2px;
 }
 
-.archetype-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 12px;
-  background-color: rgba(139, 92, 246, 0.05);
-  border-radius: 6px;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-}
-
-.archetype-label {
-  color: #94a3b8;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.archetype-badge {
-  padding: 6px 16px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-  color: white;
-  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
-}
+/* Archetype styles removed - archetype field no longer exists in API */
 
 .detailed-analysis-section {
   margin-top: 24px;
@@ -738,9 +712,5 @@
     padding: 8px 6px;
   }
 
-  .archetype-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
+  /* Archetype section removed from media query */
 }

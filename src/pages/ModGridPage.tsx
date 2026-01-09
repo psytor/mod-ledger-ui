@@ -124,7 +124,7 @@ export default function ModGridPage() {
                 <option value="quality">Quality</option>
                 {/* CLEAN BREAK: Removed deprecated "overall" and "speed_bonus" scores */}
                 <option value="eval_quality">Eval Quality</option>
-                <option value="synergy">Synergy</option>
+                <option value="matches">Matches</option>
                 <option value="scalability">Scalability</option>
               </Select>
 

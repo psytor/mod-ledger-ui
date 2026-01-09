@@ -48,10 +48,10 @@ export interface ModListResponse {
 }
 
 export interface EvaluationScores {
-  synergy: number;        // Count of strategic stat matches (0-4)
-  quality: number;        // Weighted roll efficiency score (0-100)
-  scalability: number;    // Slicing potential indicator (0-4)
-  archetype: string;      // Strategic classification ("High Roller", "Synergy Bomb", etc.)
+  match_count: number;    // Number of matching secondaries (0-4)
+  speed_value: number;    // Speed stat value (0-30+)
+  quality: number;        // Average roll efficiency (0-100%)
+  scalability: number;    // 6-dot slicing potential (0-4)
 }
 
 export interface ThresholdCheck {

@@ -112,11 +112,18 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
             </div>
 
             {/* Core Scores Section */}
-            <div className={styles['evaluation-scores']}>
+            <div className={styles['evaluation-scores']} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Synergy</span>
-                <span className={styles['score-value']}>{evaluation.scores.synergy}/4</span>
-                <span className={styles['score-hint']}>Strategic stat matches</span>
+                <span className={styles['score-label']}>Matches</span>
+                <span className={styles['score-value']}>{evaluation.scores.match_count}/4</span>
+                <span className={styles['score-hint']}>Matching stats</span>
+              </div>
+              <div className={styles['score-item']}>
+                <span className={styles['score-label']}>Speed</span>
+                <span className={styles['score-value']}>
+                  {evaluation.scores.speed_value > 0 ? `+${evaluation.scores.speed_value}` : '—'}
+                </span>
+                <span className={styles['score-hint']}>Speed bonus</span>
               </div>
               <div className={styles['score-item']}>
                 <span className={styles['score-label']}>Quality</span>
@@ -130,11 +137,7 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
               </div>
             </div>
 
-            {/* Archetype Badge */}
-            <div className={styles['archetype-section']}>
-              <span className={styles['archetype-label']}>Archetype:</span>
-              <span className={styles['archetype-badge']}>{evaluation.scores.archetype}</span>
-            </div>
+            {/* Archetype section removed - no longer available in API */}
 
             {/* Decision Transparency Section */}
             <div className={styles['detailed-analysis-section']}>
