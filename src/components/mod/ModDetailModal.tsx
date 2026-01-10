@@ -111,6 +111,16 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
               )}
             </div>
 
+            {/* Primary Mismatch Warning */}
+            {evaluation.scores.primary_mismatch && (
+              <div className={styles['primary-mismatch-warning']}>
+                <span className={styles['warning-icon']}>⚠️</span>
+                <span className={styles['warning-text']}>
+                  This mod has an <strong>invalid primary stat</strong> for its set. The primary doesn't support the set's intended purpose.
+                </span>
+              </div>
+            )}
+
             {/* Core Scores Section */}
             <div className={styles['evaluation-scores']} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className={styles['score-item']}>

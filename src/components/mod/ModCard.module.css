@@ -161,6 +161,11 @@
   animation: priority-pulse 2s ease-in-out infinite;
 }
 
+.badgeWarning {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  border: 1px solid rgba(251, 146, 60, 0.3);
+}
+
 @keyframes priority-pulse {
   0%, 100% {
     box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);

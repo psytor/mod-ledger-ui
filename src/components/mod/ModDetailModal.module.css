@@ -305,6 +305,34 @@
   border-radius: 6px;
 }
 
+.primary-mismatch-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(251, 146, 60, 0.1));
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 8px;
+}
+
+.warning-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.warning-text {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.warning-text strong {
+  color: #fb923c;
+  font-weight: 700;
+}
+
 .eval-label {
   color: #94a3b8;
   font-size: 14px;

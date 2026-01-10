@@ -114,6 +114,11 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
                   {evaluationDisplay.emoji} {evaluationDisplay.label}
                 </div>
               )}
+              {evaluation?.scores.primary_mismatch && (
+                <div className={`${styles.badge} ${styles.badgeWarning}`} title="Invalid primary stat for this set">
+                  ⚠️ Bad Primary
+                </div>
+              )}
             </div>
             <div className={styles.topRight}>
               {averageEfficiency !== null && (
