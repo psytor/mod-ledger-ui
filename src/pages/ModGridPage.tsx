@@ -122,10 +122,8 @@ export default function ModGridPage() {
                 <option value="tier">Tier</option>
                 <option value="speed">Speed</option>
                 <option value="quality">Quality</option>
-                {/* CLEAN BREAK: Removed deprecated "overall" and "speed_bonus" scores */}
                 <option value="eval_quality">Eval Quality</option>
                 <option value="matches">Matches</option>
-                <option value="scalability">Scalability</option>
               </Select>
 
               <Button

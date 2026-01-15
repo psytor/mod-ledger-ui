@@ -31,7 +31,7 @@ export function sortMods(
         comparison = a.level - b.level;
         break;
 
-      case 'rarity':  // CLEAN BREAK: Changed from "dots"
+      case 'rarity':
         comparison = a.rarity - b.rarity;
         break;
 
@@ -55,8 +55,6 @@ export function sortMods(
         break;
       }
 
-      // CLEAN BREAK: Removed deprecated "overall" sort (score no longer exists)
-
       case 'eval_quality': {
         // Sort by quality evaluation score
         const aQuality = evaluations?.[a.mod_id]?.scores.quality || 0;
@@ -73,16 +71,6 @@ export function sortMods(
         break;
       }
 
-      case 'scalability': {
-        // Sort by scalability score (NEW in Clean Break API)
-        const aScalability = evaluations?.[a.mod_id]?.scores.scalability || 0;
-        const bScalability = evaluations?.[b.mod_id]?.scores.scalability || 0;
-        comparison = aScalability - bScalability;
-        break;
-      }
-
-      // CLEAN BREAK: Removed deprecated "speed_bonus" sort (score no longer exists)
-
       default:
         comparison = 0;
     }
@@ -95,7 +83,6 @@ export function sortMods(
 
 /**
  * Calculate average roll efficiency of secondary stats
- * CLEAN BREAK: Changed from "efficiency" to "roll_efficiency"
  */
 function calculateAverageEfficiency(mod: ParsedMod): number {
   if (mod.secondary_stats.length === 0) return 0;

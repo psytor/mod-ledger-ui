@@ -51,7 +51,6 @@ export interface EvaluationScores {
   match_count: number;    // Number of matching secondaries (0-4)
   speed_value: number;    // Speed stat value (0-30+)
   quality: number;        // Average roll efficiency (0-100%)
-  scalability: number;    // 6-dot slicing potential (0-4)
   primary_mismatch: boolean;  // Primary stat is invalid for this set (v4.0)
 }
 

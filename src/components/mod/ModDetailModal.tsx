@@ -122,7 +122,7 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
             )}
 
             {/* Core Scores Section */}
-            <div className={styles['evaluation-scores']} style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            <div className={styles['evaluation-scores']} style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className={styles['score-item']}>
                 <span className={styles['score-label']}>Matches</span>
                 <span className={styles['score-value']}>{evaluation.scores.match_count}/4</span>
@@ -139,11 +139,6 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
                 <span className={styles['score-label']}>Quality</span>
                 <span className={styles['score-value']}>{evaluation.scores.quality.toFixed(1)}%</span>
                 <span className={styles['score-hint']}>Roll efficiency</span>
-              </div>
-              <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Scalability</span>
-                <span className={styles['score-value']}>{evaluation.scores.scalability}</span>
-                <span className={styles['score-hint']}>Slicing potential</span>
               </div>
             </div>
 
