@@ -121,8 +121,6 @@ export default function ModGridPage() {
                 <option value="rarity">Rarity</option>
                 <option value="tier">Tier</option>
                 <option value="speed">Speed</option>
-                <option value="quality">Quality</option>
-                <option value="eval_quality">Eval Quality</option>
                 <option value="matches">Matches</option>
               </Select>
 

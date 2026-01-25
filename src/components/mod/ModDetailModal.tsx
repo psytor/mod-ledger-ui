@@ -1,5 +1,5 @@
 import { Modal } from 'astrogators-shared-ui';
-import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
+import type { ParsedMod, ModEvaluation, EvaluationDecision } from '@/services/modLedgerApi';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
 
@@ -13,20 +13,20 @@ interface ModDetailModalProps {
 export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: ModDetailModalProps) {
   if (!isOpen || !mod) return null;
 
-  // Helper to format recommendation labels (CLEAN BREAK: Removed SLICE-PRIORITY)
-  const formatRecommendation = (rec: string): string => {
-    return rec.charAt(0) + rec.slice(1).toLowerCase();
+  // Helper to format decision labels (v4.0)
+  const formatDecision = (decision: EvaluationDecision): string => {
+    if (decision.startsWith('UPGRADE_TO_')) {
+      return `Upgrade to ${decision.replace('UPGRADE_TO_', '')}`;
+    }
+    return decision.charAt(0) + decision.slice(1).toLowerCase();
   };
 
-  // Helper to get recommendation badge class (CLEAN BREAK: Removed SLICE-PRIORITY)
-  const getRecommendationClass = (rec: string): string => {
-    switch (rec) {
-      case 'KEEP': return styles.badgeKeep;
-      case 'SELL': return styles.badgeSell;
-      case 'UPGRADE': return styles.badgeUpgrade;
-      case 'SLICE': return styles.badgeSlice;
-      default: return '';
-    }
+  // Helper to get recommendation badge class (v4.0)
+  const getRecommendationClass = (decision: EvaluationDecision): string => {
+    if (decision === 'KEEP') return styles.badgeKeep;
+    if (decision === 'SELL') return styles.badgeSell;
+    if (decision.startsWith('UPGRADE_TO_')) return styles.badgeUpgrade;
+    return '';
   };
 
   return (
@@ -103,42 +103,37 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
             {/* Recommendation Badge */}
             <div className={styles['evaluation-recommendation']}>
               <span className={styles['eval-label']}>Recommendation:</span>
-              <span className={`${styles['eval-badge']} ${getRecommendationClass(evaluation.recommendation)}`}>
-                {formatRecommendation(evaluation.recommendation)}
+              <span className={`${styles['eval-badge']} ${getRecommendationClass(evaluation.decision)}`}>
+                {formatDecision(evaluation.decision)}
               </span>
-              {evaluation.target_level && (
-                <span className={styles['target-level']}>→ Level {evaluation.target_level}</span>
+              {evaluation.next_target_level && (
+                <span className={styles['target-level']}>→ Level {evaluation.next_target_level}</span>
               )}
             </div>
 
             {/* Primary Mismatch Warning */}
-            {evaluation.scores.primary_mismatch && (
+            {evaluation.synergy_result?.primary_rejected && (
               <div className={styles['primary-mismatch-warning']}>
                 <span className={styles['warning-icon']}>⚠️</span>
                 <span className={styles['warning-text']}>
-                  This mod has an <strong>invalid primary stat</strong> for its set. The primary doesn't support the set's intended purpose.
+                  This mod has an <strong>invalid primary stat</strong> for its set. {evaluation.synergy_result.rejection_reason}
                 </span>
               </div>
             )}
 
             {/* Core Scores Section */}
-            <div className={styles['evaluation-scores']} style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div className={styles['evaluation-scores']} style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className={styles['score-item']}>
                 <span className={styles['score-label']}>Matches</span>
-                <span className={styles['score-value']}>{evaluation.scores.match_count}/4</span>
+                <span className={styles['score-value']}>{evaluation.synergy_result?.best_match?.total_matches ?? 0}/4</span>
                 <span className={styles['score-hint']}>Matching stats</span>
               </div>
               <div className={styles['score-item']}>
                 <span className={styles['score-label']}>Speed</span>
                 <span className={styles['score-value']}>
-                  {evaluation.scores.speed_value > 0 ? `+${evaluation.scores.speed_value}` : '—'}
+                  {evaluation.speed_value !== null ? `+${evaluation.speed_value}` : '—'}
                 </span>
                 <span className={styles['score-hint']}>Speed bonus</span>
-              </div>
-              <div className={styles['score-item']}>
-                <span className={styles['score-label']}>Quality</span>
-                <span className={styles['score-value']}>{evaluation.scores.quality.toFixed(1)}%</span>
-                <span className={styles['score-hint']}>Roll efficiency</span>
               </div>
             </div>
 
@@ -146,56 +141,38 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
 
             {/* Decision Transparency Section */}
             <div className={styles['detailed-analysis-section']}>
-              <h4>Decision Analysis</h4>
+              <h4>Analysis</h4>
+              <p className={styles['analysis-primary-reason']}>{evaluation.reason}</p>
 
-              {/* Primary Reason */}
-              <div className={styles['analysis-primary-reason']}>
-                <strong>Primary Reason:</strong> {evaluation.detailed_analysis.primary_reason}
-              </div>
-
-              {/* Decision Path */}
-              <div className={styles['analysis-decision-path']}>
-                <strong>Decision Path:</strong> {evaluation.detailed_analysis.decision_path}
-              </div>
-
-              {/* Sub-reasons */}
-              {evaluation.detailed_analysis.sub_reasons.length > 0 && (
-                <div className={styles['analysis-sub-reasons']}>
-                  <strong>Supporting Reasons:</strong>
-                  <ul>
-                    {evaluation.detailed_analysis.sub_reasons.map((reason, idx) => (
-                      <li key={idx}>{reason}</li>
-                    ))}
-                  </ul>
+              {/* Optional: Show synergy blueprint match */}
+              {evaluation.synergy_result?.best_match && (
+                <div className={styles['analysis-details']}>
+                  <p className={styles['analysis-decision-path']}>
+                    <strong>Blueprint:</strong> {evaluation.synergy_result.best_match.blueprint_name}
+                  </p>
+                  {evaluation.synergy_result.best_match.matched_bonus_stat_names && evaluation.synergy_result.best_match.matched_bonus_stat_names.length > 0 && (
+                    <p className={styles['analysis-bonus-stats']}>
+                      <strong>Bonus Matches:</strong> {evaluation.synergy_result.best_match.matched_bonus_stat_names.join(', ')}
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* Transparency Table */}
-              {evaluation.detailed_analysis.thresholds_checked.length > 0 && (
-                <div className={styles['transparency-table']}>
-                  <strong>Thresholds Evaluated:</strong>
-                  <table className={styles['threshold-table']}>
-                    <thead>
-                      <tr>
-                        <th>Metric</th>
-                        <th>Actual</th>
-                        <th>Operator</th>
-                        <th>Threshold</th>
-                        <th>Result</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {evaluation.detailed_analysis.thresholds_checked.map((tc, idx) => (
-                        <tr key={idx} className={tc.passed ? styles['threshold-passed'] : styles['threshold-failed']}>
-                          <td>{tc.metric}</td>
-                          <td>{tc.actual}</td>
-                          <td>{tc.operator}</td>
-                          <td>{tc.threshold}</td>
-                          <td>{tc.passed ? '✅ Pass' : '❌ Fail'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Gatekeeper Rule Breakdown (if available) */}
+              {evaluation.gatekeeper_result?.rule_results && evaluation.gatekeeper_result.rule_results.length > 0 && (
+                <div className={styles['rule-breakdown']}>
+                  <h5>Gatekeeper Rules</h5>
+                  <ul className={styles['rule-list']}>
+                    {evaluation.gatekeeper_result.rule_results.map((rule, idx) => (
+                      <li key={idx} className={rule.passed ? styles['rule-pass'] : styles['rule-fail']}>
+                        <span className={styles['rule-icon']}>{rule.passed ? '✅' : '❌'}</span>
+                        <span className={styles['rule-name']}>{rule.step_name || `Rule ${idx + 1}`}</span>
+                        {!rule.passed && rule.reason && (
+                          <span className={styles['rule-reason']}> - {rule.reason}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>

@@ -742,3 +742,87 @@
 
   /* Archetype section removed from media query */
 }
+
+/* Gatekeeper Rules Styles */
+.rule-breakdown {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #334155;
+}
+
+.rule-breakdown h5 {
+  color: #94a3b8;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+}
+
+.rule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rule-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+}
+
+.rule-pass {
+  border-left: 3px solid #22c55e;
+}
+
+.rule-fail {
+  border-left: 3px solid #ef4444;
+}
+
+.rule-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.rule-name {
+  color: #e2e8f0;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.rule-reason {
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.analysis-details {
+  background-color: rgba(100, 116, 139, 0.1);
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.analysis-decision-path {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 0;
+  font-family: 'Courier New', monospace;
+  background-color: transparent;
+  padding: 0;
+}
+
+.analysis-bonus-stats {
+  color: #60a5fa;
+  font-size: 13px;
+  margin-top: 6px;
+  margin-bottom: 0;
+  font-family: system-ui;
+}

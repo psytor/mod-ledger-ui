@@ -20,21 +20,10 @@ const tierBorderColors = {
 } as const;
 
 export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
-  const [showTooltip, setShowTooltip] = React.useState(false);
-
   // Ensure we always have 4 secondary slots
   const secondarySlots = Array(4).fill(null).map((_, index) => {
     return mod.secondary_stats[index] || null;
   });
-
-  // Calculate average roll efficiency from secondary stats
-  const secondaryStatsWithEfficiency = mod.secondary_stats.filter(
-    stat => stat.roll_efficiency !== undefined && stat.roll_efficiency !== null
-  );
-  const averageEfficiency = secondaryStatsWithEfficiency.length > 0
-    ? secondaryStatsWithEfficiency.reduce((sum, stat) => sum + stat.roll_efficiency!, 0) /
-      secondaryStatsWithEfficiency.length
-    : null;
 
   // Determine tier class
   const getTierClass = (tier: number): string => {
@@ -68,30 +57,23 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
     'Gold': styles.glowGold,
   }[tierColorName];
 
-  // Evaluation display (CLEAN BREAK: Removed SLICE-PRIORITY)
-  const getEvaluationDisplay = (rec: string) => {
-    switch (rec) {
-      case 'KEEP': return { emoji: '✅', label: 'Keep', class: styles.badgeKeep };
-      case 'SELL': return { emoji: '💰', label: 'Sell', class: styles.badgeSell };
-      case 'UPGRADE': return { emoji: '⬆️', label: 'Upgrade', class: styles.badgeUpgrade };
-      case 'SLICE': return { emoji: '🔪', label: 'Slice', class: styles.badgeSlice };
-      default: return null;
+  // Evaluation display (CLEAN BREAK: Updated for v4.0)
+  const getEvaluationDisplay = (decision: string) => {
+    if (decision === 'KEEP') return { emoji: '✅', label: 'Keep', class: styles.badgeKeep };
+    if (decision === 'SELL') return { emoji: '💰', label: 'Sell', class: styles.badgeSell };
+    if (decision.startsWith('UPGRADE_TO_')) {
+      const level = decision.replace('UPGRADE_TO_', '');
+      return { emoji: '⬆️', label: `→${level}`, class: styles.badgeUpgrade };
     }
+    return null;
   };
 
-  const evaluationDisplay = evaluation ? getEvaluationDisplay(evaluation.recommendation) : null;
+  const evaluationDisplay = evaluation ? getEvaluationDisplay(evaluation.decision) : null;
 
   return (
     <div className={styles.cardWrapper}>
       {/* External glow background - matches mod tier color */}
       <div className={`${styles.glowBackground} ${glowGradientClass}`}></div>
-
-      {/* Tooltip - rendered outside Card so it's not clipped */}
-      {showTooltip && averageEfficiency !== null && (
-        <div className={styles.tooltip}>
-          Average efficiency of all secondary stats
-        </div>
-      )}
 
       <Card
         chamfered
@@ -110,24 +92,16 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
           <div className={styles.topRow}>
             <div className={styles.topLeft}>
               {evaluationDisplay && (
-                <div className={`${styles.badge} ${evaluationDisplay.class}`}>
+                <div 
+                  className={`${styles.badge} ${evaluationDisplay.class}`}
+                  title={evaluation?.reason}
+                >
                   {evaluationDisplay.emoji} {evaluationDisplay.label}
                 </div>
               )}
-              {evaluation?.scores.primary_mismatch && (
-                <div className={`${styles.badge} ${styles.badgeWarning}`} title="Invalid primary stat for this set">
+              {evaluation?.synergy_result?.primary_rejected && (
+                <div className={`${styles.badge} ${styles.badgeWarning}`} title={evaluation.synergy_result.rejection_reason || "Invalid primary stat for this set"}>
                   ⚠️ Bad Primary
-                </div>
-              )}
-            </div>
-            <div className={styles.topRight}>
-              {averageEfficiency !== null && (
-                <div
-                  className={styles.averagePercentage}
-                  onMouseEnter={() => setShowTooltip(true)}
-                  onMouseLeave={() => setShowTooltip(false)}
-                >
-                  {averageEfficiency.toFixed(1)}%
                 </div>
               )}
             </div>
@@ -180,9 +154,6 @@ export default function ModCard({ mod, onClick, evaluation }: ModCardProps) {
                       <>
                         <span className={styles.statValue}>{stat.display_value}</span>
                         <span className={styles.statName}>{stat.stat_name}</span>
-                        {stat.roll_efficiency !== undefined && stat.roll_efficiency !== null && (
-                          <span className={styles.efficiency}>{stat.roll_efficiency.toFixed(1)}%</span>
-                        )}
                       </>
                     ) : (
                       <span className={styles.emptySlot}>—</span>

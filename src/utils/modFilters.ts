@@ -51,9 +51,16 @@ export function applyFilters(
     // Filter by recommendation
     if (filters.recommendations.length > 0 && evaluations) {
       const evaluation = evaluations[mod.mod_id];
-      if (!evaluation || !filters.recommendations.includes(evaluation.recommendation)) {
-        return false;
-      }
+      if (!evaluation) return false;
+
+      // Map granular decisions to filter categories
+      let category: string;
+      if (evaluation.decision === 'KEEP') category = 'KEEP';
+      else if (evaluation.decision === 'SELL') category = 'SELL';
+      else if (evaluation.decision.startsWith('UPGRADE_TO_')) category = 'UPGRADE';
+      else category = evaluation.decision;
+
+      if (!filters.recommendations.includes(category)) return false;
     }
 
     return true;

@@ -47,34 +47,53 @@ export interface ModListResponse {
   cached: boolean;
 }
 
-export interface EvaluationScores {
-  match_count: number;    // Number of matching secondaries (0-4)
-  speed_value: number;    // Speed stat value (0-30+)
-  quality: number;        // Average roll efficiency (0-100%)
-  primary_mismatch: boolean;  // Primary stat is invalid for this set (v4.0)
+export interface BlueprintMatch {
+  blueprint_name: string;
+  total_matches: number;
+  matched_stats: number[];
+  matched_stat_names: string[];
+  matched_bonus_stats: number[];
+  matched_bonus_stat_names: string[];
 }
 
-export interface ThresholdCheck {
-  metric: string;         // Metric name (e.g., "synergy", "quality", "speed")
-  actual: number;         // Actual value from mod
-  threshold: number;      // Required threshold value
-  operator: string;       // Comparison operator (">=" | "<=" | "==" | ">", "<")
-  passed: boolean;        // Whether threshold was met
+export interface SynergyResult {
+  best_match: BlueprintMatch | null;
+  all_matches: BlueprintMatch[];
+  has_blueprint: boolean;
+  primary_rejected: boolean;
+  rejection_reason: string | null;
 }
 
-export interface DetailedAnalysis {
-  primary_reason: string;           // Main reason for decision (e.g., "High Synergy AND High Speed")
-  sub_reasons: string[];            // Supporting reasons (e.g., ["Synergy Score: 4 matches", "Speed Value: 21"])
-  decision_path: string;            // Rule path taken (e.g., "Level 15 → Slice (Synergy >= 3)")
-  thresholds_checked: ThresholdCheck[];  // All threshold evaluations for transparency
+export interface GatekeeperResult {
+  passed: boolean;
+  enforced: boolean;
+  failure_reason: string | null;
+  rule_results: any[]; // Detailed rule pass/fail objects
 }
+
+export type EvaluationDecision =
+  | 'UPGRADE_TO_3'
+  | 'UPGRADE_TO_6'
+  | 'UPGRADE_TO_9'
+  | 'UPGRADE_TO_12'
+  | 'UPGRADE_TO_15'
+  | 'KEEP'
+  | 'SELL';
 
 export interface ModEvaluation {
   mod_id: string;
-  scores: EvaluationScores;
-  recommendation: 'SELL' | 'UPGRADE' | 'KEEP' | 'SLICE';  // CLEAN BREAK: Removed "SLICE-PRIORITY"
-  detailed_analysis: DetailedAnalysis;  // CLEAN BREAK: Changed from "reasoning: string"
-  target_level?: number;  // For UPGRADE recommendations
+  decision: EvaluationDecision;
+  current_level: number;
+  current_tier: number;
+  next_target_level: number | null;
+  synergy_result: SynergyResult | null;
+  gatekeeper_result: GatekeeperResult | null;
+  has_speed: boolean;
+  speed_value: number | null;
+  speed_threshold: number | null;
+  speed_passed: boolean | null;
+  reason: string;
+  workflow_step: string | null;
 }
 
 export interface EvaluationResponse {
@@ -82,19 +101,6 @@ export interface EvaluationResponse {
   profile_name: string;
   evaluations: Record<string, ModEvaluation>;
   cached: boolean;
-}
-
-export interface ProfileMetadata {
-  name: string;
-  profile_name: string;
-  description: string;
-  version: string;
-  frontend_link?: string;
-}
-
-export interface ProfileListResponse {
-  total: number;
-  profiles: ProfileMetadata[];
 }
 
 class ModLedgerApiClient {
@@ -120,18 +126,14 @@ class ModLedgerApiClient {
   }
 
   /**
-   * Evaluate player mods with optional profile selection
+   * Evaluate player mods
    */
-  async evaluatePlayerMods(allyCode: string, profileName?: string): Promise<EvaluationResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/evaluate/player`, {
-      method: 'POST',
+  async evaluatePlayerMods(allyCode: string): Promise<EvaluationResponse> {
+    const response = await fetch(`${this.baseUrl}/api/v1/player/${allyCode}/evaluate`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        ally_code: allyCode,
-        profile: profileName 
-      }),
+      }
     });
 
     if (!response.ok) {
@@ -143,40 +145,18 @@ class ModLedgerApiClient {
 
     // Transform backend list results to frontend evaluations record
     const evaluations: Record<string, ModEvaluation> = {};
-    if (data.results && Array.isArray(data.results)) {
-      data.results.forEach((result: any) => {
-        // The backend returns the full transformed mod AND the scores
-        // We just need the evaluation part for the evaluations record
-        evaluations[result.mod.mod_id] = {
-          mod_id: result.mod.mod_id,
-          scores: result.scores,
-          recommendation: result.recommendation,
-          detailed_analysis: result.detailed_analysis,
-          target_level: result.target_level
-        };
+    if (data.evaluations && Array.isArray(data.evaluations)) {
+      data.evaluations.forEach((item: any) => {
+        evaluations[item.mod.mod_id] = item.evaluation;
       });
     }
 
     return {
-      ally_code: data.player_info?.ally_code || allyCode,
-      profile_name: profileName || 'standard-v1',
+      ally_code: data.ally_code || allyCode,
+      profile_name: data.profile_used || 'standard-v1',
       evaluations: evaluations,
       cached: false
     };
-  }
-
-  /**
-   * List all available evaluation profiles
-   */
-  async listProfiles(): Promise<ProfileListResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/profiles`);
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || `Failed to fetch profiles: ${response.statusText}`);
-    }
-
-    return response.json();
   }
 }
 

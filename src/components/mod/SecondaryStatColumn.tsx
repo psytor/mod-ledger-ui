@@ -27,12 +27,6 @@ const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
     return styles.fillPoor;                               // blue-900
   };
 
-  // Text color based on efficiency (lighter text on darker backgrounds)
-  const getTextColorClass = (efficiency: number): string => {
-    if (efficiency >= 60) return styles.textLight;
-    return styles.textDark;
-  };
-
   // 5-Bar Visualization: Renders individual horizontal efficiency bars for each roll
   const renderRollVisualization = () => {
     const rollCount = stat.rolls || 0;
@@ -82,7 +76,7 @@ const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
         <div className={styles.rollBarsWrapper}>{bars}</div>
         {rollCount > 0 && (
           <div className={styles.rollAverageLabel}>
-            {avgEfficiency.toFixed(1)}% avg Slice Quality
+            {avgEfficiency.toFixed(1)}% Roll Efficiency
           </div>
         )}
       </>
