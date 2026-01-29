@@ -123,7 +123,10 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
 
             {/* Core Scores Section */}
             <div className={styles['evaluation-scores']} style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              <div className={styles['score-item']}>
+              <div 
+                className={styles['score-item']}
+                title={evaluation.synergy_result?.best_match?.matched_stat_names?.join(', ') || 'No matches found'}
+              >
                 <span className={styles['score-label']}>Matches</span>
                 <span className={styles['score-value']}>{evaluation.synergy_result?.best_match?.total_matches ?? 0}/4</span>
                 <span className={styles['score-hint']}>Matching stats</span>
@@ -150,6 +153,12 @@ export default function ModDetailModal({ mod, isOpen, onClose, evaluation }: Mod
                   <p className={styles['analysis-decision-path']}>
                     <strong>Blueprint:</strong> {evaluation.synergy_result.best_match.blueprint_name}
                   </p>
+                  {/* NEW: Matched Stats */}
+                  {evaluation.synergy_result.best_match.matched_stat_names && evaluation.synergy_result.best_match.matched_stat_names.length > 0 && (
+                    <p className={styles['analysis-bonus-stats']}>
+                      <strong>Matches:</strong> {evaluation.synergy_result.best_match.matched_stat_names.join(', ')}
+                    </p>
+                  )}
                   {evaluation.synergy_result.best_match.matched_bonus_stat_names && evaluation.synergy_result.best_match.matched_bonus_stat_names.length > 0 && (
                     <p className={styles['analysis-bonus-stats']}>
                       <strong>Bonus Matches:</strong> {evaluation.synergy_result.best_match.matched_bonus_stat_names.join(', ')}
