@@ -4,7 +4,7 @@ import { resolve } from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Base path must match nginx location
+  // Base path must match the prod mount point.
   base: '/mod-ledger/',
   plugins: [react()],
   resolve: {
@@ -14,16 +14,5 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    hmr: {
-      // Connect directly to dev server, bypassing nginx proxy
-      clientPort: 5174,
-      host: 'localhost',
-    },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8001',
-        changeOrigin: true,
-      },
-    },
   },
 });
