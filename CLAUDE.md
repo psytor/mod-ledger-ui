@@ -32,6 +32,20 @@ It consumes:
 It does not own persistent state. All state lives in the backends or browser
 storage (handled by shared-ui).
 
+## Single-origin rule (read before touching URLs)
+
+`mod-ledger-ui`, the hub, and both backends are served from **one origin**
+in both dev and prod — `http://localhost/` in dev, `https://astrotable.dynv6.net/`
+in prod. The workspace nginx reverse proxy (at the workspace root, not in
+this submodule) fronts every request and dumb-proxies each prefix to the
+right backend or frontend.
+
+**Every `VITE_*_URL` must point through that proxy.** Never direct-port
+(e.g. `http://localhost:8001/...`) — that breaks auth-state sharing
+(localStorage is scoped per origin, and `:8001` is a different origin from
+`:80`), forces CORS, and turns the cross-app "back to hub" link into a
+cross-origin redirect that looks like a logged-out state.
+
 ## Stack
 
 - Node **24** (pinned via `.nvmrc` and `engines`)
@@ -80,10 +94,11 @@ rebuild — Vite bakes the value into the JS at build time, not at runtime. The
 Docker build takes them via `--build-arg` (wired up in `docker-compose.yml`).
 
 **Never introduce Docker network coupling to other compose projects.** This
-service runs with `network_mode: host`. The production container listens on
-`localhost:4174` and reaches the backends via whatever URLs are in
-`VITE_MOD_LEDGER_URL` and `VITE_ASTROGATORS_TABLE_URL`. Never suggest
-`networks: external: true` or joining another compose's network.
+service runs with `network_mode: host` and listens on `localhost:4174`.
+The workspace nginx at `../nginx/` is the single front door — it's what the
+browser actually talks to, and it proxies this UI at `/mod-ledger/` and the
+backends at their prefixes. Never suggest `networks: external: true` or
+joining another compose's network.
 
 **Auth + API access goes through `astrogators-shared-ui`.** Do not add a
 second API client, a second auth context, or bespoke JWT handling. If the
@@ -109,11 +124,13 @@ together.
 Current vars:
 
 - `VITE_MOD_LEDGER_URL` — full URL including the mod-ledger backend's
-  `SERVICE_PREFIX`, e.g. `http://localhost:8001/mod-ledger` in dev,
-  `https://yourdomain.com/mod-ledger` in prod.
+  `SERVICE_PREFIX`, routed through the workspace nginx. Dev:
+  `http://localhost/mod-ledger`. Prod:
+  `https://astrotable.dynv6.net/mod-ledger`.
 - `VITE_ASTROGATORS_TABLE_URL` — full URL including the astrogators-table
-  backend's `SERVICE_PREFIX`, e.g. `http://localhost:8000/astrogators-table`
-  in dev, `https://yourdomain.com/astrogators-table` in prod.
+  backend's `SERVICE_PREFIX`, also proxied. Dev:
+  `http://localhost/astrogators-table`. Prod:
+  `https://astrotable.dynv6.net/astrogators-table`.
 
 ## When adding dependencies
 
