@@ -1,7 +1,7 @@
 # Mod Ledger UI
 
-React + TypeScript + Vite single-page app for SWGOH mod inventory, filtering,
-and evaluation. Part of [The Astrogator's Table](../) workspace.
+React + TypeScript + Vite single-page app for SWGOH mod inventory and
+filtering. Part of [The Astrogator's Table](../) workspace.
 
 ## Tech stack
 
@@ -20,9 +20,9 @@ and evaluation. Part of [The Astrogator's Table](../) workspace.
 - Responsive mod grid (5 columns down to 1 on mobile)
 - Mod card with primary stat, sprite, level/tier/pips, secondary stats with
   efficiency, and character/calibration/lock state
-- Sliding filter panel: sets, slots, tiers, dots, primaries, characters, lock
-- Sorting by character, set, slot, level, dots, tier, speed, or quality
-- Mod detail modal with matched stats
+- Sliding filter panel: sets, slots, tiers, rarity, primaries, characters, lock
+- Sorting by character, set, slot, level, rarity, tier, or speed
+- Mod detail modal with secondary-roll efficiency breakdown
 
 ## Where this fits
 
@@ -34,7 +34,7 @@ and dumb-proxies each prefix to its backend or frontend.
 
 It consumes:
 
-- **`mod-ledger`** backend — mod data and evaluation
+- **`mod-ledger`** backend — player mod listing
 - **`astrogators-table`** backend — authentication
 - **`astrogators-shared-ui`** — auth context and shared UI
 

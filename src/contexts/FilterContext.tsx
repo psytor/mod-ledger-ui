@@ -10,7 +10,6 @@ export interface ModFilters {
   primaries: string[];
   characters: string[];
   locked: 'all' | 'locked' | 'unlocked';
-  recommendations: string[];
 }
 
 interface FilterContextType {

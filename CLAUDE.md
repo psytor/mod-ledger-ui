@@ -16,16 +16,16 @@ here must not ripple into sibling services.
 
 ## What this service is
 
-React 19 + Vite 8 + TypeScript 6 single-page app. It is the **mod management
-UI** for the Astrogator's Table ecosystem — mod inventory, filtering, and
-evaluation views for SWGOH players.
+React 19 + Vite 8 + TypeScript 6 single-page app. It is the **mod inventory
+UI** for the Astrogator's Table ecosystem — fetches a player's mods, displays
+them in a filterable/sortable grid, and shows per-mod detail.
 
 It consumes:
 
 - **`astrogators-shared-ui`** (npm package, `^0.6.0`) — shared components,
   `AuthProvider`, API client, auth/ally-code storage helpers
-- **`mod-ledger`** backend — mod evaluation and ledger endpoints. URL comes
-  from `VITE_MOD_LEDGER_URL` at build time
+- **`mod-ledger`** backend — player mod listing endpoint. URL comes from
+  `VITE_MOD_LEDGER_URL` at build time
 - **`astrogators-table`** backend — authentication endpoints. URL comes from
   `VITE_ASTROGATORS_TABLE_URL` at build time
 

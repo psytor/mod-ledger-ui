@@ -14,11 +14,6 @@ export default function FilterPanel() {
   // Get available filter options from current mods
   const options = getFilterOptions(mods);
 
-  // Helper to format recommendation labels (CLEAN BREAK: Removed SLICE-PRIORITY)
-  const formatRecommendation = (rec: string): string => {
-    return rec.charAt(0) + rec.slice(1).toLowerCase();
-  };
-
   const handleCheckboxChange = (
     key: keyof typeof filters,
     value: string | number,
@@ -51,21 +46,6 @@ export default function FilterPanel() {
             <Button variant="secondary" onClick={clearFilters} fullWidth>
               Clear All Filters
             </Button>
-          </div>
-
-          {/* Recommendations - CLEAN BREAK: Removed SLICE-PRIORITY */}
-          <div className={styles.filterSection}>
-            <h4>Recommendations</h4>
-            {['SELL', 'UPGRADE', 'KEEP'].map((rec) => (
-              <label key={rec} className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={(filters.recommendations as string[]).includes(rec)}
-                  onChange={(e) => handleCheckboxChange('recommendations', rec, e.target.checked)}
-                />
-                <span>{formatRecommendation(rec)}</span>
-              </label>
-            ))}
           </div>
 
           {/* Mod Sets */}

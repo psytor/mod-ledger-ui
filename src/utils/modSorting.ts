@@ -1,4 +1,4 @@
-import type { ParsedMod, ModEvaluation } from '@/services/modLedgerApi';
+import type { ParsedMod } from '@/services/modLedgerApi';
 
 /**
  * Sort mods by the specified field and order
@@ -7,7 +7,6 @@ export function sortMods(
   mods: ParsedMod[],
   sortBy: string,
   sortOrder: 'asc' | 'desc',
-  evaluations: Record<string, ModEvaluation> | null = null
 ): ParsedMod[] {
   const sorted = [...mods];
 
@@ -39,19 +38,10 @@ export function sortMods(
         comparison = a.tier - b.tier;
         break;
 
-    case 'speed': {
-        // Sort by speed secondary stat value
+      case 'speed': {
         const aSpeed = a.secondary_stats.find((s) => s.stat_name === 'Speed')?.value || 0;
         const bSpeed = b.secondary_stats.find((s) => s.stat_name === 'Speed')?.value || 0;
         comparison = aSpeed - bSpeed;
-        break;
-      }
-
-      case 'matches': {
-        // Sort by match count evaluation score
-        const aMatches = evaluations?.[a.mod_id]?.synergy_result?.best_match?.total_matches || 0;
-        const bMatches = evaluations?.[b.mod_id]?.synergy_result?.best_match?.total_matches || 0;
-        comparison = aMatches - bMatches;
         break;
       }
 

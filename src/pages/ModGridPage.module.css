@@ -149,52 +149,6 @@
   box-shadow: 0 0 4px var(--color-warning);
 }
 
-.evaluatingText {
-  color: var(--color-info);
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin-left: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.evaluatingText::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.evaluationError {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  border-radius: 8px;
-  color: var(--color-text-primary, #fff);
-  margin-bottom: 1rem;
-  width: 100%;
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.evaluationError span {
-  flex: 1;
-}
-
 /* Mobile responsive */
 @media (max-width: 768px) {
   .header {

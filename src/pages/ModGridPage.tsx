@@ -13,41 +13,28 @@ import styles from './ModGridPage.module.css';
 
 export default function ModGridPage() {
   const { selectedAllyCode } = useAuth();
-  const {
-    mods,
-    isLoadingMods,
-    modsError,
-    fetchMods,
-    evaluations,
-    isLoadingEvaluations,
-    evaluationsError,
-    fetchEvaluations,
-  } = useMods();
+  const { mods, isLoadingMods, modsError, fetchMods } = useMods();
   const { filters, sortBy, sortOrder, setSortBy, setSortOrder, openPanel } = useFilters();
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Check if there are any active filters
   const hasActiveFilters =
-    filters.recommendations.length > 0 ||
     filters.sets.length > 0 ||
     filters.slots.length > 0 ||
     filters.tiers.length > 0 ||
-    filters.rarity.length > 0 ||  // CLEAN BREAK: Changed from "dots"
+    filters.rarity.length > 0 ||
     filters.primaries.length > 0 ||
     filters.locked !== 'all';
 
-  // Fetch mods on mount
   useEffect(() => {
     if (selectedAllyCode) {
       fetchMods(selectedAllyCode);
     }
   }, [selectedAllyCode, fetchMods]);
 
-  // Apply filters and sorting
-  const filteredMods = applyFilters(mods, filters, evaluations);
-  const sortedMods = sortMods(filteredMods, sortBy, sortOrder, evaluations);
+  const filteredMods = applyFilters(mods, filters);
+  const sortedMods = sortMods(filteredMods, sortBy, sortOrder);
 
   const handleModClick = (mod: ParsedMod) => {
     setSelectedMod(mod);
@@ -93,12 +80,10 @@ export default function ModGridPage() {
             <h1>Mods</h1>
             <p className={styles.modCount}>
               Showing {sortedMods.length} of {mods.length} mods
-              {isLoadingEvaluations && <span className={styles.evaluatingText}> • Evaluating...</span>}
             </p>
           </div>
 
           <div className={styles.headerRight}>
-            {/* Sort controls */}
             <div className={styles.sortControls}>
               <Button
                 variant={hasActiveFilters ? 'primary' : 'outline'}
@@ -121,7 +106,6 @@ export default function ModGridPage() {
                 <option value="rarity">Rarity</option>
                 <option value="tier">Tier</option>
                 <option value="speed">Speed</option>
-                <option value="matches">Matches</option>
               </Select>
 
               <Button
@@ -135,32 +119,14 @@ export default function ModGridPage() {
           </div>
         </div>
 
-        {/* Evaluation error banner (non-blocking) */}
-        {evaluationsError && (
-          <div className={styles.evaluationError}>
-            <span>⚠️ Evaluation failed: {evaluationsError}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => selectedAllyCode && fetchEvaluations(selectedAllyCode)}
-            >
-              Retry
-            </Button>
-          </div>
-        )}
+        <ModGrid mods={sortedMods} onModClick={handleModClick} />
 
-        {/* Mod grid */}
-        <ModGrid mods={sortedMods} onModClick={handleModClick} evaluations={evaluations} />
-
-        {/* Filter panel */}
         <FilterPanel />
 
-        {/* Detail modal */}
         <ModDetailModal
           mod={selectedMod}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
-          evaluation={selectedMod ? evaluations?.[selectedMod.mod_id] : undefined}
         />
       </div>
     </Layout>
