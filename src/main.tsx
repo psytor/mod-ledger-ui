@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from 'astrogators-shared-ui';
 import { ModProvider } from './contexts/ModContext';
 import { FilterProvider } from './contexts/FilterContext';
+import { EvaluationProvider } from './contexts/EvaluationContext';
 import App from './App';
 import './index.css';
 
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthProvider apiBaseUrl={apiBaseURL}>
         <ModProvider>
           <FilterProvider>
-            <App />
+            <EvaluationProvider>
+              <App />
+            </EvaluationProvider>
           </FilterProvider>
         </ModProvider>
       </AuthProvider>

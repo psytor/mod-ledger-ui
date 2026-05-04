@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useAuth, Button, Select, Loader } from 'astrogators-shared-ui';
 import { useMods } from '@/contexts/ModContext';
 import { useFilters } from '@/contexts/FilterContext';
+import { useEvaluation } from '@/contexts/EvaluationContext';
 import { applyFilters } from '@/utils/modFilters';
 import { sortMods } from '@/utils/modSorting';
 import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import ModDetailModal from '@/components/mod/ModDetailModal';
 import FilterPanel from '@/components/filter/FilterPanel';
+import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import styles from './ModGridPage.module.css';
 
@@ -15,6 +17,7 @@ export default function ModGridPage() {
   const { selectedAllyCode } = useAuth();
   const { mods, isLoadingMods, modsError, fetchMods } = useMods();
   const { filters, sortBy, sortOrder, setSortBy, setSortOrder, openPanel } = useFilters();
+  const { clearVerdicts } = useEvaluation();
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,9 +32,10 @@ export default function ModGridPage() {
 
   useEffect(() => {
     if (selectedAllyCode) {
+      clearVerdicts();
       fetchMods(selectedAllyCode);
     }
-  }, [selectedAllyCode, fetchMods]);
+  }, [selectedAllyCode, fetchMods, clearVerdicts]);
 
   const filteredMods = applyFilters(mods, filters);
   const sortedMods = sortMods(filteredMods, sortBy, sortOrder);
@@ -74,6 +78,8 @@ export default function ModGridPage() {
   return (
     <Layout>
       <div className={styles.pageContainer}>
+        <EvaluationSelector />
+
         {/* Header with controls */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>

@@ -286,3 +286,53 @@
     transform: scale(0.9);
   }
 }
+
+/* ========== VERDICT BADGE ========== */
+
+.verdictBadge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  border-radius: 4px;
+  z-index: 10;
+  pointer-events: none;
+  background: rgba(31, 41, 55, 0.85);
+  color: #e8e8e8;
+  max-width: calc(100% - 1rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reserve space at the top of the right column when a verdict badge is shown
+   so the badge never overlaps the primary stat. */
+.withVerdict .rightColumn {
+  padding-top: 1.6rem;
+}
+
+.verdictSell {
+  background: rgba(220, 38, 38, 0.92);
+  color: white;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+}
+
+.verdictUpgrade {
+  background: rgba(202, 138, 4, 0.92);
+  color: white;
+  box-shadow: 0 0 8px rgba(202, 138, 4, 0.4);
+}
+
+.verdictPass {
+  background: rgba(22, 163, 74, 0.92);
+  color: white;
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+}
+
+.verdictUnconfigured {
+  background: rgba(75, 85, 99, 0.85);
+  color: #d1d5db;
+}

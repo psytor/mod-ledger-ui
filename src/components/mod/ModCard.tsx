@@ -1,8 +1,32 @@
 import React from 'react';
 import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
+import { useEvaluation } from '@/contexts/EvaluationContext';
+import type { Verdict, VerdictResult } from '@/types/evaluation';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
+
+function verdictClassName(verdict: Verdict): string {
+  switch (verdict) {
+    case 'SELL': return styles.verdictSell;
+    case 'UPGRADE': return styles.verdictUpgrade;
+    case 'PASS_RULES': return styles.verdictPass;
+    case 'UNCONFIGURED': return styles.verdictUnconfigured;
+  }
+}
+
+function verdictLabel(v: VerdictResult): string {
+  if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
+  if (v.verdict === 'PASS_RULES') return 'PASS';
+  return v.verdict;
+}
+
+function verdictTooltip(v: VerdictResult): string {
+  const parts: string[] = [];
+  if (v.reason) parts.push(v.reason);
+  if (v.winning_variant_name) parts.push(`Winning variant: ${v.winning_variant_name}`);
+  return parts.join(' · ');
+}
 
 interface ModCardProps {
   mod: ParsedMod;
@@ -18,6 +42,9 @@ const tierBorderColors = {
 } as const;
 
 export default function ModCard({ mod, onClick }: ModCardProps) {
+  const { verdicts } = useEvaluation();
+  const verdict = verdicts.get(mod.mod_id);
+
   const secondarySlots = Array(4).fill(null).map((_, index) => {
     return mod.secondary_stats[index] || null;
   });
@@ -54,6 +81,15 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
     <div className={styles.cardWrapper}>
       <div className={`${styles.glowBackground} ${glowGradientClass}`}></div>
 
+      {verdict && (
+        <div
+          className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict)}`}
+          title={verdictTooltip(verdict)}
+        >
+          {verdictLabel(verdict)}
+        </div>
+      )}
+
       <Card
         chamfered
         chamferSize="asymmetric"
@@ -65,7 +101,7 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
         className={`${styles.modCard} ${tierClass} ${isSixDot ? styles.sixDot : ''}`}
         style={{ '--border-color': tierBorderColor } as React.CSSProperties}
       >
-        <div className={styles.cardContent}>
+        <div className={`${styles.cardContent} ${verdict ? styles.withVerdict : ''}`}>
           {/* MIDDLE ROW: Mod Shape (left) and Stats (right) */}
           <div className={styles.middleRow}>
             <div className={styles.leftColumn}>

@@ -1,12 +1,20 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { modLedgerApi } from '@/services/modLedgerApi';
-import { gameDataApi, type ModSlotDefinition } from '@/services/gameDataApi';
+import {
+  gameDataApi,
+  type ModSlotDefinition,
+  type ModSetDefinition,
+  type StatDefinition,
+} from '@/services/gameDataApi';
 import type { ParsedMod } from '@/services/modLedgerApi';
 
 interface ModContextType {
   mods: ParsedMod[];
   modSlots: ModSlotDefinition[];
+  modSets: ModSetDefinition[];
+  primaryStats: StatDefinition[];
+  secondaryStats: StatDefinition[];
   isLoadingMods: boolean;
   modsError: string | null;
   fetchMods: (allyCode: string) => Promise<void>;
@@ -17,6 +25,9 @@ const ModContext = createContext<ModContextType | undefined>(undefined);
 export function ModProvider({ children }: { children: ReactNode }) {
   const [mods, setMods] = useState<ParsedMod[]>([]);
   const [modSlots, setModSlots] = useState<ModSlotDefinition[]>([]);
+  const [modSets, setModSets] = useState<ModSetDefinition[]>([]);
+  const [primaryStats, setPrimaryStats] = useState<StatDefinition[]>([]);
+  const [secondaryStats, setSecondaryStats] = useState<StatDefinition[]>([]);
   const [isLoadingMods, setIsLoadingMods] = useState(false);
   const [modsError, setModsError] = useState<string | null>(null);
 
@@ -38,8 +49,16 @@ export function ModProvider({ children }: { children: ReactNode }) {
 
   const loadGameData = useCallback(async () => {
     try {
-      const slots = await gameDataApi.fetchModSlots();
+      const [slots, sets, primaries, secondaries] = await Promise.all([
+        gameDataApi.fetchModSlots(),
+        gameDataApi.fetchModSets(),
+        gameDataApi.fetchStatDefinitions({ can_be_primary: true }),
+        gameDataApi.fetchStatDefinitions({ can_be_secondary: true }),
+      ]);
       setModSlots(slots);
+      setModSets(sets);
+      setPrimaryStats(primaries);
+      setSecondaryStats(secondaries);
     } catch (error) {
       console.error('Failed to load game data:', error);
     }
@@ -56,6 +75,9 @@ export function ModProvider({ children }: { children: ReactNode }) {
       value={{
         mods,
         modSlots,
+        modSets,
+        primaryStats,
+        secondaryStats,
         isLoadingMods,
         modsError,
         fetchMods,
