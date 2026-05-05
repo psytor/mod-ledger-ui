@@ -15,6 +15,9 @@ export type Variant = {
   template_id?: string;
   primary_classifications: Record<number, PrimaryClassification>;
   secondary_classifications: Record<number, SecondaryClassification>;
+  // Per-secondary-stat target efficiency in [0, 1]. Stats absent default to 0.5.
+  // Slider UI clamps stored values to [0.01, 0.99]; modScorer guards 0/1 anyway.
+  secondary_targets: Record<number, number>;
 };
 
 export type ModSetConfig = {
@@ -50,4 +53,5 @@ export type VerdictResult = {
   winning_variant_name?: string;
   reason?: string;
   all_results?: VariantResult[];  // Per-variant breakdown for debug / UI
+  score?: number;                 // Set by modScorer when a winning variant exists
 };

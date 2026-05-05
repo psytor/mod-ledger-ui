@@ -16,7 +16,7 @@ function isOwner(ev: Evaluation): boolean {
 export default function EvaluationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { setActiveEvaluationId } = useEvaluation();
+  const { activeEvaluationId, setActiveEvaluationId } = useEvaluation();
   const { modSets } = useMods();
   const [state, setState] = useState<
     | { kind: 'loading' }
@@ -50,6 +50,18 @@ export default function EvaluationDetailPage() {
     navigate('/');
   };
 
+  const handleDelete = () => {
+    const confirmed = window.confirm(
+      `Delete "${evaluation.name}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    if (activeEvaluationId === evaluation.id) {
+      setActiveEvaluationId(null);
+    }
+    evaluationStorage.delete(evaluation.id);
+    navigate('/evaluations');
+  };
+
   const configuredCount = evaluation.mod_set_configs.filter(
     (c) => c.variants.length > 0
   ).length;
@@ -69,9 +81,14 @@ export default function EvaluationDetailPage() {
           Use this
         </Button>
         {isOwner(evaluation) && (
-          <Link to={`/evaluations/${evaluation.id}/edit`}>
-            <Button variant="outline">Edit</Button>
-          </Link>
+          <>
+            <Link to={`/evaluations/${evaluation.id}/edit`}>
+              <Button variant="outline">Edit</Button>
+            </Link>
+            <Button variant="danger" onClick={handleDelete}>
+              Delete
+            </Button>
+          </>
         )}
       </div>
 

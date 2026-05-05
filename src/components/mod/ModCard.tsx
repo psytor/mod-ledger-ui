@@ -28,6 +28,8 @@ function verdictTooltip(v: VerdictResult): string {
   return parts.join(' · ');
 }
 
+const SCORE_TOOLTIP = 'Raw score for ranking. Banding coming in a future phase.';
+
 interface ModCardProps {
   mod: ParsedMod;
   onClick: () => void;
@@ -87,6 +89,11 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
           title={verdictTooltip(verdict)}
         >
           {verdictLabel(verdict)}
+          {verdict.score !== undefined && (
+            <span className={styles.scoreValue} title={SCORE_TOOLTIP}>
+              {Math.round(verdict.score)}
+            </span>
+          )}
         </div>
       )}
 

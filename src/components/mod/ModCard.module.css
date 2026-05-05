@@ -336,3 +336,12 @@
   background: rgba(75, 85, 99, 0.85);
   color: #d1d5db;
 }
+
+.scoreValue {
+  margin-left: 0.4rem;
+  padding-left: 0.4rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: auto;
+}

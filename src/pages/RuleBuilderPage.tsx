@@ -34,6 +34,7 @@ function emptyVariant(): Variant {
     name: 'New variant',
     primary_classifications: {},
     secondary_classifications: {},
+    secondary_targets: {},
   };
 }
 
@@ -169,6 +170,27 @@ export default function RuleBuilderPage() {
     );
   };
 
+  // Slider value comes in as integer 0–100; persisted as 0–1 float.
+  const setSecondaryTarget = (
+    setId: number,
+    variantId: string,
+    statId: number,
+    sliderValue: number
+  ) => {
+    updateVariants(setId, (vs) =>
+      vs.map((v) => {
+        if (v.id !== variantId) return v;
+        return {
+          ...v,
+          secondary_targets: {
+            ...v.secondary_targets,
+            [statId]: sliderValue / 100,
+          },
+        };
+      })
+    );
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const configs: ModSetConfig[] = [];
@@ -221,6 +243,9 @@ export default function RuleBuilderPage() {
               onChange={(e) => setName(e.target.value)}
               required
               className={styles.input}
+              autoComplete="off"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </label>
           <label className={styles.fieldLabel}>
@@ -230,6 +255,9 @@ export default function RuleBuilderPage() {
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               className={styles.textarea}
+              autoComplete="off"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </label>
         </div>
@@ -285,6 +313,9 @@ export default function RuleBuilderPage() {
                             onSetSecondary={(sid, c) =>
                               setSecondaryClass(set.set_id, v.id, sid, c)
                             }
+                            onSetTarget={(sid, val) =>
+                              setSecondaryTarget(set.set_id, v.id, sid, val)
+                            }
                           />
                         ))}
                       </div>
@@ -320,6 +351,7 @@ interface VariantEditorProps {
   onMove: (dir: -1 | 1) => void;
   onSetPrimary: (statId: number, c: PrimaryClassification) => void;
   onSetSecondary: (statId: number, c: SecondaryClassification) => void;
+  onSetTarget: (statId: number, sliderValue: number) => void;
 }
 
 function VariantEditor({
@@ -333,6 +365,7 @@ function VariantEditor({
   onMove,
   onSetPrimary,
   onSetSecondary,
+  onSetTarget,
 }: VariantEditorProps) {
   const counts = countClassifications(variant);
 
@@ -344,6 +377,9 @@ function VariantEditor({
           value={variant.name}
           onChange={(e) => onRename(e.target.value)}
           className={styles.variantNameInput}
+          autoComplete="off"
+          data-lpignore="true"
+          data-form-type="other"
         />
         <Button
           type="button"
@@ -395,6 +431,47 @@ function VariantEditor({
           { color: 'var(--color-info)', label: 'Complementary', value: counts.complementary },
         ]}
       />
+
+      <hr className={styles.divider} />
+
+      <div className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h4 className={styles.sectionTitle}>Roll targets</h4>
+        </div>
+        <p className={styles.targetIntro}>
+          Efficiency you'd be happy to hit per stat. Target = 50 points,
+          100% = 100 points; below scales down, above scales up steeply.
+        </p>
+        <div className={styles.targetGrid}>
+          {secondaryStats.map((stat) => {
+            const stored = variant.secondary_targets[stat.stat_id];
+            const value =
+              stored === undefined ? 50 : Math.round(stored * 100);
+            return (
+              <div key={stat.stat_id} className={styles.targetRow}>
+                <span className={styles.targetName}>
+                  {stat.is_percentage ? `${stat.name} %` : stat.name}
+                </span>
+                <input
+                  type="range"
+                  min={1}
+                  max={99}
+                  step={1}
+                  value={value}
+                  onChange={(e) =>
+                    onSetTarget(stat.stat_id, Number(e.target.value))
+                  }
+                  className={styles.targetSlider}
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                />
+                <span className={styles.targetValue}>{value}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

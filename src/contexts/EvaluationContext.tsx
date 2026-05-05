@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import type { ReactNode } from 'react';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { evaluateAll } from '@/utils/evaluationEngine';
+import { scoreAll } from '@/utils/modScorer';
 import { useMods } from '@/contexts/ModContext';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
@@ -45,7 +46,8 @@ export function EvaluationProvider({ children }: { children: ReactNode }) {
       if (!evaluation) return;
       // Union of primary + secondary stat lists; the engine dedupes by (name, is_percent).
       const statDefs = [...primaryStats, ...secondaryStats];
-      setVerdicts(evaluateAll(mods, evaluation, statDefs));
+      const verdictMap = evaluateAll(mods, evaluation, statDefs);
+      setVerdicts(scoreAll(mods, evaluation, verdictMap, statDefs));
     },
     [activeEvaluationId, primaryStats, secondaryStats]
   );

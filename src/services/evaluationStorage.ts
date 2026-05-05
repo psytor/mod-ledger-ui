@@ -7,13 +7,27 @@ const STORAGE_KEY = 'mod-ledger:evaluations:v2';
 type CreateInput = Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>;
 type UpdatePatch = Partial<Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>>;
 
+function normalize(e: Evaluation): Evaluation {
+  // secondary_targets moved from Evaluation to Variant; ensure every variant
+  // has the field. Stray eval-level field is ignored (extra keys harmless).
+  return {
+    ...e,
+    mod_set_configs: e.mod_set_configs.map((cfg) => ({
+      ...cfg,
+      variants: cfg.variants.map((v) =>
+        v.secondary_targets ? v : { ...v, secondary_targets: {} }
+      ),
+    })),
+  };
+}
+
 class EvaluationStorage {
   private readAll(): Evaluation[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed) ? parsed.map(normalize) : [];
     } catch {
       return [];
     }

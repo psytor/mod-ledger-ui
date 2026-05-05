@@ -267,3 +267,44 @@
   gap: var(--spacing-sm);
   align-items: center;
 }
+
+.targetIntro {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.targetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-xs) var(--spacing-md);
+}
+
+.targetRow {
+  display: grid;
+  grid-template-columns: 9rem 1fr 2.5rem;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.targetName {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.targetSlider {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
+.targetValue {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
