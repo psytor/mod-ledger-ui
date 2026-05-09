@@ -240,7 +240,15 @@ export default function RuleBuilderPage() {
       <Container maxWidth="xl">
         <div className={styles.page}>
           <form onSubmit={handleSubmit} className={styles.form}>
-            <Card chamfered chamferSize="lg" variant="outline" padding="none" className={styles.hero}>
+            <Card
+              chamfered
+              chamferSize="lg"
+              variant="outline"
+              padding="none"
+              showDiagonalBorders
+              diagonalBorderColor="var(--color-primary)"
+              className={styles.hero}
+            >
               <span className={styles.heroAccent} aria-hidden="true" />
               <header className={styles.heroHeader}>
                 <p className={styles.eyebrow}>
@@ -314,6 +322,8 @@ export default function RuleBuilderPage() {
                         chamfered
                         chamferSize="md"
                         padding="none"
+                        showDiagonalBorders
+                        diagonalBorderColor={configured ? 'var(--color-success)' : 'var(--color-border)'}
                         className={`${styles.setCard} ${configured ? styles.setCardConfigured : ''}`}
                       >
                         <div className={styles.setHeader}>

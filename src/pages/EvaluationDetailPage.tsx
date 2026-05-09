@@ -86,7 +86,15 @@ export default function EvaluationDetailPage() {
               Back to evaluations
             </Link>
 
-            <Card chamfered chamferSize="lg" variant="outline" padding="none" className={styles.heroCard}>
+            <Card
+              chamfered
+              chamferSize="lg"
+              variant="outline"
+              padding="none"
+              showDiagonalBorders
+              diagonalBorderColor="var(--color-primary)"
+              className={styles.heroCard}
+            >
               <span className={styles.heroAccent} aria-hidden="true" />
               <p className={styles.heroEyebrow}>Evaluation Profile</p>
               <h1 className={styles.heroTitle}>{evaluation.name}</h1>

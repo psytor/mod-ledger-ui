@@ -4,7 +4,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--spacing-xl);
-  padding: var(--spacing-xl) 0 var(--spacing-3xl);
+  padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-3xl);
   min-height: 100vh;
 }
 
@@ -78,9 +78,9 @@
   transform: translateX(-3px);
 }
 
-.heroCard {
+.heroCard.heroCard {
   position: relative;
-  padding: var(--spacing-xl) var(--spacing-2xl);
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
@@ -93,9 +93,11 @@
 }
 
 .heroAccent {
+  display: block;
   position: absolute;
   inset: 0 0 auto 0;
-  height: 2px;
+  height: 3px;
+  z-index: 1;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -104,7 +106,8 @@
     var(--color-primary) 75%,
     transparent 100%
   );
-  opacity: 0.7;
+  opacity: 1;
+  box-shadow: 0 0 12px rgba(26, 115, 232, 0.6);
 }
 
 .heroEyebrow {
@@ -158,9 +161,9 @@
   margin-left: auto;
 }
 
-.statusCard {
+.statusCard.statusCard {
   position: relative;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-lg);
   display: grid;
   gap: var(--spacing-sm);
   background: var(--color-background-elevated);
@@ -265,9 +268,9 @@
   margin: 0;
 }
 
-.setRow {
+.setRow.setRow {
   position: relative;
-  padding: var(--spacing-md) var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -352,8 +355,12 @@
 }
 
 @media (max-width: 640px) {
-  .heroCard {
-    padding: var(--spacing-lg) var(--spacing-md);
+  .page {
+    padding: var(--spacing-xl) var(--spacing-md) var(--spacing-2xl);
+  }
+
+  .heroCard.heroCard {
+    padding: var(--spacing-md);
   }
 
   .heroTitle {
@@ -368,11 +375,11 @@
     margin-left: 0;
   }
 
-  .statusCard {
+  .statusCard.statusCard {
     padding: var(--spacing-md);
   }
 
-  .setRow {
+  .setRow.setRow {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-sm);

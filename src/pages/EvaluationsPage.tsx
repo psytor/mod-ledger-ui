@@ -13,7 +13,15 @@ export default function EvaluationsPage() {
     <Layout>
       <Container maxWidth="lg">
         <div className={styles.page}>
-          <Card chamfered chamferSize="lg" variant="outline" padding="none" className={styles.hero}>
+          <Card
+            chamfered
+            chamferSize="lg"
+            variant="outline"
+            padding="none"
+            showDiagonalBorders
+            diagonalBorderColor="var(--color-primary)"
+            className={styles.hero}
+          >
             <span className={styles.heroAccent} aria-hidden="true" />
             <p className={styles.eyebrow}>Mod Ledger // Evaluations</p>
             <h1 className={styles.title}>Evaluations</h1>
@@ -34,7 +42,13 @@ export default function EvaluationsPage() {
           </Card>
 
           {evaluations.length === 0 ? (
-            <Card chamfered padding="none" className={styles.empty}>
+            <Card
+              chamfered
+              padding="none"
+              showDiagonalBorders
+              diagonalBorderColor="var(--color-primary)"
+              className={styles.empty}
+            >
               <span className={styles.emptyAccent} aria-hidden="true" />
               <h2 className={styles.emptyTitle}>No evaluations yet</h2>
               <p className={styles.emptyText}>
@@ -51,7 +65,14 @@ export default function EvaluationsPage() {
               <div className={styles.grid}>
                 {evaluations.map((e) => (
                   <Link key={e.id} to={`/evaluations/${e.id}`} className={styles.cardLink}>
-                    <Card chamfered hoverable padding="none" className={styles.card}>
+                    <Card
+                      chamfered
+                      hoverable
+                      padding="none"
+                      showDiagonalBorders
+                      diagonalBorderColor="var(--color-primary)"
+                      className={styles.card}
+                    >
                       <span className={styles.cardAccent} aria-hidden="true" />
                       <p className={styles.cardEyebrow}>Evaluation</p>
                       <h2 className={styles.cardName}>{e.name}</h2>
