@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Button } from 'astrogators-shared-ui';
+import { Button, Card, Container } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useMods } from '@/contexts/ModContext';
@@ -89,7 +89,11 @@ export default function RuleBuilderPage() {
   if (state.kind === 'loading') {
     return (
       <Layout>
-        <p>Loading…</p>
+        <Container maxWidth="xl">
+          <div className={styles.page}>
+            <p className={styles.loadingState}>Loading…</p>
+          </div>
+        </Container>
       </Layout>
     );
   }
@@ -227,115 +231,157 @@ export default function RuleBuilderPage() {
     (sum, vs) => sum + vs.length,
     0
   );
+  const configuredSetCount = Array.from(variantsBySet.values()).filter(
+    (vs) => vs.length > 0
+  ).length;
 
   return (
     <Layout>
-      <h1 className={styles.pageTitle}>
-        {existing ? 'Edit evaluation' : 'New evaluation'}
-      </h1>
-      <form onSubmit={handleSubmit} className={styles.page}>
-        <div className={styles.metaFields}>
-          <label className={styles.fieldLabel}>
-            <span>Name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className={styles.input}
-              autoComplete="off"
-              data-lpignore="true"
-              data-form-type="other"
-            />
-          </label>
-          <label className={styles.fieldLabel}>
-            <span>Description</span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className={styles.textarea}
-              autoComplete="off"
-              data-lpignore="true"
-              data-form-type="other"
-            />
-          </label>
-        </div>
+      <Container maxWidth="xl">
+        <div className={styles.page}>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <Card chamfered chamferSize="lg" variant="outline" padding="none" className={styles.hero}>
+              <span className={styles.heroAccent} aria-hidden="true" />
+              <header className={styles.heroHeader}>
+                <p className={styles.eyebrow}>
+                  Mod Ledger // {existing ? 'Edit Evaluation' : 'New Evaluation'}
+                </p>
+                <h1 className={styles.pageTitle}>
+                  {existing ? 'Edit evaluation' : 'New evaluation'}
+                </h1>
+                <p className={styles.heroSubtitle}>
+                  Define how mods score by configuring variants per set. Each variant captures a
+                  combination of stats you'd accept; a mod passes if any variant in its set passes.
+                </p>
+              </header>
 
-        <div>
-          <p className={styles.sectionIntro}>
-            Each mod set holds one or more variants. A mod passes if any variant in
-            its set passes — best result wins, with Complementary count as tiebreak.
-            Sets with no variants stay UNCONFIGURED. {totalVariants} variant
-            {totalVariants === 1 ? '' : 's'} defined.
-          </p>
+              <div className={styles.metaFields}>
+                <label className={styles.fieldLabel}>
+                  <span>Name</span>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className={styles.input}
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-form-type="other"
+                  />
+                </label>
+                <label className={styles.fieldLabel}>
+                  <span>Description</span>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={2}
+                    className={styles.textarea}
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-form-type="other"
+                  />
+                </label>
+              </div>
+            </Card>
 
-          {modSets.length === 0 ? (
-            <p>Loading mod sets…</p>
-          ) : (
-            <div className={styles.setList}>
-              {modSets.map((set) => {
-                const variants = variantsBySet.get(set.set_id) ?? [];
-                return (
-                  <div key={set.set_id} className={styles.setCard}>
-                    <div className={styles.setHeader}>
-                      <h3 className={styles.setName}>{set.name} Set</h3>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addVariant(set.set_id)}
+            <section className={styles.sectionBlock}>
+              <header className={styles.sectionHead}>
+                <h2 className={styles.sectionTitleLg}>Mod sets</h2>
+                <p className={styles.sectionMeta}>
+                  <strong>{configuredSetCount}</strong> /{' '}
+                  {modSets.length || '—'} configured ·{' '}
+                  <strong>{totalVariants}</strong> variant
+                  {totalVariants === 1 ? '' : 's'}
+                </p>
+              </header>
+
+              <p className={styles.sectionIntro}>
+                Each mod set holds one or more variants. A mod passes if any variant in its set
+                passes — best result wins, with Complementary count as tiebreak. Sets with no
+                variants stay UNCONFIGURED.
+              </p>
+
+              {modSets.length === 0 ? (
+                <p className={styles.loadingState}>Loading mod sets…</p>
+              ) : (
+                <div className={styles.setList}>
+                  {modSets.map((set) => {
+                    const variants = variantsBySet.get(set.set_id) ?? [];
+                    const configured = variants.length > 0;
+                    return (
+                      <Card
+                        key={set.set_id}
+                        chamfered
+                        chamferSize="md"
+                        padding="none"
+                        className={`${styles.setCard} ${configured ? styles.setCardConfigured : ''}`}
                       >
-                        + Add variant
-                      </Button>
-                    </div>
+                        <div className={styles.setHeader}>
+                          <h3 className={styles.setName}>{set.name} Set</h3>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addVariant(set.set_id)}
+                          >
+                            + Add variant
+                          </Button>
+                        </div>
 
-                    {variants.length === 0 ? (
-                      <p className={styles.setEmpty}>
-                        No variants — mods of this set will be UNCONFIGURED.
-                      </p>
-                    ) : (
-                      <div className={styles.variantList}>
-                        {variants.map((v, idx) => (
-                          <VariantEditor
-                            key={v.id}
-                            variant={v}
-                            index={idx}
-                            total={variants.length}
-                            primaryStats={orderedPrimaryStats}
-                            secondaryStats={orderedSecondaryStats}
-                            onRename={(n) => renameVariant(set.set_id, v.id, n)}
-                            onDelete={() => deleteVariant(set.set_id, v.id)}
-                            onMove={(dir) => moveVariant(set.set_id, v.id, dir)}
-                            onSetPrimary={(sid, c) =>
-                              setPrimaryClass(set.set_id, v.id, sid, c)
-                            }
-                            onSetSecondary={(sid, c) =>
-                              setSecondaryClass(set.set_id, v.id, sid, c)
-                            }
-                            onSetTarget={(sid, val) =>
-                              setSecondaryTarget(set.set_id, v.id, sid, val)
-                            }
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                        {variants.length === 0 ? (
+                          <p className={styles.setEmpty}>
+                            No variants — mods of this set will be UNCONFIGURED.
+                          </p>
+                        ) : (
+                          <div className={styles.variantList}>
+                            {variants.map((v, idx) => (
+                              <VariantEditor
+                                key={v.id}
+                                variant={v}
+                                index={idx}
+                                total={variants.length}
+                                primaryStats={orderedPrimaryStats}
+                                secondaryStats={orderedSecondaryStats}
+                                onRename={(n) => renameVariant(set.set_id, v.id, n)}
+                                onDelete={() => deleteVariant(set.set_id, v.id)}
+                                onMove={(dir) => moveVariant(set.set_id, v.id, dir)}
+                                onSetPrimary={(sid, c) =>
+                                  setPrimaryClass(set.set_id, v.id, sid, c)
+                                }
+                                onSetSecondary={(sid, c) =>
+                                  setSecondaryClass(set.set_id, v.id, sid, c)
+                                }
+                                onSetTarget={(sid, val) =>
+                                  setSecondaryTarget(set.set_id, v.id, sid, val)
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
 
-        <div className={styles.actions}>
-          <Button type="submit" variant="primary" disabled={!name.trim()}>
-            {existing ? 'Save changes' : 'Create evaluation'}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
+            <Card chamfered chamferSize="sm" padding="none" className={styles.actionsBar}>
+              <p className={styles.actionsCount}>
+                <strong>{configuredSetCount}</strong> configured ·{' '}
+                <strong>{totalVariants}</strong> variant{totalVariants === 1 ? '' : 's'}
+              </p>
+              <div className={styles.actionsButtons}>
+                <Button type="button" variant="outline" onClick={handleCancel}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={!name.trim()}>
+                  {existing ? 'Save changes' : 'Create evaluation'}
+                </Button>
+              </div>
+            </Card>
+          </form>
         </div>
-      </form>
+      </Container>
     </Layout>
   );
 }
@@ -370,7 +416,7 @@ function VariantEditor({
   const counts = countClassifications(variant);
 
   return (
-    <div className={styles.variantCard}>
+    <Card chamfered chamferSize="sm" padding="none" className={styles.variantCard}>
       <div className={styles.variantHeader}>
         <input
           type="text"
@@ -435,7 +481,7 @@ function VariantEditor({
       <hr className={styles.divider} />
 
       <div className={styles.section}>
-        <div className={styles.sectionHead}>
+        <div className={styles.sectionHeadInline}>
           <h4 className={styles.sectionTitle}>Roll targets</h4>
         </div>
         <p className={styles.targetIntro}>
@@ -472,7 +518,7 @@ function VariantEditor({
           })}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -534,7 +580,7 @@ function ChipSection({ title, stats, cycle, getClass, setClass, counts }: ChipSe
 
   return (
     <div className={styles.section}>
-      <div className={styles.sectionHead}>
+      <div className={styles.sectionHeadInline}>
         <h4 className={styles.sectionTitle}>{title}</h4>
         <div className={styles.legend}>
           {(counts ?? cycle

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Button } from 'astrogators-shared-ui';
+import { Badge, Button, Card, Container } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { useMods } from '@/contexts/ModContext';
 import type { Evaluation } from '@/types/evaluation';
+import styles from './EvaluationDetailPage.module.css';
 
 // Phase 1: local records (ownerUserId === null) are owned by the current user.
 // When auth lands, compare against the authenticated user's id.
@@ -34,7 +35,13 @@ export default function EvaluationDetailPage() {
   if (state.kind === 'loading') {
     return (
       <Layout>
-        <p>Loading…</p>
+        <Container maxWidth="lg">
+          <div className={styles.page}>
+            <div className={styles.shell}>
+              <p className={styles.loading}>Loading…</p>
+            </div>
+          </div>
+        </Container>
       </Layout>
     );
   }
@@ -65,76 +72,114 @@ export default function EvaluationDetailPage() {
   const configuredCount = evaluation.mod_set_configs.filter(
     (c) => c.variants.length > 0
   ).length;
+  const totalSets = modSets.length;
+  const progressPercent =
+    totalSets === 0 ? 0 : Math.round((configuredCount / totalSets) * 100);
+  const owner = isOwner(evaluation);
 
   return (
     <Layout>
-      <Link to="/evaluations" style={{ fontSize: '0.9rem' }}>
-        ← Back to evaluations
-      </Link>
-      <h1 style={{ marginTop: '0.5rem' }}>{evaluation.name}</h1>
-      {evaluation.description && (
-        <p style={{ color: 'var(--color-text-secondary, #888)' }}>{evaluation.description}</p>
-      )}
-
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-        <Button variant="primary" onClick={handleUseThis}>
-          Use this
-        </Button>
-        {isOwner(evaluation) && (
-          <>
-            <Link to={`/evaluations/${evaluation.id}/edit`}>
-              <Button variant="outline">Edit</Button>
+      <Container maxWidth="lg">
+        <div className={styles.page}>
+          <div className={styles.shell}>
+            <Link to="/evaluations" className={styles.back}>
+              Back to evaluations
             </Link>
-            <Button variant="danger" onClick={handleDelete}>
-              Delete
-            </Button>
-          </>
-        )}
-      </div>
 
-      <h2 style={{ marginTop: '2rem' }}>Mod sets</h2>
-      <p style={{ color: 'var(--color-text-secondary, #888)', fontSize: '0.9rem' }}>
-        {configuredCount} of {modSets.length} mod sets configured.
-      </p>
+            <Card chamfered chamferSize="lg" variant="outline" padding="none" className={styles.heroCard}>
+              <span className={styles.heroAccent} aria-hidden="true" />
+              <p className={styles.heroEyebrow}>Evaluation Profile</p>
+              <h1 className={styles.heroTitle}>{evaluation.name}</h1>
+              {evaluation.description && (
+                <p className={styles.heroDesc}>{evaluation.description}</p>
+              )}
 
-      {modSets.length === 0 ? (
-        <p>Loading mod sets…</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {modSets.map((set) => {
-            const config = evaluation.mod_set_configs.find((c) => c.set_id === set.set_id);
-            const count = config?.variants.length ?? 0;
-            return (
-              <li
-                key={set.set_id}
-                style={{
-                  padding: '0.5rem 0',
-                  borderBottom: '1px solid var(--color-border, #333)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'baseline',
-                }}
-              >
-                <span style={{ fontWeight: 600 }}>{set.name}</span>
-                <span
-                  style={{
-                    color:
-                      count === 0
-                        ? 'var(--color-text-secondary, #888)'
-                        : 'var(--color-text, #e8e8e8)',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  {count === 0
-                    ? 'unconfigured'
-                    : `${count} variant${count === 1 ? '' : 's'}`}
+              <div className={styles.heroActions}>
+                <Button variant="primary" onClick={handleUseThis}>
+                  Use this
+                </Button>
+                {owner && (
+                  <Link to={`/evaluations/${evaluation.id}/edit`}>
+                    <Button variant="outline">Edit</Button>
+                  </Link>
+                )}
+                {owner && (
+                  <span className={styles.danger}>
+                    <Button variant="danger" onClick={handleDelete}>
+                      Delete
+                    </Button>
+                  </span>
+                )}
+              </div>
+            </Card>
+
+            <Card chamfered chamferSize="sm" padding="none" className={styles.statusCard}>
+              <div className={styles.statusHead}>
+                <p className={styles.statusLabel}>Configuration coverage</p>
+                <span className={styles.statusValue}>
+                  {configuredCount}
+                  <em> / {totalSets || '—'}</em>
                 </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+              </div>
+              <div className={styles.statusBar} aria-hidden="true">
+                <div
+                  className={styles.statusFill}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </Card>
 
+            <section className={styles.section}>
+              <header className={styles.sectionHead}>
+                <h2 className={styles.sectionTitle}>Mod sets</h2>
+                <p className={styles.sectionMeta}>
+                  {totalSets === 0
+                    ? 'Awaiting set data'
+                    : `${configuredCount} of ${totalSets} configured`}
+                </p>
+              </header>
+
+              {totalSets === 0 ? (
+                <p className={styles.loading}>Loading mod sets…</p>
+              ) : (
+                <div className={styles.setList} role="list">
+                  {modSets.map((set) => {
+                    const config = evaluation.mod_set_configs.find(
+                      (c) => c.set_id === set.set_id
+                    );
+                    const count = config?.variants.length ?? 0;
+                    const configured = count > 0;
+                    return (
+                      <Card
+                        key={set.set_id}
+                        chamfered
+                        chamferSize="sm"
+                        padding="none"
+                        className={`${styles.setRow} ${configured ? styles.setRowConfigured : ''}`}
+                      >
+                        <span className={styles.setRowName}>{set.name}</span>
+                        <div className={styles.setRowMeta}>
+                          <span className={styles.setRowCount}>
+                            {configured
+                              ? `${count} variant${count === 1 ? '' : 's'}`
+                              : 'No variants'}
+                          </span>
+                          <Badge
+                            variant={configured ? 'success' : 'default'}
+                            size="sm"
+                          >
+                            {configured ? 'Configured' : 'Unconfigured'}
+                          </Badge>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
+      </Container>
     </Layout>
   );
 }
