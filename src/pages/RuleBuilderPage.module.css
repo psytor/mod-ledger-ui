@@ -63,6 +63,9 @@
     rgba(19, 23, 41, 0.9) 100%
   );
   backdrop-filter: blur(8px);
+  /* Outer border survives only on straight edges — clip-path cuts the corners,
+     so the corner color comes from showDiagonalBorders + diagonalBorderColor. */
+  border-color: var(--color-primary);
 }
 
 .heroAccent {
@@ -300,6 +303,37 @@
   flex-direction: column;
   gap: var(--spacing-md);
   transition: border-color var(--transition-base);
+  /* Straight-side border (corners are clipped). Matches the diagonal corner
+     color so the box reads as a closed chamfered outline. */
+  border: 1px solid var(--color-border);
+}
+
+.setCardConfigured.setCardConfigured {
+  border-color: var(--color-success);
+}
+
+/* The chamfered-diagonal-* spans come from shared-ui (global classnames) and
+   are positioned for chamferSize="md" but sit slightly inset against the
+   actual corner cut. Nudge each ~2px toward its corner so they meet the
+   straight side border cleanly. Move to shared-ui if it ever becomes general. */
+.setCard :global(.chamfered-diagonal-tl) {
+  top: -3px;
+  left: 9px;
+}
+
+.setCard :global(.chamfered-diagonal-tr) {
+  top: 8px;
+  right: -2px;
+}
+
+.setCard :global(.chamfered-diagonal-bl) {
+  bottom: -4px;
+  left: 10px;
+}
+
+.setCard :global(.chamfered-diagonal-br) {
+  bottom: 9px;
+  right: -3px;
 }
 
 .setCardConfigured::before {
@@ -356,6 +390,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  /* Subtle structural outline; this card has no diagonal corner accent,
+     so the side border is the only visible edge treatment. */
+  border: 1px solid var(--color-border);
 }
 
 .variantHeader {
