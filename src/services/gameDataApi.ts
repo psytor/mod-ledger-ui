@@ -34,6 +34,18 @@ export interface StatDefinition {
   can_be_secondary: boolean;
   is_offensive?: boolean;
   is_defensive?: boolean;
+  // Per-roll value bounds for the secondary stat pool. Absent for primary-only stats.
+  // API returns decimal strings; client parses to numbers.
+  min_roll_5?: number;
+  max_roll_5?: number;
+  min_roll_6?: number;
+  max_roll_6?: number;
+}
+
+function parseRoll(raw: unknown): number | undefined {
+  if (raw === null || raw === undefined) return undefined;
+  const n = typeof raw === 'number' ? raw : parseFloat(String(raw));
+  return Number.isFinite(n) ? n : undefined;
 }
 
 class GameDataApiClient {
@@ -80,7 +92,17 @@ class GameDataApiClient {
       throw new Error(`Failed to fetch stat definitions: ${response.statusText}`);
     }
     const data = await response.json();
-    return data.stats || [];
+    const stats: unknown[] = data.stats || [];
+    return stats.map((raw) => {
+      const s = raw as Record<string, unknown>;
+      return {
+        ...(s as object),
+        min_roll_5: parseRoll(s.min_roll_5),
+        max_roll_5: parseRoll(s.max_roll_5),
+        min_roll_6: parseRoll(s.min_roll_6),
+        max_roll_6: parseRoll(s.max_roll_6),
+      } as StatDefinition;
+    });
   }
 }
 

@@ -28,6 +28,23 @@ function statDisplayName(s: StatDefinition): string {
   return s.is_percentage ? `${s.name} %` : s.name;
 }
 
+type TierView = 5 | 6;
+
+// Linear interp on the stat's per-roll range. Whole number for flat stats,
+// 2 decimals + "%" for percent stats (matches in-game presentation).
+// Returns null when the stat has no roll bounds (e.g. primary-only stats).
+function formatRollAt(
+  stat: StatDefinition,
+  efficiency: number,
+  tier: TierView
+): string | null {
+  const min = tier === 6 ? stat.min_roll_6 : stat.min_roll_5;
+  const max = tier === 6 ? stat.max_roll_6 : stat.max_roll_5;
+  if (min === undefined || max === undefined) return null;
+  const value = min + efficiency * (max - min);
+  return stat.is_percentage ? `${value.toFixed(2)}%` : `${Math.round(value)}`;
+}
+
 function emptyVariant(): Variant {
   return {
     id: crypto.randomUUID(),
@@ -50,6 +67,7 @@ export default function RuleBuilderPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [variantsBySet, setVariantsBySet] = useState<Map<number, Variant[]>>(new Map());
+  const [tierView, setTierView] = useState<TierView>(5);
 
   useEffect(() => {
     if (!isEditMode || !id) return;
@@ -309,6 +327,28 @@ export default function RuleBuilderPage() {
                 variants stay UNCONFIGURED.
               </p>
 
+              <div className={styles.tierToggle} role="group" aria-label="Roll value tier">
+                <span className={styles.tierToggleLabel}>Roll values:</span>
+                <div className={styles.tierToggleButtons}>
+                  <button
+                    type="button"
+                    data-active={tierView === 5}
+                    onClick={() => setTierView(5)}
+                    className={styles.tierToggleButton}
+                  >
+                    5-dot
+                  </button>
+                  <button
+                    type="button"
+                    data-active={tierView === 6}
+                    onClick={() => setTierView(6)}
+                    className={styles.tierToggleButton}
+                  >
+                    6-dot
+                  </button>
+                </div>
+              </div>
+
               {modSets.length === 0 ? (
                 <p className={styles.loadingState}>Loading mod sets…</p>
               ) : (
@@ -352,6 +392,7 @@ export default function RuleBuilderPage() {
                                 total={variants.length}
                                 primaryStats={orderedPrimaryStats}
                                 secondaryStats={orderedSecondaryStats}
+                                tierView={tierView}
                                 onRename={(n) => renameVariant(set.set_id, v.id, n)}
                                 onDelete={() => deleteVariant(set.set_id, v.id)}
                                 onMove={(dir) => moveVariant(set.set_id, v.id, dir)}
@@ -402,6 +443,7 @@ interface VariantEditorProps {
   total: number;
   primaryStats: StatDefinition[];
   secondaryStats: StatDefinition[];
+  tierView: TierView;
   onRename: (name: string) => void;
   onDelete: () => void;
   onMove: (dir: -1 | 1) => void;
@@ -416,6 +458,7 @@ function VariantEditor({
   total,
   primaryStats,
   secondaryStats,
+  tierView,
   onRename,
   onDelete,
   onMove,
@@ -497,16 +540,25 @@ function VariantEditor({
         <p className={styles.targetIntro}>
           Efficiency you'd be happy to hit per stat. Target = 50 points,
           100% = 100 points; below scales down, above scales up steeply.
+          The approximate value in parentheses is the per-roll stat amount at
+          that efficiency for a {tierView}-dot mod.
         </p>
         <div className={styles.targetGrid}>
           {secondaryStats.map((stat) => {
             const stored = variant.secondary_targets[stat.stat_id];
             const value =
               stored === undefined ? 50 : Math.round(stored * 100);
+            const rollText = formatRollAt(stat, value / 100, tierView);
             return (
               <div key={stat.stat_id} className={styles.targetRow}>
                 <span className={styles.targetName}>
                   {stat.is_percentage ? `${stat.name} %` : stat.name}
+                </span>
+                <span className={styles.targetValue}>
+                  {value}%
+                  {rollText !== null && (
+                    <span className={styles.targetApprox}> (≈{rollText})</span>
+                  )}
                 </span>
                 <input
                   type="range"
@@ -522,7 +574,6 @@ function VariantEditor({
                   data-lpignore="true"
                   data-form-type="other"
                 />
-                <span className={styles.targetValue}>{value}</span>
               </div>
             );
           })}

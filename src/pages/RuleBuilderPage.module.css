@@ -214,6 +214,60 @@
   max-width: 70ch;
 }
 
+.tierToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  align-self: flex-start;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(10, 14, 39, 0.5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.tierToggleLabel {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.tierToggleButtons {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--color-background);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.tierToggleButton {
+  padding: 0.3rem 0.75rem;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tierToggleButton:hover {
+  color: var(--color-text-primary);
+}
+
+.tierToggleButton[data-active='true'] {
+  background: rgba(26, 115, 232, 0.18);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 8px rgba(26, 115, 232, 0.25);
+}
+
 .sectionMeta {
   font-family: var(--font-heading);
   font-size: var(--font-size-xs);
@@ -446,17 +500,20 @@
 .targetGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--spacing-xs) var(--spacing-md);
+  gap: var(--spacing-sm) var(--spacing-md);
 }
 
 .targetRow {
   display: grid;
-  grid-template-columns: 9rem 1fr 2.5rem;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 4px var(--spacing-sm);
 }
 
 .targetName {
+  grid-column: 1;
+  grid-row: 1;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   white-space: nowrap;
@@ -464,18 +521,28 @@
   text-overflow: ellipsis;
 }
 
-.targetSlider {
-  width: 100%;
-  accent-color: var(--color-primary);
-}
-
 .targetValue {
+  grid-column: 2;
+  grid-row: 1;
   font-family: var(--font-heading);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.targetSlider {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
+.targetApprox {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
 }
 
 /* ============ Sticky action bar ============ */

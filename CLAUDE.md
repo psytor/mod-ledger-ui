@@ -86,6 +86,18 @@ npm run lint
 docker compose -f docker/docker-compose.yml --env-file .env up -d --build
 ```
 
+## Mod level domain fact (read before touching evaluation)
+
+In SWGOH, **mod levels are only `1, 3, 6, 9, 12, 15`**. Intermediate levels
+(2, 4, 5, 7, 8, 10, 11, 13, 14) **do not exist** — Capital Games removed them
+from the game. A real mod can never be observed at any of those levels.
+
+When reading `src/utils/evaluationEngine.ts`, the `MILESTONES` array is the
+**full set of valid mod levels**, not a subset of `1..15`. The only real
+"not at a checkpoint" case is **Grey/Green (tier ≤ 2) at L1 or L3**, which
+waits until L6 before the rules run. Do not describe mods as "between
+milestones" or "mid-leveling at L2/L4/L5/..." — those states do not occur.
+
 ## Critical rules
 
 **Vite build-time env var inlining.** Any value used in the bundle must come
