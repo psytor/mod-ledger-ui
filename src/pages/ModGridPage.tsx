@@ -1,34 +1,88 @@
 import { useEffect, useState } from 'react';
-import { useAuth, Button, Select, Loader } from 'astrogators-shared-ui';
+import { Link } from 'react-router-dom';
+import { useAuth, Button, Loader } from 'astrogators-shared-ui';
 import { useMods } from '@/contexts/ModContext';
 import { useFilters } from '@/contexts/FilterContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
-import { applyFilters } from '@/utils/modFilters';
-import { sortMods } from '@/utils/modSorting';
+import {
+  applyPushOrSellFilters,
+  applySellPileFilters,
+  applyUnconfiguredFilters,
+} from '@/utils/modFilters';
 import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import ModDetailModal from '@/components/mod/ModDetailModal';
+import ActionSubTabs from '@/components/mod/ActionSubTabs';
+import OverviewView from '@/components/mod/OverviewView';
+import ScoreLegend from '@/components/mod/ScoreLegend';
 import FilterPanel from '@/components/filter/FilterPanel';
 import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import styles from './ModGridPage.module.css';
 
+const MODE_TITLES: Record<string, string> = {
+  'push-or-sell': 'Push or Sell',
+  'sell-pile': 'Sell Pile',
+  unconfigured: 'Unconfigured Mods',
+};
+
+function UnconfiguredView({
+  mods,
+  activeEvaluationId,
+  onModClick,
+}: {
+  mods: ParsedMod[];
+  activeEvaluationId: string | null;
+  onModClick: (mod: ParsedMod) => void;
+}) {
+  if (mods.length === 0) {
+    return (
+      <div className={styles.emptyState}>
+        <p>No unconfigured mods — every set has rules defined.</p>
+      </div>
+    );
+  }
+
+  const bySet = new Map<string, ParsedMod[]>();
+  for (const mod of mods) {
+    const bucket = bySet.get(mod.set);
+    if (bucket) bucket.push(mod);
+    else bySet.set(mod.set, [mod]);
+  }
+
+  const editLink = activeEvaluationId
+    ? `/evaluations/${activeEvaluationId}/edit`
+    : '/evaluations';
+
+  return (
+    <div className={styles.unconfiguredContainer}>
+      {[...bySet.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([set, setMods]) => (
+          <div key={set} className={styles.unconfiguredGroup}>
+            <div className={styles.unconfiguredHeader}>
+              <span className={styles.unconfiguredSet}>
+                {set} — {setMods.length} mods
+              </span>
+              <Link to={editLink} className={styles.configureLink}>
+                Configure rules for this set →
+              </Link>
+            </div>
+            <ModGrid mods={setMods} onModClick={onModClick} />
+          </div>
+        ))}
+    </div>
+  );
+}
+
 export default function ModGridPage() {
   const { selectedAllyCode } = useAuth();
   const { mods, isLoadingMods, modsError, fetchMods } = useMods();
-  const { filters, sortBy, sortOrder, setSortBy, setSortOrder, openPanel } = useFilters();
-  const { clearVerdicts } = useEvaluation();
+  const { filters, openPanel } = useFilters();
+  const { verdicts, clearVerdicts, activeEvaluationId } = useEvaluation();
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const hasActiveFilters =
-    filters.sets.length > 0 ||
-    filters.slots.length > 0 ||
-    filters.tiers.length > 0 ||
-    filters.rarity.length > 0 ||
-    filters.primaries.length > 0 ||
-    filters.locked !== 'all';
 
   useEffect(() => {
     if (selectedAllyCode) {
@@ -36,9 +90,6 @@ export default function ModGridPage() {
       fetchMods(selectedAllyCode);
     }
   }, [selectedAllyCode, fetchMods, clearVerdicts]);
-
-  const filteredMods = applyFilters(mods, filters);
-  const sortedMods = sortMods(filteredMods, sortBy, sortOrder);
 
   const handleModClick = (mod: ParsedMod) => {
     setSelectedMod(mod);
@@ -75,57 +126,79 @@ export default function ModGridPage() {
     );
   }
 
+  const renderContent = () => {
+    // No evaluation selected (or not yet run) — show every mod plainly, with
+    // no scoring/banding. The EvaluationSelector above lets the player pick one.
+    if (!activeEvaluationId || verdicts.size === 0) {
+      return <ModGrid mods={mods} onModClick={handleModClick} />;
+    }
+
+    if (filters.mode === 'sell-pile') {
+      const sellMods = applySellPileFilters(mods, verdicts, filters);
+      return <ModGrid mods={sellMods} onModClick={handleModClick} />;
+    }
+
+    if (filters.mode === 'unconfigured') {
+      const unconfigured = applyUnconfiguredFilters(mods, verdicts);
+      return (
+        <UnconfiguredView
+          mods={unconfigured}
+          activeEvaluationId={activeEvaluationId}
+          onModClick={handleModClick}
+        />
+      );
+    }
+
+    // push-or-sell
+    if (filters.variantId === null) {
+      return (
+        <>
+          <ScoreLegend />
+          <OverviewView
+            mods={mods}
+            verdicts={verdicts}
+            onModClick={handleModClick}
+          />
+        </>
+      );
+    }
+
+    const filtered = applyPushOrSellFilters(mods, verdicts, filters);
+    return (
+      <>
+        <ScoreLegend />
+        <ActionSubTabs
+          mods={filtered}
+          verdicts={verdicts}
+          onModClick={handleModClick}
+        />
+      </>
+    );
+  };
+
   return (
     <Layout>
       <div className={styles.pageContainer}>
         <EvaluationSelector />
 
-        {/* Header with controls */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <h1>Mods</h1>
-            <p className={styles.modCount}>
-              Showing {sortedMods.length} of {mods.length} mods
-            </p>
+            <h1>{MODE_TITLES[filters.mode] ?? 'Mods'}</h1>
+            <p className={styles.modCount}>{mods.length} mods loaded</p>
           </div>
 
           <div className={styles.headerRight}>
-            <div className={styles.sortControls}>
-              <Button
-                variant={hasActiveFilters ? 'primary' : 'outline'}
-                onClick={openPanel}
-                className={styles.filterButton}
-              >
-                Filters
-                {hasActiveFilters && <span className={styles.filterDot} />}
-              </Button>
-
-              <Select
-                value={sortBy}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value)}
-                className={styles.sortSelect}
-              >
-                <option value="character">Character</option>
-                <option value="set">Set</option>
-                <option value="slot">Slot</option>
-                <option value="level">Level</option>
-                <option value="rarity">Rarity</option>
-                <option value="tier">Tier</option>
-                <option value="speed">Speed</option>
-              </Select>
-
-              <Button
-                variant="outline"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className={styles.orderButton}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
-            </div>
+            <Button
+              variant="primary"
+              onClick={openPanel}
+              className={styles.filterButton}
+            >
+              Filters
+            </Button>
           </div>
         </div>
 
-        <ModGrid mods={sortedMods} onModClick={handleModClick} />
+        <div className={styles.contentArea}>{renderContent()}</div>
 
         <FilterPanel />
 

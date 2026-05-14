@@ -3,6 +3,7 @@ import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import type { Verdict, VerdictResult } from '@/types/evaluation';
+import { deriveActionBand, type ModRanking, type ActionBand } from '@/utils/cohortRanking';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
 
@@ -28,11 +29,42 @@ function verdictTooltip(v: VerdictResult): string {
   return parts.join(' · ');
 }
 
-const SCORE_TOOLTIP = 'Raw score for ranking. Banding coming in a future phase.';
+function bandClassName(band: ActionBand): string {
+  switch (band) {
+    case 'push': return styles.bandPush;
+    case 'keep': return styles.bandKeep;
+    case 'consider-selling': return styles.bandSell;
+    case 'none': return styles.bandNone;
+  }
+}
+
+function bandLabel(band: ActionBand, ranking: ModRanking): string {
+  switch (band) {
+    case 'push':
+      return ranking.action === 'level' ? '↑ Level' : '↑ Slice';
+    case 'keep':
+      return 'Keep';
+    case 'consider-selling':
+      return 'Consider Selling';
+    case 'none':
+      return 'Deploy';
+  }
+}
+
+function bandTooltip(ranking: ModRanking): string {
+  const parts: string[] = [`${Math.round(ranking.absolute_quality)}% of max`];
+  if (ranking.relative_position !== null) {
+    parts.push(`top ${Math.round(100 - ranking.relative_position)}% of cohort`);
+  } else if (ranking.action === 'slice' || ranking.action === 'deploy') {
+    parts.push('uncomparable cohort (too few peers)');
+  }
+  return parts.join(' · ');
+}
 
 interface ModCardProps {
   mod: ParsedMod;
   onClick: () => void;
+  ranking?: ModRanking;
 }
 
 const tierBorderColors = {
@@ -43,9 +75,10 @@ const tierBorderColors = {
   5: '#fbbf24',  // Gold
 } as const;
 
-export default function ModCard({ mod, onClick }: ModCardProps) {
+export default function ModCard({ mod, onClick, ranking }: ModCardProps) {
   const { verdicts } = useEvaluation();
   const verdict = verdicts.get(mod.mod_id);
+  const band = ranking ? deriveActionBand(ranking) : null;
 
   const secondarySlots = Array(4).fill(null).map((_, index) => {
     return mod.secondary_stats[index] || null;
@@ -89,11 +122,18 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
           title={verdictTooltip(verdict)}
         >
           {verdictLabel(verdict)}
-          {verdict.score !== undefined && (
-            <span className={styles.scoreValue} title={SCORE_TOOLTIP}>
-              {Math.round(verdict.score)}
-            </span>
-          )}
+        </div>
+      )}
+
+      {ranking && band && (
+        <div
+          className={`${styles.bandChip} ${bandClassName(band)}`}
+          title={bandTooltip(ranking)}
+        >
+          {bandLabel(band, ranking)}
+          <span className={styles.bandQuality}>
+            {Math.round(ranking.absolute_quality)}%
+          </span>
         </div>
       )}
 

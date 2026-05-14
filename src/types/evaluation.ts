@@ -53,5 +53,6 @@ export type VerdictResult = {
   winning_variant_name?: string;
   reason?: string;
   all_results?: VariantResult[];  // Per-variant breakdown for debug / UI
-  score?: number;                 // Set by modScorer when a winning variant exists
+  score?: number;                 // Raw score, set by modScorer when a winning variant exists
+  absolute_quality?: number;      // 0-100, raw_score / theoretical_max under the winning variant
 };

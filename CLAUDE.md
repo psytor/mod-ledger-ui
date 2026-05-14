@@ -93,10 +93,25 @@ In SWGOH, **mod levels are only `1, 3, 6, 9, 12, 15`**. Intermediate levels
 from the game. A real mod can never be observed at any of those levels.
 
 When reading `src/utils/evaluationEngine.ts`, the `MILESTONES` array is the
-**full set of valid mod levels**, not a subset of `1..15`. The only real
-"not at a checkpoint" case is **Grey/Green (tier ≤ 2) at L1 or L3**, which
-waits until L6 before the rules run. Do not describe mods as "between
-milestones" or "mid-leveling at L2/L4/L5/..." — those states do not occur.
+**full set of valid mod levels**, not a subset of `1..15`. Do not describe
+mods as "between milestones" or "mid-leveling at L2/L4/L5/..." — those
+states do not occur.
+
+**Pre-eval threshold.** A 5-dot mod is only evaluable once all 4 secondaries
+are revealed. The reveal point depends on tier (see `FIRST_EVAL_LEVEL` in
+`evaluationEngine.ts`):
+
+| Tier | Color | First eval level |
+|---|---|---|
+| 1 | Grey   | L12 |
+| 2 | Green  | L9  |
+| 3 | Blue   | L6  |
+| 4 | Purple | L3  |
+| 5 | Gold   | L1  |
+
+Below this level the engine returns `verdict='UPGRADE'` with no
+`winning_variant_id` so the UI labels the mod "Level to L_X for evaluation"
+instead of judging on partial data. 6-dot mods are always evaluable.
 
 ## Critical rules
 

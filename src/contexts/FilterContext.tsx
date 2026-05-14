@@ -2,14 +2,23 @@ import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { defaultFilters } from './defaultFilters';
 
+export type FilterMode = 'push-or-sell' | 'sell-pile' | 'unconfigured';
+export type ActionTab = 'level' | 'slice' | 'deploy' | 'pre-eval';
+
 export interface ModFilters {
-  sets: string[];
-  slots: string[];
-  tiers: string[];
-  rarity: number[];  // CLEAN BREAK: Changed from "dots"
-  primaries: string[];
-  characters: string[];
+  mode: FilterMode;
+  // push-or-sell drilldown:
+  stage: string | null;
+  variantId: string | null;
+  slot: string | null;
+  primary: string | null;
+  actionTab: ActionTab | null;
+  // sell-pile parallel filters:
+  sellPileSets: string[];
+  sellPileSlots: string[];
+  // cross-cutting (all modes):
   locked: 'all' | 'locked' | 'unlocked';
+  characters: string[];
 }
 
 interface FilterContextType {
@@ -18,12 +27,9 @@ interface FilterContextType {
   openPanel: () => void;
   closePanel: () => void;
   filters: ModFilters;
-  setFilter: (key: keyof ModFilters, value: ModFilters[keyof ModFilters]) => void;
+  setFilter: <K extends keyof ModFilters>(key: K, value: ModFilters[K]) => void;
   clearFilters: () => void;
-  sortBy: string;
-  sortOrder: 'asc' | 'desc';
-  setSortBy: (sortBy: string) => void;
-  setSortOrder: (order: 'asc' | 'desc') => void;
+  resetDrilldown: () => void;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
@@ -31,14 +37,12 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [filters, setFilters] = useState<ModFilters>(defaultFilters);
-  const [sortBy, setSortByState] = useState<string>('character');
-  const [sortOrder, setSortOrderState] = useState<'asc' | 'desc'>('asc');
 
   const togglePanel = () => setIsPanelOpen((prev) => !prev);
   const openPanel = () => setIsPanelOpen(true);
   const closePanel = () => setIsPanelOpen(false);
 
-  const setFilter = (key: keyof ModFilters, value: ModFilters[keyof ModFilters]) => {
+  const setFilter = <K extends keyof ModFilters>(key: K, value: ModFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -46,12 +50,16 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setFilters(defaultFilters);
   };
 
-  const setSortBy = (newSortBy: string) => {
-    setSortByState(newSortBy);
-  };
-
-  const setSortOrder = (order: 'asc' | 'desc') => {
-    setSortOrderState(order);
+  // Resets only the drilldown selections within push-or-sell mode (variant +
+  // downstream). Used when stage changes or the evaluation/ally code switches.
+  const resetDrilldown = () => {
+    setFilters((prev) => ({
+      ...prev,
+      variantId: null,
+      slot: null,
+      primary: null,
+      actionTab: null,
+    }));
   };
 
   return (
@@ -64,10 +72,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         filters,
         setFilter,
         clearFilters,
-        sortBy,
-        sortOrder,
-        setSortBy,
-        setSortOrder,
+        resetDrilldown,
       }}
     >
       {children}

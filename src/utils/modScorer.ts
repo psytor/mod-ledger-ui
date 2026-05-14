@@ -48,12 +48,17 @@ function resolveStatId(
   return lookup.get(`${stat.stat_name}|${stat.is_percent}`);
 }
 
+export type ModScore = {
+  score: number;
+  absolute_quality: number; // 0-100
+};
+
 export function scoreMod(
   mod: ParsedMod,
   evaluation: Evaluation,
   verdict: VerdictResult,
   statDefs: StatDefinition[]
-): number | null {
+): ModScore | null {
   if (!verdict.winning_variant_id) return null;
 
   const config = evaluation.mod_set_configs.find((c) => c.set_id === mod.set_id);
@@ -65,6 +70,7 @@ export function scoreMod(
   const targets = variant.secondary_targets ?? {};
 
   let total = 0;
+  let theoreticalMax = 0;
   for (const stat of mod.secondary_stats) {
     if (stat.is_revealed === false) continue;
     const efficiencies = stat.roll_efficiencies ?? [];
@@ -77,12 +83,16 @@ export function scoreMod(
       variant.secondary_classifications[statId] ?? 'neutral';
     const multiplier = TIER_MULTIPLIERS[classification];
 
+    // Backend roll efficiencies are 0-100 percentages (see mod-ledger
+    // schemas/mod.py); curveScore expects a 0-1 scale to match targets.
     for (const efficiency of efficiencies) {
-      total += curveScore(efficiency, target) * multiplier;
+      total += curveScore(efficiency / 100, target) * multiplier;
     }
+    theoreticalMax += efficiencies.length * 100 * multiplier;
   }
 
-  return total;
+  const absolute_quality = theoreticalMax > 0 ? (total / theoreticalMax) * 100 : 0;
+  return { score: total, absolute_quality };
 }
 
 export function scoreAll(
@@ -95,8 +105,13 @@ export function scoreAll(
   for (const mod of mods) {
     const verdict = verdicts.get(mod.mod_id);
     if (!verdict) continue;
-    const score = scoreMod(mod, evaluation, verdict, statDefs);
-    out.set(mod.mod_id, score === null ? verdict : { ...verdict, score });
+    const result = scoreMod(mod, evaluation, verdict, statDefs);
+    out.set(
+      mod.mod_id,
+      result === null
+        ? verdict
+        : { ...verdict, score: result.score, absolute_quality: result.absolute_quality }
+    );
   }
   return out;
 }

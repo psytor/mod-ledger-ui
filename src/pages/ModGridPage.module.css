@@ -149,6 +149,58 @@
   box-shadow: 0 0 4px var(--color-warning);
 }
 
+.contentArea {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.emptyState {
+  padding: 4rem 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.unconfiguredContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.unconfiguredGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.unconfiguredHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.unconfiguredSet {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-family: var(--font-heading);
+}
+
+.configureLink {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.configureLink:hover {
+  text-decoration: underline;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .header {

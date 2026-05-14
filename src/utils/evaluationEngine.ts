@@ -10,6 +10,18 @@ import type {
 const SHAPES_FIXED_PRIMARY = new Set(['Square', 'Diamond', 'Circle']);
 const MILESTONES = [1, 3, 6, 9, 12, 15] as const;
 
+// First level at which all 4 secondaries are revealed, per 5-dot tier. Below
+// this level, the engine emits UPGRADE with no winning_variant so the UI can
+// label the mod "Level to L_X for evaluation" — avoids running rules on
+// partial data.
+const FIRST_EVAL_LEVEL: Record<number, number> = {
+  1: 12, // Grey:   reveals at L3, L6, L9, L12
+  2: 9,  // Green:  reveals at L1, L3, L6, L9
+  3: 6,  // Blue:   reveals at L1, L3, L6
+  4: 3,  // Purple: reveals at L1, L3
+  5: 1,  // Gold:   all 4 visible from L1
+};
+
 // Stat names are not unique across primary+secondary pools (e.g. flat Health
 // id 1 vs Health % id 55). The engine resolves each ModStat to a stat_id by
 // matching (name, is_percent) against the loaded stat definitions.
@@ -33,8 +45,7 @@ function resolveStatId(
 function isCheckpoint(rarity: number, tier: number, level: number): boolean {
   if (rarity === 6) return true; // 6-dot is always evaluable; engine emits SELL or PASS_RULES only.
   if (!MILESTONES.includes(level as (typeof MILESTONES)[number])) return false;
-  if (tier <= 2 && level < 6) return false; // Grey/Green wait for L6.
-  return true;
+  return level >= (FIRST_EVAL_LEVEL[tier] ?? 6);
 }
 
 function nextMilestone(level: number): number {
@@ -189,8 +200,9 @@ export function evaluateMod(
     return { verdict: 'UNCONFIGURED' };
   }
 
-  // Below first checkpoint (e.g. Grey at L1/L3): no decision to make yet,
-  // just recommend leveling to the first checkpoint.
+  // Below first checkpoint: not all 4 secondaries are revealed yet, so the
+  // engine refuses to make a call and recommends leveling to the tier's
+  // first-eval level. UI surfaces these as "Level to L_X for evaluation".
   if (mod.rarity === 5 && !isCheckpoint(mod.rarity, mod.tier, mod.level)) {
     const target = findNextCheckpoint(mod.rarity, mod.tier, mod.level);
     if (target !== null) {
