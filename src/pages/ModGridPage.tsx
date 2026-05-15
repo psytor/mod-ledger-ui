@@ -13,6 +13,11 @@ import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import ModDetailModal from '@/components/mod/ModDetailModal';
 import ActionSubTabs from '@/components/mod/ActionSubTabs';
+import {
+  SellPilePreview,
+  UnconfiguredPreview,
+} from '@/components/mod/CategoryPreview';
+import InventoryOverview from '@/components/mod/InventoryOverview';
 import OverviewView from '@/components/mod/OverviewView';
 import ScoreLegend from '@/components/mod/ScoreLegend';
 import FilterPanel from '@/components/filter/FilterPanel';
@@ -126,10 +131,12 @@ export default function ModGridPage() {
     );
   }
 
+  // No evaluation selected (or not yet run): show every mod plainly, with no
+  // scoring/banding and no mode title — the mode is meaningless without verdicts.
+  const noEvaluation = !activeEvaluationId || verdicts.size === 0;
+
   const renderContent = () => {
-    // No evaluation selected (or not yet run) — show every mod plainly, with
-    // no scoring/banding. The EvaluationSelector above lets the player pick one.
-    if (!activeEvaluationId || verdicts.size === 0) {
+    if (noEvaluation) {
       return <ModGrid mods={mods} onModClick={handleModClick} />;
     }
 
@@ -153,6 +160,7 @@ export default function ModGridPage() {
     if (filters.variantId === null) {
       return (
         <>
+          <InventoryOverview mods={mods} verdicts={verdicts} />
           <ScoreLegend />
           <OverviewView
             mods={mods}
@@ -183,7 +191,13 @@ export default function ModGridPage() {
 
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <h1>{MODE_TITLES[filters.mode] ?? 'Mods'}</h1>
+            <h1>
+              {noEvaluation
+                ? 'Mods'
+                : filters.mode === 'push-or-sell' && filters.variantId === null
+                  ? 'My Mods'
+                  : MODE_TITLES[filters.mode] ?? 'Mods'}
+            </h1>
             <p className={styles.modCount}>{mods.length} mods loaded</p>
           </div>
 

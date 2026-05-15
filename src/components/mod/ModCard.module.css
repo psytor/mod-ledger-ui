@@ -308,9 +308,10 @@
   text-overflow: ellipsis;
 }
 
-/* Reserve space at the top of the right column when a verdict badge is shown
-   so the badge never overlaps the primary stat. */
-.withVerdict .rightColumn {
+/* Reserve space at the top of the whole middle row when a verdict badge /
+   band chip is shown, so the badges never overlap the dots, sprite, or
+   primary stat. Pushes both columns down together. */
+.withVerdict .middleRow {
   padding-top: 1.6rem;
 }
 

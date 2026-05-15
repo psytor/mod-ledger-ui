@@ -161,8 +161,11 @@ export default function EvaluationDetailPage() {
                       <Card
                         key={set.set_id}
                         chamfered
-                        chamferSize="sm"
                         padding="none"
+                        showDiagonalBorders
+                        diagonalBorderColor={
+                          configured ? 'var(--color-success)' : 'var(--color-border)'
+                        }
                         className={`${styles.setRow} ${configured ? styles.setRowConfigured : ''}`}
                       >
                         <span className={styles.setRowName}>{set.name}</span>

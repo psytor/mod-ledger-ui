@@ -57,6 +57,9 @@
     rgba(19, 23, 41, 0.85) 100%
   );
   backdrop-filter: blur(8px);
+  /* Outline border survives only on straight edges — clip-path cuts the corners,
+     so the corner color comes from showDiagonalBorders + diagonalBorderColor. */
+  border-color: var(--color-primary);
 }
 
 .heroAccent {
@@ -177,6 +180,34 @@
   gap: var(--spacing-md);
   text-align: center;
   background: var(--color-surface);
+  /* Straight-side border (corners are clipped). Matches the diagonal corner
+     color (diagonalBorderColor="var(--color-primary)") so the box reads as a
+     closed chamfered outline. */
+  border: 1px solid var(--color-primary);
+}
+
+/* The chamfered-diagonal-* spans come from shared-ui (global classnames) and
+   are positioned for chamferSize="md" but sit slightly inset against the
+   actual corner cut. Nudge each ~2px toward its corner so they meet the
+   straight side border cleanly. Move to shared-ui if it ever becomes general. */
+.empty :global(.chamfered-diagonal-tl) {
+  top: -3px;
+  left: 9px;
+}
+
+.empty :global(.chamfered-diagonal-tr) {
+  top: 8px;
+  right: -2px;
+}
+
+.empty :global(.chamfered-diagonal-bl) {
+  bottom: -4px;
+  left: 10px;
+}
+
+.empty :global(.chamfered-diagonal-br) {
+  bottom: 9px;
+  right: -3px;
 }
 
 .emptyAccent {
@@ -244,6 +275,36 @@
   flex-direction: column;
   gap: var(--spacing-sm);
   min-height: 180px;
+  transition: border-color var(--transition-base);
+  /* Straight-side border (corners are clipped). Matches the diagonal corner
+     color so the box reads as a closed chamfered outline. */
+  border: 1px solid var(--color-border);
+}
+
+.cardLink:hover .card.card {
+  border-color: var(--color-primary);
+}
+
+/* Nudge the shared-ui chamferSize="md" diagonal spans ~2px toward each corner
+   so they meet the straight side border cleanly. */
+.card :global(.chamfered-diagonal-tl) {
+  top: -3px;
+  left: 9px;
+}
+
+.card :global(.chamfered-diagonal-tr) {
+  top: 8px;
+  right: -2px;
+}
+
+.card :global(.chamfered-diagonal-bl) {
+  bottom: -4px;
+  left: 10px;
+}
+
+.card :global(.chamfered-diagonal-br) {
+  bottom: 9px;
+  right: -3px;
 }
 
 .cardAccent {
