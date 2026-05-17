@@ -6,8 +6,6 @@ import {
   SELL_PERCENTILE_THRESHOLD,
   PUSH_ABSOLUTE_FLOOR,
   SELL_ABSOLUTE_CEILING,
-  LEVEL_PUSH_ABSOLUTE_THRESHOLD,
-  LEVEL_SELL_ABSOLUTE_THRESHOLD,
 } from './scoringConstants';
 
 export type ModAction = 'level' | 'slice' | 'deploy' | 'pre-eval' | 'sell';
@@ -47,18 +45,16 @@ export function actionOf(mod: ParsedMod, verdict: VerdictResult): ModAction | nu
 }
 
 // Cohort key for relative ranking. Mods sharing a key are direct peers.
-// - Leveling: variant only. A Grey-L12 and a Purple-L12 under the same lens
-//   are peers because the question is per-roll quality, not total accumulation.
 // - Slicing: stage + variant. A 5d-A and a 6d-E are never peers because
 //   slicing cost and roll opportunities differ.
 // - Deploy: variant only, scoped to 6d-A by actionOf.
-// - Pre-eval / sell / null: no cohort.
+// - Level / Pre-eval / sell / null: no cohort. Level mods are judged
+//   individually against the milestone quality gate (QUALITY_RAMP); the
+//   relative-band UI doesn't apply to them.
 export function cohortKey(mod: ParsedMod, verdict: VerdictResult): string | null {
   const action = actionOf(mod, verdict);
   if (action === null) return null;
   switch (action) {
-    case 'level':
-      return `level|${verdict.winning_variant_id}`;
     case 'slice': {
       const stage = stageOf(mod);
       if (!stage || !verdict.winning_variant_id) return null;
@@ -72,12 +68,12 @@ export function cohortKey(mod: ParsedMod, verdict: VerdictResult): string | null
 }
 
 // Returns the metric used to rank within a given action's cohort.
-// Slicing uses raw score (total accumulated quality vs peers); leveling and
-// deploy use per-roll absolute quality.
+// Slicing uses raw score (total accumulated quality vs peers); deploy uses
+// per-roll absolute quality. Level mods have no cohort and aren't ranked.
 function rankMetric(mod: ParsedMod, verdict: VerdictResult): number | null {
   const action = actionOf(mod, verdict);
   if (action === 'slice') return verdict.score ?? null;
-  if (action === 'level' || action === 'deploy') return verdict.absolute_quality ?? null;
+  if (action === 'deploy') return verdict.absolute_quality ?? null;
   return null;
 }
 
@@ -159,17 +155,16 @@ export interface ModRanking {
 
 /**
  * Derives the player-facing action band from a mod's action + scoring inputs.
- * Leveling uses absolute_quality alone (per-roll bet, sample size varies).
  * Slicing uses cohort percentile gated by an absolute floor/ceiling so a
  * best-of-a-bad-lot doesn't become Push, nor a worst-of-a-great-lot a Sell.
+ * Level mods don't get bands — the milestone gate chain has already made
+ * the push/sell call by the time we get here.
  */
 export function deriveActionBand(ranking: ModRanking): ActionBand {
   const { action, relative_position, absolute_quality } = ranking;
   switch (action) {
     case 'level':
-      if (absolute_quality >= LEVEL_PUSH_ABSOLUTE_THRESHOLD) return 'push';
-      if (absolute_quality < LEVEL_SELL_ABSOLUTE_THRESHOLD) return 'consider-selling';
-      return 'keep';
+      return 'none';
     case 'slice':
       if (relative_position === null) return 'keep'; // uncomparable cohort (singleton)
       if (

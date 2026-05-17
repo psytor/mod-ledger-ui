@@ -125,7 +125,7 @@ export default function ModCard({ mod, onClick, ranking }: ModCardProps) {
         </div>
       )}
 
-      {ranking && band && (
+      {ranking && band && ranking.action !== 'level' && (
         <div
           className={`${styles.bandChip} ${bandClassName(band)}`}
           title={bandTooltip(ranking)}

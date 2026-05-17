@@ -167,6 +167,16 @@ export default function ModGridPage() {
             verdicts={verdicts}
             onModClick={handleModClick}
           />
+          <SellPilePreview
+            mods={mods}
+            verdicts={verdicts}
+            onModClick={handleModClick}
+          />
+          <UnconfiguredPreview
+            mods={mods}
+            verdicts={verdicts}
+            onModClick={handleModClick}
+          />
         </>
       );
     }

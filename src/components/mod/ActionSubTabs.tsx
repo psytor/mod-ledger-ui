@@ -105,6 +105,13 @@ export default function ActionSubTabs({
           rankings={rankings}
           onModClick={onModClick}
         />
+      ) : activeTab === 'level' ? (
+        <LevelGroups
+          mods={activeMods}
+          verdicts={verdicts}
+          rankings={rankings}
+          onModClick={onModClick}
+        />
       ) : (
         <ModGrid
           mods={activeMods}
@@ -113,6 +120,59 @@ export default function ActionSubTabs({
         />
       )}
     </div>
+  );
+}
+
+// Level mods are grouped by target_level — these are direct to-do lists:
+// "Push to L9: N mods", "Push to L12: M mods", etc. Within each group they
+// sort by absolute_quality desc so the highest-quality candidates show first.
+function LevelGroups({
+  mods,
+  verdicts,
+  rankings,
+  onModClick,
+}: {
+  mods: ParsedMod[];
+  verdicts: Map<string, VerdictResult>;
+  rankings: Map<string, ModRanking>;
+  onModClick: (mod: ParsedMod) => void;
+}) {
+  const byTarget = new Map<number, ParsedMod[]>();
+  for (const mod of mods) {
+    const target = verdicts.get(mod.mod_id)?.target_level;
+    if (target === undefined) continue;
+    const bucket = byTarget.get(target);
+    if (bucket) bucket.push(mod);
+    else byTarget.set(target, [mod]);
+  }
+
+  const orderedTargets = [...byTarget.keys()].sort((a, b) => a - b);
+
+  const sortByQuality = (a: ParsedMod, b: ParsedMod): number => {
+    const va = verdicts.get(a.mod_id)?.absolute_quality ?? 0;
+    const vb = verdicts.get(b.mod_id)?.absolute_quality ?? 0;
+    return vb - va;
+  };
+
+  return (
+    <>
+      {orderedTargets.map((target) => {
+        const targetMods = [...(byTarget.get(target) ?? [])].sort(sortByQuality);
+        return (
+          <div key={target} className={styles.stageGroup}>
+            <h3 className={styles.stageHeader}>
+              Push to L{target}
+              <span className={styles.stageCount}>({targetMods.length})</span>
+            </h3>
+            <ModGrid
+              mods={targetMods}
+              rankings={rankings}
+              onModClick={onModClick}
+            />
+          </div>
+        );
+      })}
+    </>
   );
 }
 

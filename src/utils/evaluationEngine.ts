@@ -10,16 +10,24 @@ import type {
 const SHAPES_FIXED_PRIMARY = new Set(['Square', 'Diamond', 'Circle']);
 const MILESTONES = [1, 3, 6, 9, 12, 15] as const;
 
-// First level at which all 4 secondaries are revealed, per 5-dot tier. Below
-// this level, the engine emits UPGRADE with no winning_variant so the UI can
-// label the mod "Level to L_X for evaluation" — avoids running rules on
-// partial data.
+// First level at which all 4 secondaries are revealed, per 5-dot tier.
 const FIRST_EVAL_LEVEL: Record<number, number> = {
   1: 12, // Grey:   reveals at L3, L6, L9, L12
   2: 9,  // Green:  reveals at L1, L3, L6, L9
   3: 6,  // Blue:   reveals at L1, L3, L6
   4: 3,  // Purple: reveals at L1, L3
   5: 1,  // Gold:   all 4 visible from L1
+};
+
+// Stage 2 quality gate, keyed by the mod's CURRENT level. At L12 all rolls are
+// revealed so the bar is highest (Q=50 ≈ rolls hit slider target on average).
+// L1 extrapolates the +5 ramp for Gold-L1's "Stage 2 from L1" path.
+export const QUALITY_RAMP: Record<number, number> = {
+  1: 30,
+  3: 35,
+  6: 40,
+  9: 45,
+  12: 50,
 };
 
 // Stat names are not unique across primary+secondary pools (e.g. flat Health
@@ -42,12 +50,6 @@ function resolveStatId(
   return lookup.get(`${stat.stat_name}|${stat.is_percent}`);
 }
 
-function isCheckpoint(rarity: number, tier: number, level: number): boolean {
-  if (rarity === 6) return true; // 6-dot is always evaluable; engine emits SELL or PASS_RULES only.
-  if (!MILESTONES.includes(level as (typeof MILESTONES)[number])) return false;
-  return level >= (FIRST_EVAL_LEVEL[tier] ?? 6);
-}
-
 function nextMilestone(level: number): number {
   for (const m of MILESTONES) {
     if (m > level) return m;
@@ -55,15 +57,9 @@ function nextMilestone(level: number): number {
   return 15;
 }
 
-function findNextCheckpoint(
-  rarity: number,
-  tier: number,
-  level: number
-): number | null {
-  for (const m of MILESTONES) {
-    if (m > level && isCheckpoint(rarity, tier, m)) return m;
-  }
-  return null;
+function isInScoringZone(rarity: number, tier: number, level: number): boolean {
+  if (rarity === 6) return true;
+  return level >= (FIRST_EVAL_LEVEL[tier] ?? 6);
 }
 
 function checkPrimary(
@@ -90,7 +86,8 @@ type SecondaryCheck = {
   pass: boolean;
   requiredCount: number;
   complementaryCount: number;
-  reason?: string;
+  visibleCount: number;
+  threshold: number;
 };
 
 function checkSecondary(
@@ -121,42 +118,59 @@ function checkSecondary(
 
   // Auto-pass: variant defines no Required stats (parallel to all-Neutral primary rule).
   if (requiredStatIds.size === 0) {
-    return { pass: true, requiredCount: 0, complementaryCount };
-  }
-
-  // Adjusted formula fires whenever the mod's primary lands on a Required stat,
-  // regardless of slot. Square/Diamond/Circle aren't special here — Speed Arrow
-  // in an offensive variant gets the same easier formula.
-  const adjusted =
-    primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
-  const minRequired = visibleCount - (adjusted ? 2 : 1);
-
-  if (requiredCount < minRequired) {
     return {
-      pass: false,
-      requiredCount,
+      pass: true,
+      requiredCount: 0,
       complementaryCount,
-      reason: `${requiredCount} Required of ${visibleCount} visible (need ≥${minRequired})`,
+      visibleCount,
+      threshold: 0,
     };
   }
 
-  return { pass: true, requiredCount, complementaryCount };
+  // Adjusted formula fires whenever the mod's primary lands on a Required stat,
+  // regardless of slot. Floor of 1 keeps grey-L6 + primary-on-required from
+  // auto-passing with zero required secondaries visible.
+  const adjusted =
+    primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
+  const threshold = Math.max(1, visibleCount - (adjusted ? 2 : 1));
+
+  return {
+    pass: requiredCount >= threshold,
+    requiredCount,
+    complementaryCount,
+    visibleCount,
+    threshold,
+  };
 }
 
-function evaluateVariant(
+type VariantChainResult =
+  | {
+      kind: 'pass';
+      variant: Variant;
+      requiredCount: number;
+      complementaryCount: number;
+    }
+  | {
+      kind: 'fail';
+      variant: Variant;
+      requiredCount: number;
+      complementaryCount: number;
+      reason: string;
+    };
+
+function runVariantChain(
   mod: ParsedMod,
   variant: Variant,
   statIdLookup: Map<string, number>
-): VariantResult {
+): VariantChainResult {
   const primaryStatId = resolveStatId(mod.primary_stat, statIdLookup);
 
   if (!checkPrimary(mod, variant, primaryStatId)) {
     return {
-      variant_id: variant.id,
-      variant_name: variant.name,
-      verdict: 'SELL',
-      required_count: 0,
-      complementary_count: 0,
+      kind: 'fail',
+      variant,
+      requiredCount: 0,
+      complementaryCount: 0,
       reason: 'Primary stat mismatch',
     };
   }
@@ -164,21 +178,30 @@ function evaluateVariant(
   const sec = checkSecondary(mod, variant, primaryStatId, statIdLookup);
   if (!sec.pass) {
     return {
-      variant_id: variant.id,
-      variant_name: variant.name,
-      verdict: 'SELL',
-      required_count: sec.requiredCount,
-      complementary_count: sec.complementaryCount,
-      reason: sec.reason,
+      kind: 'fail',
+      variant,
+      requiredCount: sec.requiredCount,
+      complementaryCount: sec.complementaryCount,
+      reason: `${mod.tier_color} L${mod.level} gate: ${sec.requiredCount} of ${sec.visibleCount} visible are Required (need ≥${sec.threshold})`,
     };
   }
 
   return {
-    variant_id: variant.id,
-    variant_name: variant.name,
-    verdict: 'PASS_RULES',
-    required_count: sec.requiredCount,
-    complementary_count: sec.complementaryCount,
+    kind: 'pass',
+    variant,
+    requiredCount: sec.requiredCount,
+    complementaryCount: sec.complementaryCount,
+  };
+}
+
+function toVariantResult(r: VariantChainResult): VariantResult {
+  return {
+    variant_id: r.variant.id,
+    variant_name: r.variant.name,
+    verdict: r.kind === 'pass' ? 'PASS_RULES' : 'SELL',
+    required_count: r.requiredCount,
+    complementary_count: r.complementaryCount,
+    reason: r.kind === 'fail' ? r.reason : undefined,
   };
 }
 
@@ -200,31 +223,33 @@ export function evaluateMod(
     return { verdict: 'UNCONFIGURED' };
   }
 
-  // Below first checkpoint: not all 4 secondaries are revealed yet, so the
-  // engine refuses to make a call and recommends leveling to the tier's
-  // first-eval level. UI surfaces these as "Level to L_X for evaluation".
-  if (mod.rarity === 5 && !isCheckpoint(mod.rarity, mod.tier, mod.level)) {
-    const target = findNextCheckpoint(mod.rarity, mod.tier, mod.level);
-    if (target !== null) {
-      return {
-        verdict: 'UPGRADE',
-        target_level: target,
-        reason: 'not at evaluation checkpoint',
-      };
-    }
+  // 5-dot below L6: no gate, just level. Owner: "for a grey mod not at L6, we
+  // level to 6." The chain doesn't start until L6 (or the tier's first eval
+  // level, whichever is lower). Gold L1 IS in scoring zone — the L<6 check
+  // would also apply, but Gold's first eval is L1, so we let scoring-zone
+  // logic below handle it.
+  if (mod.rarity === 5 && mod.level < 6 && !isInScoringZone(mod.rarity, mod.tier, mod.level)) {
+    return {
+      verdict: 'UPGRADE',
+      target_level: 6,
+      reason: 'level to L6 before any judgment',
+    };
   }
 
   const statIdLookup = buildStatIdLookup(statDefs);
-  const results = config.variants.map((v) =>
-    evaluateVariant(mod, v, statIdLookup)
-  );
+  const chains = config.variants.map((v) => runVariantChain(mod, v, statIdLookup));
+  const results = chains.map(toVariantResult);
 
-  const passing = results.filter((r) => r.verdict === 'PASS_RULES');
+  const passing = chains.filter((r): r is Extract<VariantChainResult, { kind: 'pass' }> => r.kind === 'pass');
 
   if (passing.length === 0) {
+    // Pick the most-informative failure: highest required_count → closest to passing.
+    const sortedFails = [...chains]
+      .filter((r): r is Extract<VariantChainResult, { kind: 'fail' }> => r.kind === 'fail')
+      .sort((a, b) => b.requiredCount - a.requiredCount);
     return {
       verdict: 'SELL',
-      reason: 'no variant passed',
+      reason: sortedFails[0]?.reason ?? 'no variant passed',
       all_results: results,
     };
   }
@@ -234,33 +259,35 @@ export function evaluateMod(
   config.variants.forEach((v, i) => variantOrder.set(v.id, i));
 
   passing.sort((a, b) => {
-    if (a.complementary_count !== b.complementary_count) {
-      return b.complementary_count - a.complementary_count;
+    if (a.complementaryCount !== b.complementaryCount) {
+      return b.complementaryCount - a.complementaryCount;
     }
     return (
-      (variantOrder.get(a.variant_id) ?? 0) -
-      (variantOrder.get(b.variant_id) ?? 0)
+      (variantOrder.get(a.variant.id) ?? 0) -
+      (variantOrder.get(b.variant.id) ?? 0)
     );
   });
 
   const winner = passing[0];
 
-  // 5-dot below L15: PASS at this checkpoint → recommend the next checkpoint.
+  // 5-dot below L15: PASS at this checkpoint → recommend the next milestone.
+  // The Stage 2 quality gate runs in a post-pass (see applyQualityGates),
+  // which may flip this UPGRADE to SELL once absolute_quality is known.
   // 5-dot at L15 or any 6-dot: hand off to the slicing pipeline.
   if (mod.rarity === 5 && mod.level < 15) {
     return {
       verdict: 'UPGRADE',
       target_level: nextMilestone(mod.level),
-      winning_variant_id: winner.variant_id,
-      winning_variant_name: winner.variant_name,
+      winning_variant_id: winner.variant.id,
+      winning_variant_name: winner.variant.name,
       all_results: results,
     };
   }
 
   return {
     verdict: 'PASS_RULES',
-    winning_variant_id: winner.variant_id,
-    winning_variant_name: winner.variant_name,
+    winning_variant_id: winner.variant.id,
+    winning_variant_name: winner.variant.name,
     all_results: results,
   };
 }
@@ -275,4 +302,61 @@ export function evaluateAll(
     verdicts.set(mod.mod_id, evaluateMod(mod, evaluation, statDefs));
   }
   return verdicts;
+}
+
+/**
+ * Stage 2 post-pass: applies the absolute_quality gate to UPGRADE verdicts.
+ * Runs AFTER scoreAll so each mod's score is available. A 5-dot mod in
+ * scoring zone whose absolute_quality is below QUALITY_RAMP[current_level]
+ * gets flipped from UPGRADE to SELL with an explicit reason.
+ *
+ * Stage 2 fires only when:
+ *   - verdict is UPGRADE (we're considering a push), AND
+ *   - the mod is 5-dot with a winning variant (not Pre-Eval), AND
+ *   - the current level is in QUALITY_RAMP (L1, L3, L6, L9, L12), AND
+ *   - the mod is in scoring zone (all 4 secondaries revealed).
+ */
+export function applyQualityGates(
+  mods: ParsedMod[],
+  verdicts: Map<string, VerdictResult>
+): Map<string, VerdictResult> {
+  const out = new Map<string, VerdictResult>();
+  const modById = new Map(mods.map((m) => [m.mod_id, m]));
+
+  for (const [modId, verdict] of verdicts) {
+    const mod = modById.get(modId);
+    if (!mod || verdict.verdict !== 'UPGRADE' || !verdict.winning_variant_id) {
+      out.set(modId, verdict);
+      continue;
+    }
+    if (mod.rarity !== 5) {
+      out.set(modId, verdict);
+      continue;
+    }
+    if (!isInScoringZone(mod.rarity, mod.tier, mod.level)) {
+      out.set(modId, verdict);
+      continue;
+    }
+    const threshold = QUALITY_RAMP[mod.level];
+    if (threshold === undefined) {
+      out.set(modId, verdict);
+      continue;
+    }
+    const score = verdict.absolute_quality;
+    if (score === undefined) {
+      out.set(modId, verdict);
+      continue;
+    }
+    if (score >= threshold) {
+      out.set(modId, verdict);
+      continue;
+    }
+    out.set(modId, {
+      ...verdict,
+      verdict: 'SELL',
+      target_level: undefined,
+      reason: `L${mod.level} quality gate: absolute_quality ${Math.round(score)} < ${threshold}`,
+    });
+  }
+  return out;
 }
