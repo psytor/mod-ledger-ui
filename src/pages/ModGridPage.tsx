@@ -26,7 +26,7 @@ import type { ParsedMod } from '@/services/modLedgerApi';
 import styles from './ModGridPage.module.css';
 
 const MODE_TITLES: Record<string, string> = {
-  'push-or-sell': 'Push or Sell',
+  'push-or-sell': 'Review Mods',
   'sell-pile': 'Sell Pile',
   unconfigured: 'Unconfigured Mods',
 };

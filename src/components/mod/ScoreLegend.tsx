@@ -7,12 +7,12 @@ export default function ScoreLegend() {
     <div className={styles.legend}>
       <span className={styles.intro}>
         <strong>%</strong> shows how close a mod is to a perfect roll — higher
-        is better. Mods are ranked only against peers at the same stage.
+        is better. Mods are ranked only against similar mods at the same tier.
       </span>
       <span className={styles.items}>
         <span className={styles.item}>
-          <span className={`${styles.chip} ${styles.push}`}>↑ Push</span>
-          best of its group — worth the upgrade
+          <span className={`${styles.chip} ${styles.push}`}>↑ Slice</span>
+          best of its group — worth slicing
         </span>
         <span className={styles.item}>
           <span className={`${styles.chip} ${styles.keep}`}>Keep</span>

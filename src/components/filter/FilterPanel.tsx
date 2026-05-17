@@ -8,10 +8,11 @@ import {
   getSellPileOptions,
   isVariablePrimarySlot,
 } from '@/utils/modFilters';
+import { formatStage } from '@/utils/cohortRanking';
 import styles from './FilterPanel.module.css';
 
 const MODE_LABELS: Record<FilterMode, string> = {
-  'push-or-sell': 'Push or Sell',
+  'push-or-sell': 'Review Mods',
   'sell-pile': 'Sell Pile',
   unconfigured: 'Unconfigured',
 };
@@ -105,29 +106,29 @@ export default function FilterPanel() {
           {filters.mode === 'push-or-sell' && (
             <>
               <div className={styles.filterSection}>
-                <h4>Stage</h4>
+                <h4>Tier</h4>
                 <select
                   className={styles.select}
                   value={filters.stage ?? ''}
                   onChange={(e) => handleStageChange(e.target.value || null)}
                 >
-                  <option value="">All stages</option>
+                  <option value="">All tiers</option>
                   {drilldown.stages.map((s) => (
                     <option key={s.value} value={s.value}>
-                      {s.value} ({s.count})
+                      {formatStage(s.value)} ({s.count})
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className={styles.filterSection}>
-                <h4>Variant</h4>
+                <h4>Scoring Rule</h4>
                 <select
                   className={styles.select}
                   value={filters.variantId ?? ''}
                   onChange={(e) => handleVariantChange(e.target.value || null)}
                 >
-                  <option value="">Overview — pick a variant</option>
+                  <option value="">Overview — pick a scoring rule</option>
                   {drilldown.variants.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name} ({v.count})

@@ -28,6 +28,23 @@ export function stageOf(mod: ParsedMod): string | null {
   return `${mod.rarity}d-${mod.tier_name}`;
 }
 
+const TIER_LETTER_TO_COLOR: Record<string, string> = {
+  A: 'Gold',
+  B: 'Purple',
+  C: 'Blue',
+  D: 'Green',
+  E: 'Grey',
+};
+
+// Renders an internal stage code ("5d-A") as the player-facing string ("5A Gold").
+// Falls back to the raw code if the shape is unexpected.
+export function formatStage(stage: string): string {
+  const match = /^(\d)d-([A-E])$/.exec(stage);
+  if (!match) return stage;
+  const [, rarity, letter] = match;
+  return `${rarity}${letter} ${TIER_LETTER_TO_COLOR[letter] ?? ''}`.trim();
+}
+
 // Maps verdict + mod state to the action the player is being asked to take.
 // Returns null for UNCONFIGURED (no action; player needs to go set up rules).
 export function actionOf(mod: ParsedMod, verdict: VerdictResult): ModAction | null {

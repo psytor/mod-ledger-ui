@@ -25,7 +25,7 @@ function verdictLabel(v: VerdictResult): string {
 function verdictTooltip(v: VerdictResult): string {
   const parts: string[] = [];
   if (v.reason) parts.push(v.reason);
-  if (v.winning_variant_name) parts.push(`Winning variant: ${v.winning_variant_name}`);
+  if (v.winning_variant_name) parts.push(`Scoring Rule: ${v.winning_variant_name}`);
   return parts.join(' · ');
 }
 
@@ -41,22 +41,22 @@ function bandClassName(band: ActionBand): string {
 function bandLabel(band: ActionBand, ranking: ModRanking): string {
   switch (band) {
     case 'push':
-      return ranking.action === 'level' ? '↑ Level' : '↑ Slice';
+      return ranking.action === 'level' ? '↑ Upgrade' : '↑ Slice';
     case 'keep':
       return 'Keep';
     case 'consider-selling':
       return 'Consider Selling';
     case 'none':
-      return 'Deploy';
+      return 'Maxed';
   }
 }
 
 function bandTooltip(ranking: ModRanking): string {
   const parts: string[] = [`${Math.round(ranking.absolute_quality)}% of max`];
   if (ranking.relative_position !== null) {
-    parts.push(`top ${Math.round(100 - ranking.relative_position)}% of cohort`);
+    parts.push(`top ${Math.round(100 - ranking.relative_position)}% of similar mods`);
   } else if (ranking.action === 'slice' || ranking.action === 'deploy') {
-    parts.push('uncomparable cohort (too few peers)');
+    parts.push('too few similar mods to rank');
   }
   return parts.join(' · ');
 }

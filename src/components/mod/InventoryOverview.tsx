@@ -21,23 +21,23 @@ interface CategoryDef {
 const CATEGORIES: readonly CategoryDef[] = [
   {
     key: 'level',
-    label: 'Level',
+    label: 'Upgrade',
     description: 'Passed rules — level to next checkpoint',
   },
   {
     key: 'slice',
     label: 'Slice',
-    description: 'Passed rules — ready to slice up a dot tier',
+    description: 'Passed rules — ready to slice up a tier',
   },
   {
     key: 'deploy',
-    label: 'Deploy',
-    description: '6-dot Gold passed rules — ready to equip',
+    label: 'Maxed',
+    description: '6★ Gold passed rules — ready to equip',
   },
   {
     key: 'pre-eval',
-    label: 'Pre-Eval',
-    description: 'Level up further before evaluation is possible',
+    label: 'Unrevealed',
+    description: 'Level up further to reveal all stats',
   },
   {
     key: 'sell-pile',

@@ -48,7 +48,7 @@ function formatRollAt(
 function emptyVariant(): Variant {
   return {
     id: crypto.randomUUID(),
-    name: 'New variant',
+    name: 'New scoring rule',
     primary_classifications: {},
     secondary_classifications: {},
     secondary_targets: {},
@@ -276,8 +276,8 @@ export default function RuleBuilderPage() {
                   {existing ? 'Edit evaluation' : 'New evaluation'}
                 </h1>
                 <p className={styles.heroSubtitle}>
-                  Define how mods score by configuring variants per set. Each variant captures a
-                  combination of stats you'd accept; a mod passes if any variant in its set passes.
+                  Define how mods score by configuring scoring rules per set. Each rule captures a
+                  combination of stats you'd accept; a mod passes if any rule in its set passes.
                 </p>
               </header>
 
@@ -316,15 +316,15 @@ export default function RuleBuilderPage() {
                 <p className={styles.sectionMeta}>
                   <strong>{configuredSetCount}</strong> /{' '}
                   {modSets.length || '—'} configured ·{' '}
-                  <strong>{totalVariants}</strong> variant
+                  <strong>{totalVariants}</strong> scoring rule
                   {totalVariants === 1 ? '' : 's'}
                 </p>
               </header>
 
               <p className={styles.sectionIntro}>
-                Each mod set holds one or more variants. A mod passes if any variant in its set
+                Each mod set holds one or more scoring rules. A mod passes if any rule in its set
                 passes — best result wins, with Complementary count as tiebreak. Sets with no
-                variants stay UNCONFIGURED.
+                rules stay UNCONFIGURED.
               </p>
 
               <div className={styles.tierToggle} role="group" aria-label="Roll value tier">
@@ -374,13 +374,13 @@ export default function RuleBuilderPage() {
                             size="sm"
                             onClick={() => addVariant(set.set_id)}
                           >
-                            + Add variant
+                            + Add scoring rule
                           </Button>
                         </div>
 
                         {variants.length === 0 ? (
                           <p className={styles.setEmpty}>
-                            No variants — mods of this set will be UNCONFIGURED.
+                            No scoring rules — mods of this set will be UNCONFIGURED.
                           </p>
                         ) : (
                           <div className={styles.variantList}>
@@ -419,7 +419,7 @@ export default function RuleBuilderPage() {
             <Card chamfered chamferSize="sm" padding="none" className={styles.actionsBar}>
               <p className={styles.actionsCount}>
                 <strong>{configuredSetCount}</strong> configured ·{' '}
-                <strong>{totalVariants}</strong> variant{totalVariants === 1 ? '' : 's'}
+                <strong>{totalVariants}</strong> scoring rule{totalVariants === 1 ? '' : 's'}
               </p>
               <div className={styles.actionsButtons}>
                 <Button type="button" variant="outline" onClick={handleCancel}>

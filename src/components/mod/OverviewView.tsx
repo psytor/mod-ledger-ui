@@ -4,6 +4,7 @@ import { useFilters } from '@/contexts/FilterContext';
 import {
   actionOf,
   stageOf,
+  formatStage,
   computeRelativePositions,
   buildRankings,
   STAGE_ORDER,
@@ -136,7 +137,7 @@ export default function OverviewView({
     <div className={styles.overview}>
       {stageGroups.map(({ stage, variants, preEval }) => (
         <section key={stage} className={styles.stageSection}>
-          <h2 className={styles.stageTitle}>{stage}</h2>
+          <h2 className={styles.stageTitle}>{formatStage(stage)}</h2>
 
           {variants.map((vg) => (
             <div key={vg.variantId} className={styles.variantRow}>
@@ -161,9 +162,9 @@ export default function OverviewView({
           {preEval.length > 0 && (
             <div className={styles.variantRow}>
               <div className={styles.preEvalHeader}>
-                <span className={styles.variantName}>Pre-Eval</span>
+                <span className={styles.variantName}>Unrevealed</span>
                 <span className={styles.variantCount}>
-                  {preEval.length} mods need leveling before they can be judged
+                  {preEval.length} mods need leveling to reveal stats
                 </span>
               </div>
               <ModGrid mods={preEval} onModClick={onModClick} />

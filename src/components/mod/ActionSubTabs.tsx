@@ -5,6 +5,7 @@ import type { ActionTab } from '@/contexts/FilterContext';
 import {
   actionOf,
   stageOf,
+  formatStage,
   computeRelativePositions,
   buildRankings,
   STAGE_ORDER,
@@ -18,10 +19,10 @@ import styles from './ActionSubTabs.module.css';
 // they cannot live inside a variant view. They are surfaced in the Overview.
 const TAB_ORDER: ActionTab[] = ['level', 'slice', 'deploy'];
 const TAB_LABELS: Record<ActionTab, string> = {
-  level: 'Level',
+  level: 'Upgrade',
   slice: 'Slice',
-  deploy: 'Deploy',
-  'pre-eval': 'Pre-Eval',
+  deploy: 'Maxed',
+  'pre-eval': 'Unrevealed',
 };
 
 interface ActionSubTabsProps {
@@ -124,8 +125,8 @@ export default function ActionSubTabs({
 }
 
 // Level mods are grouped by target_level — these are direct to-do lists:
-// "Push to L9: N mods", "Push to L12: M mods", etc. Within each group they
-// sort by absolute_quality desc so the highest-quality candidates show first.
+// "Upgrade to L9: N mods", "Upgrade to L12: M mods", etc. Within each group
+// they sort by absolute_quality desc so the highest-quality candidates show first.
 function LevelGroups({
   mods,
   verdicts,
@@ -161,7 +162,7 @@ function LevelGroups({
         return (
           <div key={target} className={styles.stageGroup}>
             <h3 className={styles.stageHeader}>
-              Push to L{target}
+              Upgrade to L{target}
               <span className={styles.stageCount}>({targetMods.length})</span>
             </h3>
             <ModGrid
@@ -216,7 +217,7 @@ function SliceGroups({
         return (
           <div key={stage} className={styles.stageGroup}>
             <h3 className={styles.stageHeader}>
-              {stage}
+              {formatStage(stage)}
               <span className={styles.stageCount}>({stageMods.length})</span>
             </h3>
             <ModGrid

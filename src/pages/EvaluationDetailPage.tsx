@@ -172,8 +172,8 @@ export default function EvaluationDetailPage() {
                         <div className={styles.setRowMeta}>
                           <span className={styles.setRowCount}>
                             {configured
-                              ? `${count} variant${count === 1 ? '' : 's'}`
-                              : 'No variants'}
+                              ? `${count} scoring rule${count === 1 ? '' : 's'}`
+                              : 'No scoring rules'}
                           </span>
                           <Badge
                             variant={configured ? 'success' : 'default'}
