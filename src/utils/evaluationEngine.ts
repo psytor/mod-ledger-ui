@@ -6,6 +6,7 @@ import type {
   VariantResult,
   VerdictResult,
 } from '@/types/evaluation';
+import { scoreModForVariant } from '@/utils/modScorer';
 
 const SHAPES_FIXED_PRIMARY = new Set(['Square', 'Diamond', 'Circle']);
 const MILESTONES = [1, 3, 6, 9, 12, 15] as const;
@@ -127,12 +128,18 @@ function checkSecondary(
     };
   }
 
-  // Adjusted formula fires whenever the mod's primary lands on a Required stat,
-  // regardless of slot. Floor of 1 keeps grey-L6 + primary-on-required from
-  // auto-passing with zero required secondaries visible.
+  // Threshold = the number of Required stats the rule defines, capped by
+  // visibleCount - slack so a mod with fewer visible secondaries than required
+  // stats still has a path to pass. Adjusted slack fires when the mod's primary
+  // is itself a Required stat (the primary covers one slot for free). Floor of
+  // 1 keeps grey-L6 + primary-on-required from auto-passing with zero required
+  // secondaries visible.
   const adjusted =
     primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
-  const threshold = Math.max(1, visibleCount - (adjusted ? 2 : 1));
+  const threshold = Math.max(
+    1,
+    Math.min(visibleCount - (adjusted ? 2 : 1), requiredStatIds.size)
+  );
 
   return {
     pass: requiredCount >= threshold,
@@ -254,21 +261,37 @@ export function evaluateMod(
     };
   }
 
-  // Tiebreak: most Complementary matches present on the mod, then insertion order.
+  // Winner picking (most-descriptive-rule-wins):
+  // 1. Highest requiredCount — the rule whose own required stats the mod hits
+  //    most thoroughly. A 3-of-4 match describes the mod better than a 1-of-1
+  //    match even when the latter has higher absolute_quality (which it often
+  //    does, since looser rules have smaller theoretical maxes).
+  // 2. Highest absolute_quality — among rules tied on requiredCount, the one
+  //    that scores the mod's actual rolls best (weighted by per-stat targets
+  //    and required/complementary multipliers).
+  // 3. Insertion order — final deterministic tiebreak.
   const variantOrder = new Map<string, number>();
   config.variants.forEach((v, i) => variantOrder.set(v.id, i));
 
-  passing.sort((a, b) => {
-    if (a.complementaryCount !== b.complementaryCount) {
-      return b.complementaryCount - a.complementaryCount;
+  const scored = passing.map((p) => ({
+    chain: p,
+    score: scoreModForVariant(mod, p.variant, statDefs),
+  }));
+
+  scored.sort((a, b) => {
+    if (a.chain.requiredCount !== b.chain.requiredCount) {
+      return b.chain.requiredCount - a.chain.requiredCount;
+    }
+    if (a.score.absolute_quality !== b.score.absolute_quality) {
+      return b.score.absolute_quality - a.score.absolute_quality;
     }
     return (
-      (variantOrder.get(a.variant.id) ?? 0) -
-      (variantOrder.get(b.variant.id) ?? 0)
+      (variantOrder.get(a.chain.variant.id) ?? 0) -
+      (variantOrder.get(b.chain.variant.id) ?? 0)
     );
   });
 
-  const winner = passing[0];
+  const winner = scored[0];
 
   // 5-dot below L15: PASS at this checkpoint → recommend the next milestone.
   // The Stage 2 quality gate runs in a post-pass (see applyQualityGates),
@@ -278,16 +301,20 @@ export function evaluateMod(
     return {
       verdict: 'UPGRADE',
       target_level: nextMilestone(mod.level),
-      winning_variant_id: winner.variant.id,
-      winning_variant_name: winner.variant.name,
+      winning_variant_id: winner.chain.variant.id,
+      winning_variant_name: winner.chain.variant.name,
+      score: winner.score.score,
+      absolute_quality: winner.score.absolute_quality,
       all_results: results,
     };
   }
 
   return {
     verdict: 'PASS_RULES',
-    winning_variant_id: winner.variant.id,
-    winning_variant_name: winner.variant.name,
+    winning_variant_id: winner.chain.variant.id,
+    winning_variant_name: winner.chain.variant.name,
+    score: winner.score.score,
+    absolute_quality: winner.score.absolute_quality,
     all_results: results,
   };
 }

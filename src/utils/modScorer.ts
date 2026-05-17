@@ -1,9 +1,8 @@
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { StatDefinition } from '@/services/gameDataApi';
 import type {
-  Evaluation,
   SecondaryClassification,
-  VerdictResult,
+  Variant,
 } from '@/types/evaluation';
 
 // v1: hardcoded. Lever to tune later is the neutral multiplier (drop to 0.05
@@ -53,19 +52,11 @@ export type ModScore = {
   absolute_quality: number; // 0-100
 };
 
-export function scoreMod(
+export function scoreModForVariant(
   mod: ParsedMod,
-  evaluation: Evaluation,
-  verdict: VerdictResult,
+  variant: Variant,
   statDefs: StatDefinition[]
-): ModScore | null {
-  if (!verdict.winning_variant_id) return null;
-
-  const config = evaluation.mod_set_configs.find((c) => c.set_id === mod.set_id);
-  if (!config) return null;
-  const variant = config.variants.find((v) => v.id === verdict.winning_variant_id);
-  if (!variant) return null;
-
+): ModScore {
   const statIdLookup = buildStatIdLookup(statDefs);
   const targets = variant.secondary_targets ?? {};
 
@@ -93,25 +84,4 @@ export function scoreMod(
 
   const absolute_quality = theoreticalMax > 0 ? (total / theoreticalMax) * 100 : 0;
   return { score: total, absolute_quality };
-}
-
-export function scoreAll(
-  mods: ParsedMod[],
-  evaluation: Evaluation,
-  verdicts: Map<string, VerdictResult>,
-  statDefs: StatDefinition[]
-): Map<string, VerdictResult> {
-  const out = new Map<string, VerdictResult>();
-  for (const mod of mods) {
-    const verdict = verdicts.get(mod.mod_id);
-    if (!verdict) continue;
-    const result = scoreMod(mod, evaluation, verdict, statDefs);
-    out.set(
-      mod.mod_id,
-      result === null
-        ? verdict
-        : { ...verdict, score: result.score, absolute_quality: result.absolute_quality }
-    );
-  }
-  return out;
 }

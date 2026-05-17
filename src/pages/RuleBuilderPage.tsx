@@ -93,15 +93,11 @@ export default function RuleBuilderPage() {
   }, [id, isEditMode]);
 
   const orderedPrimaryStats = useMemo(() => {
-    const speed = primaryStats.find((s) => s.name === 'Speed');
-    const rest = primaryStats.filter((s) => s.name !== 'Speed');
-    return speed ? [speed, ...rest] : rest;
+    return [...primaryStats].sort((a, b) => a.name.localeCompare(b.name));
   }, [primaryStats]);
 
   const orderedSecondaryStats = useMemo(() => {
-    const speed = secondaryStats.find((s) => s.name === 'Speed');
-    const rest = secondaryStats.filter((s) => s.name !== 'Speed');
-    return speed ? [speed, ...rest] : rest;
+    return [...secondaryStats].sort((a, b) => a.name.localeCompare(b.name));
   }, [secondaryStats]);
 
   if (state.kind === 'loading') {
