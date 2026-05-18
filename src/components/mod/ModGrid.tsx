@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { ModRanking } from '@/utils/cohortRanking';
 import ModCard from './ModCard';
@@ -7,10 +8,11 @@ interface ModGridProps {
   mods: ParsedMod[];
   onModClick: (mod: ParsedMod) => void;
   rankings?: Map<string, ModRanking>;
+  trailing?: ReactNode;
 }
 
-export default function ModGrid({ mods, onModClick, rankings }: ModGridProps) {
-  if (mods.length === 0) {
+export default function ModGrid({ mods, onModClick, rankings, trailing }: ModGridProps) {
+  if (mods.length === 0 && !trailing) {
     return (
       <div className={styles.emptyState}>
         <p>No mods found matching your filters.</p>
@@ -28,6 +30,7 @@ export default function ModGrid({ mods, onModClick, rankings }: ModGridProps) {
           ranking={rankings?.get(mod.mod_id)}
         />
       ))}
+      {trailing}
     </div>
   );
 }

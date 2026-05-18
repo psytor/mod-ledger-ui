@@ -12,7 +12,12 @@ import {
 import ModGrid from './ModGrid';
 import styles from './OverviewView.module.css';
 
-const PREVIEW_COUNT = 3; // top-N and bottom-N shown per variant row
+// Preview shape sized for a 4-wide grid: top-7 + "View more" tile = 8 tiles
+// = two full rows. Top-only so the eye lands on the keepers — the at-a-glance
+// "what's worth investing in" list. Groups of 8 or fewer show in full (a tile
+// would only hide one mod, not worth the trade).
+const PREVIEW_TOP = 7;
+const PREVIEW_THRESHOLD = 8;
 
 interface OverviewViewProps {
   mods: ParsedMod[];
@@ -94,11 +99,9 @@ function buildStageGroups(
   return result;
 }
 
-// Top-N + bottom-N preview. If the group is small enough that the previews
-// would overlap, just return the whole sorted group.
 function previewMods(sorted: ParsedMod[]): ParsedMod[] {
-  if (sorted.length <= PREVIEW_COUNT * 2) return sorted;
-  return [...sorted.slice(0, PREVIEW_COUNT), ...sorted.slice(-PREVIEW_COUNT)];
+  if (sorted.length <= PREVIEW_THRESHOLD) return sorted;
+  return sorted.slice(0, PREVIEW_TOP);
 }
 
 export default function OverviewView({
@@ -139,25 +142,47 @@ export default function OverviewView({
         <section key={stage} className={styles.stageSection}>
           <h2 className={styles.stageTitle}>{formatStage(stage)}</h2>
 
-          {variants.map((vg) => (
-            <div key={vg.variantId} className={styles.variantRow}>
-              <button
-                className={styles.variantHeader}
-                onClick={() => drillInto(stage, vg.variantId)}
-              >
-                <span className={styles.variantName}>{vg.variantName}</span>
-                <span className={styles.variantCount}>
-                  {vg.mods.length} mods
-                </span>
-                <span className={styles.drillHint}>View all →</span>
-              </button>
-              <ModGrid
-                mods={previewMods(vg.mods)}
-                rankings={rankings}
-                onModClick={onModClick}
-              />
-            </div>
-          ))}
+          {variants.map((vg) => {
+            const truncated = vg.mods.length > PREVIEW_THRESHOLD;
+            const hiddenCount = truncated ? vg.mods.length - PREVIEW_TOP : 0;
+            return (
+              <div key={vg.variantId} className={styles.variantRow}>
+                <button
+                  className={styles.variantHeader}
+                  onClick={() => drillInto(stage, vg.variantId)}
+                >
+                  <span className={styles.variantName}>{vg.variantName}</span>
+                  <span className={styles.variantCount}>
+                    {vg.mods.length} mods
+                  </span>
+                </button>
+                <ModGrid
+                  mods={previewMods(vg.mods)}
+                  rankings={rankings}
+                  onModClick={onModClick}
+                  trailing={
+                    truncated ? (
+                      <button
+                        type="button"
+                        className={styles.viewMoreTile}
+                        onClick={() => drillInto(stage, vg.variantId)}
+                      >
+                        <span className={styles.viewMoreCount}>
+                          +{hiddenCount}
+                        </span>
+                        <span className={styles.viewMoreLabel}>
+                          View all {vg.mods.length} mods
+                        </span>
+                        <span className={styles.viewMoreArrow} aria-hidden>
+                          →
+                        </span>
+                      </button>
+                    ) : null
+                  }
+                />
+              </div>
+            );
+          })}
 
           {preEval.length > 0 && (
             <div className={styles.variantRow}>
