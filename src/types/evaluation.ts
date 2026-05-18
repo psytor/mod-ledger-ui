@@ -18,6 +18,10 @@ export type Variant = {
   // Per-secondary-stat target efficiency in [0, 1]. Stats absent default to 0.5.
   // Slider UI clamps stored values to [0.01, 0.99]; modScorer guards 0/1 anyway.
   secondary_targets: Record<number, number>;
+  // When true, the rule builder mirrors evaluation.master_secondary_targets into
+  // this variant's secondary_targets on every master change. Purely an editor
+  // convenience — modScorer always reads secondary_targets directly.
+  uses_master_targets: boolean;
 };
 
 export type ModSetConfig = {
@@ -33,6 +37,9 @@ export type Evaluation = {
   name: string;
   description: string;
   mod_set_configs: ModSetConfig[];
+  // Editor-level master values that opted-in variants follow. Same shape as
+  // Variant.secondary_targets. Empty {} means "all sliders at default".
+  master_secondary_targets: Record<number, number>;
   createdAt: number;
   updatedAt: number;
 };

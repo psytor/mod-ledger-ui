@@ -8,15 +8,19 @@ type CreateInput = Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>;
 type UpdatePatch = Partial<Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>>;
 
 function normalize(e: Evaluation): Evaluation {
-  // secondary_targets moved from Evaluation to Variant; ensure every variant
-  // has the field. Stray eval-level field is ignored (extra keys harmless).
+  // Backfill fields added after the v2 key was stamped. Legacy variants default
+  // uses_master_targets=false so their original slider values aren't silently
+  // overwritten the first time the user opens the editor.
   return {
     ...e,
+    master_secondary_targets: e.master_secondary_targets ?? {},
     mod_set_configs: e.mod_set_configs.map((cfg) => ({
       ...cfg,
-      variants: cfg.variants.map((v) =>
-        v.secondary_targets ? v : { ...v, secondary_targets: {} }
-      ),
+      variants: cfg.variants.map((v) => ({
+        ...v,
+        secondary_targets: v.secondary_targets ?? {},
+        uses_master_targets: v.uses_master_targets ?? false,
+      })),
     })),
   };
 }

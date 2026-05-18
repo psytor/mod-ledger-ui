@@ -582,6 +582,84 @@
   font-weight: var(--font-weight-normal);
 }
 
+.targetSlider:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.targetRow[data-disabled] .targetName,
+.targetRow[data-disabled] .targetValue {
+  opacity: 0.6;
+}
+
+/* ============ Master roll targets panel ============ */
+
+.masterCard.masterCard {
+  border-color: var(--color-info);
+  background: linear-gradient(
+    180deg,
+    rgba(26, 115, 232, 0.08) 0%,
+    var(--color-background-elevated) 60%
+  );
+}
+
+.followMasterToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--spacing-sm);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.followMasterToggle input {
+  accent-color: var(--color-info);
+  cursor: pointer;
+}
+
+.followingHint {
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-info);
+}
+
+/* ============ Confirm modal body ============ */
+
+.confirmBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.confirmBody p {
+  margin: 0;
+}
+
+.confirmHint {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
 /* ============ Sticky action bar ============ */
 
 .actionsBar.actionsBar {

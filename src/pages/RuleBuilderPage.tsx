@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Container } from 'astrogators-shared-ui';
+import { Button, Card, Container, Modal } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useMods } from '@/contexts/ModContext';
@@ -45,13 +45,16 @@ function formatRollAt(
   return stat.is_percentage ? `${value.toFixed(2)}%` : `${Math.round(value)}`;
 }
 
-function emptyVariant(): Variant {
+function emptyVariant(masterTargets: Record<number, number> = {}): Variant {
   return {
     id: crypto.randomUUID(),
     name: 'New scoring rule',
     primary_classifications: {},
     secondary_classifications: {},
-    secondary_targets: {},
+    // New variants follow the master by default — seed their stored targets
+    // with the current master values so opt-out keeps something meaningful.
+    secondary_targets: { ...masterTargets },
+    uses_master_targets: true,
   };
 }
 
@@ -67,7 +70,11 @@ export default function RuleBuilderPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [variantsBySet, setVariantsBySet] = useState<Map<number, Variant[]>>(new Map());
+  const [masterTargets, setMasterTargets] = useState<Record<number, number>>({});
   const [tierView, setTierView] = useState<TierView>(5);
+  const [pendingMasterOptIn, setPendingMasterOptIn] = useState<
+    { setId: number; variantId: string } | null
+  >(null);
 
   useEffect(() => {
     if (!isEditMode || !id) return;
@@ -88,6 +95,7 @@ export default function RuleBuilderPage() {
       map.set(cfg.set_id, cfg.variants);
     }
     setVariantsBySet(map);
+    setMasterTargets(ev.master_secondary_targets ?? {});
     setState({ kind: 'ready', existing: ev });
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [id, isEditMode]);
@@ -130,7 +138,7 @@ export default function RuleBuilderPage() {
   };
 
   const addVariant = (setId: number) => {
-    updateVariants(setId, (vs) => [...vs, emptyVariant()]);
+    updateVariants(setId, (vs) => [...vs, emptyVariant(masterTargets)]);
   };
 
   const deleteVariant = (setId: number, variantId: string) => {
@@ -209,6 +217,65 @@ export default function RuleBuilderPage() {
     );
   };
 
+  // Master slider write-through: store in masterTargets and mirror the value
+  // into every opted-in variant's secondary_targets, across all six sets.
+  const setMasterTarget = (statId: number, sliderValue: number) => {
+    const stored = sliderValue / 100;
+    setMasterTargets((prev) => ({ ...prev, [statId]: stored }));
+    setVariantsBySet((prev) => {
+      const next = new Map<number, Variant[]>();
+      for (const [setId, vs] of prev.entries()) {
+        next.set(
+          setId,
+          vs.map((v) =>
+            v.uses_master_targets
+              ? { ...v, secondary_targets: { ...v.secondary_targets, [statId]: stored } }
+              : v
+          )
+        );
+      }
+      return next;
+    });
+  };
+
+  const applyMasterToVariant = (setId: number, variantId: string) => {
+    updateVariants(setId, (vs) =>
+      vs.map((v) =>
+        v.id === variantId
+          ? { ...v, uses_master_targets: true, secondary_targets: { ...masterTargets } }
+          : v
+      )
+    );
+  };
+
+  const toggleVariantMaster = (setId: number, variantId: string, nextChecked: boolean) => {
+    if (!nextChecked) {
+      // Opting out — preserve current values, just flip the flag.
+      updateVariants(setId, (vs) =>
+        vs.map((v) => (v.id === variantId ? { ...v, uses_master_targets: false } : v))
+      );
+      return;
+    }
+    // Opting in — confirm overwrite if there's anything stored to lose.
+    const vs = variantsBySet.get(setId) ?? [];
+    const variant = vs.find((v) => v.id === variantId);
+    const hasStoredTargets =
+      variant != null && Object.keys(variant.secondary_targets).length > 0;
+    if (hasStoredTargets) {
+      setPendingMasterOptIn({ setId, variantId });
+    } else {
+      applyMasterToVariant(setId, variantId);
+    }
+  };
+
+  const confirmMasterOptIn = () => {
+    if (!pendingMasterOptIn) return;
+    applyMasterToVariant(pendingMasterOptIn.setId, pendingMasterOptIn.variantId);
+    setPendingMasterOptIn(null);
+  };
+
+  const cancelMasterOptIn = () => setPendingMasterOptIn(null);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const configs: ModSetConfig[] = [];
@@ -222,6 +289,7 @@ export default function RuleBuilderPage() {
         name,
         description,
         mod_set_configs: configs,
+        master_secondary_targets: masterTargets,
       });
       navigate(`/evaluations/${existing.id}`);
     } else {
@@ -231,6 +299,7 @@ export default function RuleBuilderPage() {
         name,
         description,
         mod_set_configs: configs,
+        master_secondary_targets: masterTargets,
       });
       navigate(`/evaluations/${created.id}`);
     }
@@ -305,6 +374,37 @@ export default function RuleBuilderPage() {
                 </label>
               </div>
             </Card>
+
+            <section className={styles.sectionBlock}>
+              <header className={styles.sectionHead}>
+                <h2 className={styles.sectionTitleLg}>Master roll targets</h2>
+                <p className={styles.sectionMeta}>
+                  Shared across all sets &amp; variants
+                </p>
+              </header>
+
+              <p className={styles.sectionIntro}>
+                Set roll-target efficiencies once here. Every variant with
+                "Follow master" checked mirrors these values automatically. Uncheck
+                a variant to customise its targets independently.
+              </p>
+
+              <Card
+                chamfered
+                chamferSize="sm"
+                padding="none"
+                className={`${styles.variantCard} ${styles.masterCard}`}
+              >
+                <div className={styles.section}>
+                  <RollTargetsGrid
+                    values={masterTargets}
+                    secondaryStats={orderedSecondaryStats}
+                    tierView={tierView}
+                    onSetTarget={setMasterTarget}
+                  />
+                </div>
+              </Card>
+            </section>
 
             <section className={styles.sectionBlock}>
               <header className={styles.sectionHead}>
@@ -401,6 +501,9 @@ export default function RuleBuilderPage() {
                                 onSetTarget={(sid, val) =>
                                   setSecondaryTarget(set.set_id, v.id, sid, val)
                                 }
+                                onToggleMaster={(checked) =>
+                                  toggleVariantMaster(set.set_id, v.id, checked)
+                                }
                               />
                             ))}
                           </div>
@@ -429,7 +532,88 @@ export default function RuleBuilderPage() {
           </form>
         </div>
       </Container>
+
+      <Modal
+        isOpen={pendingMasterOptIn !== null}
+        onClose={cancelMasterOptIn}
+        title="Follow master roll targets?"
+        size="sm"
+      >
+        <div className={styles.confirmBody}>
+          <p>
+            This variant's current roll targets will be replaced with the master values.
+          </p>
+          <p className={styles.confirmHint}>
+            Uncheck "Follow master" later to customise this variant again — the master
+            values will be left in place to edit from.
+          </p>
+          <div className={styles.confirmActions}>
+            <Button type="button" variant="outline" onClick={cancelMasterOptIn}>
+              Cancel
+            </Button>
+            <Button type="button" variant="primary" onClick={confirmMasterOptIn}>
+              Replace with master
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Layout>
+  );
+}
+
+interface RollTargetsGridProps {
+  values: Record<number, number>;
+  secondaryStats: StatDefinition[];
+  tierView: TierView;
+  onSetTarget: (statId: number, sliderValue: number) => void;
+  disabled?: boolean;
+}
+
+function RollTargetsGrid({
+  values,
+  secondaryStats,
+  tierView,
+  onSetTarget,
+  disabled = false,
+}: RollTargetsGridProps) {
+  return (
+    <div className={styles.targetGrid}>
+      {secondaryStats.map((stat) => {
+        const stored = values[stat.stat_id];
+        const value = stored === undefined ? 50 : Math.round(stored * 100);
+        const rollText = formatRollAt(stat, value / 100, tierView);
+        return (
+          <div
+            key={stat.stat_id}
+            className={styles.targetRow}
+            data-disabled={disabled || undefined}
+          >
+            <span className={styles.targetName}>
+              {stat.is_percentage ? `${stat.name} %` : stat.name}
+            </span>
+            <span className={styles.targetValue}>
+              {value}%
+              {rollText !== null && (
+                <span className={styles.targetApprox}> (≈{rollText})</span>
+              )}
+            </span>
+            <input
+              type="range"
+              min={1}
+              max={99}
+              step={1}
+              value={value}
+              disabled={disabled}
+              onChange={(e) => onSetTarget(stat.stat_id, Number(e.target.value))}
+              className={styles.targetSlider}
+              autoComplete="off"
+              data-lpignore="true"
+              data-form-type="other"
+            />
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -446,6 +630,7 @@ interface VariantEditorProps {
   onSetPrimary: (statId: number, c: PrimaryClassification) => void;
   onSetSecondary: (statId: number, c: SecondaryClassification) => void;
   onSetTarget: (statId: number, sliderValue: number) => void;
+  onToggleMaster: (checked: boolean) => void;
 }
 
 function VariantEditor({
@@ -461,8 +646,10 @@ function VariantEditor({
   onSetPrimary,
   onSetSecondary,
   onSetTarget,
+  onToggleMaster,
 }: VariantEditorProps) {
   const counts = countClassifications(variant);
+  const following = variant.uses_master_targets;
 
   return (
     <Card chamfered chamferSize="sm" padding="none" className={styles.variantCard}>
@@ -476,6 +663,14 @@ function VariantEditor({
           data-lpignore="true"
           data-form-type="other"
         />
+        <label className={styles.followMasterToggle} title="Mirror the master Roll Targets panel">
+          <input
+            type="checkbox"
+            checked={following}
+            onChange={(e) => onToggleMaster(e.target.checked)}
+          />
+          <span>Follow master</span>
+        </label>
         <Button
           type="button"
           variant="ghost"
@@ -532,6 +727,9 @@ function VariantEditor({
       <div className={styles.section}>
         <div className={styles.sectionHeadInline}>
           <h4 className={styles.sectionTitle}>Roll targets</h4>
+          {following && (
+            <span className={styles.followingHint}>Following master</span>
+          )}
         </div>
         <p className={styles.targetIntro}>
           Efficiency you'd be happy to hit per stat. Target = 50 points,
@@ -539,41 +737,13 @@ function VariantEditor({
           The approximate value in parentheses is the per-roll stat amount at
           that efficiency for a {tierView}-dot mod.
         </p>
-        <div className={styles.targetGrid}>
-          {secondaryStats.map((stat) => {
-            const stored = variant.secondary_targets[stat.stat_id];
-            const value =
-              stored === undefined ? 50 : Math.round(stored * 100);
-            const rollText = formatRollAt(stat, value / 100, tierView);
-            return (
-              <div key={stat.stat_id} className={styles.targetRow}>
-                <span className={styles.targetName}>
-                  {stat.is_percentage ? `${stat.name} %` : stat.name}
-                </span>
-                <span className={styles.targetValue}>
-                  {value}%
-                  {rollText !== null && (
-                    <span className={styles.targetApprox}> (≈{rollText})</span>
-                  )}
-                </span>
-                <input
-                  type="range"
-                  min={1}
-                  max={99}
-                  step={1}
-                  value={value}
-                  onChange={(e) =>
-                    onSetTarget(stat.stat_id, Number(e.target.value))
-                  }
-                  className={styles.targetSlider}
-                  autoComplete="off"
-                  data-lpignore="true"
-                  data-form-type="other"
-                />
-              </div>
-            );
-          })}
-        </div>
+        <RollTargetsGrid
+          values={variant.secondary_targets}
+          secondaryStats={secondaryStats}
+          tierView={tierView}
+          onSetTarget={onSetTarget}
+          disabled={following}
+        />
       </div>
     </Card>
   );
