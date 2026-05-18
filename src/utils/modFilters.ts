@@ -56,6 +56,60 @@ export function applyPushOrSellFilters(
   });
 }
 
+/**
+ * Flat view filter: every mod that matches the selected set/slot/tier/rarity/
+ * primary plus cross-cutting filters. No verdict dependency, so this works
+ * before any evaluation has been run.
+ */
+export function applyFlatFilters(
+  mods: ParsedMod[],
+  filters: ModFilters
+): ParsedMod[] {
+  return mods.filter((mod) => {
+    if (filters.flatSets.length && !filters.flatSets.includes(mod.set)) return false;
+    if (filters.flatSlots.length && !filters.flatSlots.includes(mod.slot)) return false;
+    if (filters.flatTiers.length && !filters.flatTiers.includes(mod.tier_name)) return false;
+    if (filters.flatRarity.length && !filters.flatRarity.includes(mod.rarity)) return false;
+    if (
+      filters.flatPrimaries.length &&
+      !filters.flatPrimaries.includes(mod.primary_stat.stat_name)
+    ) {
+      return false;
+    }
+    if (!matchesCrossCutting(mod, filters)) return false;
+    return true;
+  });
+}
+
+/** Set / slot / tier / rarity / primary options across all mods, for the flat view panel. */
+export function getFlatOptions(mods: ParsedMod[]): {
+  sets: string[];
+  slots: string[];
+  tiers: string[];
+  rarity: number[];
+  primaries: string[];
+} {
+  const sets = new Set<string>();
+  const slots = new Set<string>();
+  const tiers = new Set<string>();
+  const rarity = new Set<number>();
+  const primaries = new Set<string>();
+  for (const mod of mods) {
+    sets.add(mod.set);
+    slots.add(mod.slot);
+    tiers.add(mod.tier_name);
+    rarity.add(mod.rarity);
+    primaries.add(mod.primary_stat.stat_name);
+  }
+  return {
+    sets: [...sets].sort(),
+    slots: [...slots].sort(),
+    tiers: [...tiers].sort(),
+    rarity: [...rarity].sort((a, b) => a - b),
+    primaries: [...primaries].sort(),
+  };
+}
+
 /** Sell-pile filter: SELL verdicts only, with flat parallel set/slot filters. */
 export function applySellPileFilters(
   mods: ParsedMod[],

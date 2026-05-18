@@ -5,6 +5,7 @@ import { useMods } from '@/contexts/ModContext';
 import { useFilters } from '@/contexts/FilterContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import {
+  applyFlatFilters,
   applyPushOrSellFilters,
   applySellPileFilters,
   applyUnconfiguredFilters,
@@ -19,6 +20,7 @@ import {
 } from '@/components/mod/CategoryPreview';
 import InventoryOverview from '@/components/mod/InventoryOverview';
 import OverviewView from '@/components/mod/OverviewView';
+import { buildRankings, computeRelativePositions } from '@/utils/cohortRanking';
 import ScoreLegend from '@/components/mod/ScoreLegend';
 import FilterPanel from '@/components/filter/FilterPanel';
 import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
@@ -26,6 +28,7 @@ import type { ParsedMod } from '@/services/modLedgerApi';
 import styles from './ModGridPage.module.css';
 
 const MODE_TITLES: Record<string, string> = {
+  flat: 'All Mods',
   'push-or-sell': 'Review Mods',
   'sell-pile': 'Sell Pile',
   unconfigured: 'Unconfigured Mods',
@@ -136,6 +139,20 @@ export default function ModGridPage() {
   const noEvaluation = !activeEvaluationId || verdicts.size === 0;
 
   const renderContent = () => {
+    if (filters.mode === 'flat') {
+      const filtered = applyFlatFilters(mods, filters);
+      const rankings = noEvaluation
+        ? undefined
+        : buildRankings(mods, verdicts, computeRelativePositions(mods, verdicts));
+      return (
+        <ModGrid
+          mods={filtered}
+          rankings={rankings}
+          onModClick={handleModClick}
+        />
+      );
+    }
+
     if (noEvaluation) {
       return <ModGrid mods={mods} onModClick={handleModClick} />;
     }
@@ -202,13 +219,19 @@ export default function ModGridPage() {
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <h1>
-              {noEvaluation
-                ? 'Mods'
-                : filters.mode === 'push-or-sell' && filters.variantId === null
-                  ? 'My Mods'
-                  : MODE_TITLES[filters.mode] ?? 'Mods'}
+              {filters.mode === 'flat'
+                ? 'All Mods'
+                : noEvaluation
+                  ? 'Mods'
+                  : filters.mode === 'push-or-sell' && filters.variantId === null
+                    ? 'My Mods'
+                    : MODE_TITLES[filters.mode] ?? 'Mods'}
             </h1>
-            <p className={styles.modCount}>{mods.length} mods loaded</p>
+            <p className={styles.modCount}>
+              {filters.mode === 'flat'
+                ? `Showing ${applyFlatFilters(mods, filters).length} of ${mods.length} mods`
+                : `${mods.length} mods loaded`}
+            </p>
           </div>
 
           <div className={styles.headerRight}>

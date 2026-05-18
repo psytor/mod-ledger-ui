@@ -1,7 +1,12 @@
 import type { ModFilters } from './FilterContext';
 
 export const defaultFilters: ModFilters = {
-  mode: 'push-or-sell',
+  mode: 'flat',
+  flatSets: [],
+  flatSlots: [],
+  flatTiers: [],
+  flatRarity: [],
+  flatPrimaries: [],
   stage: null,
   variantId: null,
   slot: null,

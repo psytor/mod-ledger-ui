@@ -2,11 +2,17 @@ import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { defaultFilters } from './defaultFilters';
 
-export type FilterMode = 'push-or-sell' | 'sell-pile' | 'unconfigured';
+export type FilterMode = 'flat' | 'push-or-sell' | 'sell-pile' | 'unconfigured';
 export type ActionTab = 'level' | 'slice' | 'deploy' | 'pre-eval';
 
 export interface ModFilters {
   mode: FilterMode;
+  // flat view filters:
+  flatSets: string[];
+  flatSlots: string[];
+  flatTiers: string[];
+  flatRarity: number[];
+  flatPrimaries: string[];
   // push-or-sell drilldown:
   stage: string | null;
   variantId: string | null;

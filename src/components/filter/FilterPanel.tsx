@@ -5,6 +5,7 @@ import { useMods } from '@/contexts/ModContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import {
   getDrilldownOptions,
+  getFlatOptions,
   getSellPileOptions,
   isVariablePrimarySlot,
 } from '@/utils/modFilters';
@@ -12,10 +13,44 @@ import { formatStage } from '@/utils/cohortRanking';
 import styles from './FilterPanel.module.css';
 
 const MODE_LABELS: Record<FilterMode, string> = {
+  flat: 'All Mods',
   'push-or-sell': 'Review Mods',
   'sell-pile': 'Sell Pile',
   unconfigured: 'Unconfigured',
 };
+
+// In-game shape layout: Square|Arrow / Diamond|Triangle / Circle|Cross.
+// Reading top→bottom, left→right gives this slot-name order.
+const SLOT_ORDER = [
+  'Transmitter', // Square
+  'Receiver',    // Arrow
+  'Processor',   // Diamond
+  'Holo-Array',  // Triangle
+  'Data-Bus',    // Circle
+  'Multiplexer', // Cross
+];
+
+// mod.tier_name is the letter grade (E…A). Map to its color label for display.
+// SWGOH convention: Gold = A, Grey = E.
+const TIER_ORDER = ['E', 'D', 'C', 'B', 'A'];
+const TIER_COLOR_BY_LETTER: Record<string, string> = {
+  E: 'Grey',
+  D: 'Green',
+  C: 'Blue',
+  B: 'Purple',
+  A: 'Gold',
+};
+
+function sortedByOrder<T extends string>(values: T[], order: readonly string[]): T[] {
+  return [...values].sort((a, b) => {
+    const ai = order.indexOf(a);
+    const bi = order.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
 
 export default function FilterPanel() {
   const {
@@ -35,6 +70,7 @@ export default function FilterPanel() {
 
   const drilldown = getDrilldownOptions(mods, verdicts, filters);
   const sellPile = getSellPileOptions(mods, verdicts);
+  const flat = getFlatOptions(mods);
 
   // Stage change clears the whole downstream drilldown.
   const handleStageChange = (stage: string | null) => {
@@ -71,6 +107,26 @@ export default function FilterPanel() {
     );
   };
 
+  const toggleFlatString = (
+    key: 'flatSets' | 'flatSlots' | 'flatTiers' | 'flatPrimaries',
+    value: string,
+    checked: boolean
+  ) => {
+    const current = filters[key];
+    setFilter(
+      key,
+      checked ? [...current, value] : current.filter((v) => v !== value)
+    );
+  };
+
+  const toggleFlatRarity = (value: number, checked: boolean) => {
+    const current = filters.flatRarity;
+    setFilter(
+      'flatRarity',
+      checked ? [...current, value] : current.filter((v) => v !== value)
+    );
+  };
+
   const showPrimaryPicker =
     filters.slot !== null && isVariablePrimarySlot(filters.slot);
 
@@ -101,6 +157,117 @@ export default function FilterPanel() {
               </button>
             ))}
           </div>
+
+          {/* Flat view filters */}
+          {filters.mode === 'flat' && (
+            <>
+              <div className={styles.filterSection}>
+                <h4>
+                  Mod Sets{' '}
+                  <span className={styles.count}>
+                    ({filters.flatSets.length}/{flat.sets.length})
+                  </span>
+                </h4>
+                {flat.sets.map((set) => (
+                  <label key={set} className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={filters.flatSets.includes(set)}
+                      onChange={(e) =>
+                        toggleFlatString('flatSets', set, e.target.checked)
+                      }
+                    />
+                    <span>{set}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className={styles.filterSection}>
+                <h4>
+                  Slots{' '}
+                  <span className={styles.count}>
+                    ({filters.flatSlots.length}/{flat.slots.length})
+                  </span>
+                </h4>
+                {sortedByOrder(flat.slots, SLOT_ORDER).map((slot) => (
+                  <label key={slot} className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={filters.flatSlots.includes(slot)}
+                      onChange={(e) =>
+                        toggleFlatString('flatSlots', slot, e.target.checked)
+                      }
+                    />
+                    <span>{slotDisplayName(slot)}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className={styles.filterSection}>
+                <h4>
+                  Tiers{' '}
+                  <span className={styles.count}>
+                    ({filters.flatTiers.length}/{flat.tiers.length})
+                  </span>
+                </h4>
+                {sortedByOrder(flat.tiers, TIER_ORDER).map((tier) => {
+                  const color = TIER_COLOR_BY_LETTER[tier];
+                  return (
+                    <label key={tier} className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={filters.flatTiers.includes(tier)}
+                        onChange={(e) =>
+                          toggleFlatString('flatTiers', tier, e.target.checked)
+                        }
+                      />
+                      <span>{color ? `${color} (${tier})` : tier}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className={styles.filterSection}>
+                <h4>
+                  Rarity{' '}
+                  <span className={styles.count}>
+                    ({filters.flatRarity.length}/{flat.rarity.length})
+                  </span>
+                </h4>
+                {flat.rarity.map((r) => (
+                  <label key={r} className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={filters.flatRarity.includes(r)}
+                      onChange={(e) => toggleFlatRarity(r, e.target.checked)}
+                    />
+                    <span>{r} Dots</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className={styles.filterSection}>
+                <h4>
+                  Primary Stats{' '}
+                  <span className={styles.count}>
+                    ({filters.flatPrimaries.length}/{flat.primaries.length})
+                  </span>
+                </h4>
+                {flat.primaries.map((p) => (
+                  <label key={p} className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={filters.flatPrimaries.includes(p)}
+                      onChange={(e) =>
+                        toggleFlatString('flatPrimaries', p, e.target.checked)
+                      }
+                    />
+                    <span>{p}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Push or Sell drilldown */}
           {filters.mode === 'push-or-sell' && (
