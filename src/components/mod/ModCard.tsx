@@ -22,13 +22,6 @@ function verdictLabel(v: VerdictResult): string {
   return v.verdict;
 }
 
-function verdictTooltip(v: VerdictResult): string {
-  const parts: string[] = [];
-  if (v.reason) parts.push(v.reason);
-  if (v.winning_variant_name) parts.push(`Scoring Rule: ${v.winning_variant_name}`);
-  return parts.join(' · ');
-}
-
 function bandClassName(band: ActionBand): string {
   switch (band) {
     case 'push': return styles.bandPush;
@@ -119,7 +112,6 @@ export default function ModCard({ mod, onClick, ranking }: ModCardProps) {
       {verdict && (
         <div
           className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict)}`}
-          title={verdictTooltip(verdict)}
         >
           {verdictLabel(verdict)}
         </div>
@@ -161,7 +153,9 @@ export default function ModCard({ mod, onClick, ranking }: ModCardProps) {
                 ))}
               </div>
 
-              <div className={styles.spriteContainer}>
+              <div
+                className={styles.spriteContainer}
+              >
                 <ModSprite
                   shape={mod.shape}
                   tier={mod.tier}

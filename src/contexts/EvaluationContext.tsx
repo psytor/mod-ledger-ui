@@ -46,7 +46,7 @@ export function EvaluationProvider({ children }: { children: ReactNode }) {
       // Union of primary + secondary stat lists; the engine dedupes by (name, is_percent).
       const statDefs = [...primaryStats, ...secondaryStats];
       const verdictMap = evaluateAll(mods, evaluation, statDefs);
-      setVerdicts(applyQualityGates(mods, verdictMap));
+      setVerdicts(applyQualityGates(mods, verdictMap, evaluation, statDefs));
     },
     [activeEvaluationId, primaryStats, secondaryStats]
   );

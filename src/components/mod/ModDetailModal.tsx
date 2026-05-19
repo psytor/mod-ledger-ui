@@ -1,5 +1,7 @@
 import { Modal } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
+import { useEvaluation } from '@/contexts/EvaluationContext';
+import type { VerdictResult } from '@/types/evaluation';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
 
@@ -9,8 +11,26 @@ interface ModDetailModalProps {
   onClose: () => void;
 }
 
+function verdictBadgeClass(v: VerdictResult['verdict']): string {
+  switch (v) {
+    case 'SELL': return styles.evalBadgeSell;
+    case 'UPGRADE': return styles.evalBadgeUpgrade;
+    case 'PASS_RULES': return styles.evalBadgePass;
+    case 'UNCONFIGURED': return styles.evalBadgeUnconfigured;
+  }
+}
+
+function verdictLabel(v: VerdictResult): string {
+  if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
+  if (v.verdict === 'PASS_RULES') return 'PASS';
+  return v.verdict;
+}
+
 export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalProps) {
+  const { verdicts } = useEvaluation();
   if (!isOpen || !mod) return null;
+
+  const verdict = verdicts.get(mod.mod_id);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Mod Details" size="lg">
@@ -53,6 +73,67 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
             )}
           </div>
         </div>
+
+        {/* Evaluation Section — only when an evaluation is active for this mod */}
+        {verdict && (
+          <div className={styles['modal-stats-section']}>
+            <h3>Evaluation</h3>
+            <div className={styles.evalSummary}>
+              <span className={`${styles.evalBadge} ${verdictBadgeClass(verdict.verdict)}`}>
+                {verdictLabel(verdict)}
+              </span>
+              {verdict.reason && (
+                <span className={styles.evalReason}>{verdict.reason}</span>
+              )}
+            </div>
+
+            {verdict.winning_variant_name && (
+              <div className={styles.evalWinner}>
+                <span className={styles['info-label']}>Winning rule:</span>
+                <span className={styles['info-value']}>{verdict.winning_variant_name}</span>
+                {verdict.absolute_quality !== undefined && (
+                  <span className={styles.evalQuality}>
+                    Quality {Math.round(verdict.absolute_quality)}/100
+                  </span>
+                )}
+              </div>
+            )}
+
+            {verdict.all_results && verdict.all_results.length > 0 && (
+              <table className={styles.evalTable}>
+                <thead>
+                  <tr>
+                    <th>Variant</th>
+                    <th>Result</th>
+                    <th>Required hits</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {verdict.all_results.map((r) => {
+                    const isWinner = r.variant_id === verdict.winning_variant_id;
+                    return (
+                      <tr key={r.variant_id} className={isWinner ? styles.evalRowWinner : undefined}>
+                        <td>{r.variant_name}{isWinner ? ' ★' : ''}</td>
+                        <td>
+                          <span
+                            className={`${styles.evalBadgeSmall} ${
+                              r.verdict === 'PASS_RULES' ? styles.evalBadgePass : styles.evalBadgeSell
+                            }`}
+                          >
+                            {r.verdict === 'PASS_RULES' ? 'PASS' : 'SELL'}
+                          </span>
+                        </td>
+                        <td>{r.required_count}</td>
+                        <td className={styles.evalReasonCell}>{r.reason ?? '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
 
         {/* Calibration Section for 6-rarity mods */}
         {mod.rarity === 6 && mod.calibrations_left !== undefined && (

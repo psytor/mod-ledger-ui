@@ -11,6 +11,14 @@ import { scoreModForVariant } from '@/utils/modScorer';
 const SHAPES_FIXED_PRIMARY = new Set(['Square', 'Diamond', 'Circle']);
 const MILESTONES = [1, 3, 6, 9, 12, 15] as const;
 
+// Stage 2 quality-gate relaxation when the primary stat is itself a Required
+// stat. Game rule: a primary stat cannot also roll as a secondary on the same
+// mod, so a Required stat that IS the primary is unreachable from the
+// secondary pool. We shrink the bar by `requiredCount / reachable_required ×
+// COVERAGE_DISCOUNT_K`. Coverage is "of what could be hit, how much was hit."
+// k=0.2 caps the discount at 20% off the raw threshold.
+const COVERAGE_DISCOUNT_K = 0.2;
+
 // First level at which all 4 secondaries are revealed, per 5-dot tier.
 const FIRST_EVAL_LEVEL: Record<number, number> = {
   1: 12, // Grey:   reveals at L3, L6, L9, L12
@@ -345,10 +353,13 @@ export function evaluateAll(
  */
 export function applyQualityGates(
   mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>
+  verdicts: Map<string, VerdictResult>,
+  evaluation: Evaluation,
+  statDefs: StatDefinition[]
 ): Map<string, VerdictResult> {
   const out = new Map<string, VerdictResult>();
   const modById = new Map(mods.map((m) => [m.mod_id, m]));
+  const statIdLookup = buildStatIdLookup(statDefs);
 
   for (const [modId, verdict] of verdicts) {
     const mod = modById.get(modId);
@@ -364,8 +375,8 @@ export function applyQualityGates(
       out.set(modId, verdict);
       continue;
     }
-    const threshold = QUALITY_RAMP[mod.level];
-    if (threshold === undefined) {
+    const rawThreshold = QUALITY_RAMP[mod.level];
+    if (rawThreshold === undefined) {
       out.set(modId, verdict);
       continue;
     }
@@ -374,6 +385,36 @@ export function applyQualityGates(
       out.set(modId, verdict);
       continue;
     }
+
+    // Primary-aware threshold relief. Only fires when the primary stat is
+    // itself a Required stat — in that case the game blocks it from rolling
+    // as a secondary, so the *reachable* Required pool is `required \ {primary}`.
+    // The relief scales with how much of that reachable pool the mod hit.
+    let threshold = rawThreshold;
+    const config = evaluation.mod_set_configs.find((c) => c.set_id === mod.set_id);
+    const winningVariant = config?.variants.find(
+      (v) => v.id === verdict.winning_variant_id
+    );
+    const winningResult = verdict.all_results?.find(
+      (r) => r.variant_id === verdict.winning_variant_id
+    );
+    if (winningVariant && winningResult) {
+      const primaryStatId = resolveStatId(mod.primary_stat, statIdLookup);
+      const requiredIds = new Set<number>();
+      for (const [k, c] of Object.entries(winningVariant.secondary_classifications)) {
+        if (c === 'required') requiredIds.add(Number(k));
+      }
+      const primaryInRequired =
+        primaryStatId !== undefined && requiredIds.has(primaryStatId);
+      if (primaryInRequired) {
+        const reachableSize = requiredIds.size - 1;
+        if (reachableSize > 0) {
+          const coverage = winningResult.required_count / reachableSize;
+          threshold = rawThreshold * (1 - coverage * COVERAGE_DISCOUNT_K);
+        }
+      }
+    }
+
     if (score >= threshold) {
       out.set(modId, verdict);
       continue;
@@ -382,7 +423,7 @@ export function applyQualityGates(
       ...verdict,
       verdict: 'SELL',
       target_level: undefined,
-      reason: `L${mod.level} quality gate: absolute_quality ${Math.round(score)} < ${threshold}`,
+      reason: `L${mod.level} quality gate: absolute_quality ${Math.round(score)} < ${Math.round(threshold)}`,
     });
   }
   return out;
