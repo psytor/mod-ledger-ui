@@ -136,17 +136,21 @@ function checkSecondary(
     };
   }
 
-  // Threshold = the number of Required stats the rule defines, capped by
-  // visibleCount - slack so a mod with fewer visible secondaries than required
-  // stats still has a path to pass. Adjusted slack fires when the mod's primary
-  // is itself a Required stat (the primary covers one slot for free). Floor of
-  // 1 keeps grey-L6 + primary-on-required from auto-passing with zero required
-  // secondaries visible.
-  const adjusted =
+  // Threshold = the size of the *reachable* Required pool, capped further by
+  // visibleCount slack so a mod with fewer visible secondaries than required
+  // stats still has a path to pass. When the mod's primary is itself a
+  // Required stat, the game blocks that stat from rolling as a secondary, so
+  // the reachable pool is `required \ {primary}` — size shrinks by one. Floor
+  // of 1 keeps grey-L6 + primary-on-required from auto-passing with zero
+  // required secondaries visible.
+  const primaryInRequired =
     primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
+  const reachableRequiredSize = primaryInRequired
+    ? requiredStatIds.size - 1
+    : requiredStatIds.size;
   const threshold = Math.max(
     1,
-    Math.min(visibleCount - (adjusted ? 2 : 1), requiredStatIds.size)
+    Math.min(visibleCount - 1, reachableRequiredSize)
   );
 
   return {
