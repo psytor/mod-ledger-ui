@@ -113,6 +113,69 @@ Below this level the engine returns `verdict='UPGRADE'` with no
 `winning_variant_id` so the UI labels the mod "Level to L_X for evaluation"
 instead of judging on partial data. 6-dot mods are always evaluable.
 
+## How evaluations work
+
+The Evaluations feature classifies each mod against a player-authored rule
+set. The engine lives in `src/utils/evaluationEngine.ts`; pages
+(`EvaluationsPage`, `EvaluationDetailPage`, `RuleBuilderPage`) wrap it.
+
+### Two-stage gate
+
+A mod runs through two passes in sequence:
+
+1. **Stage 1 — rule match** (`runVariantChain`, called by `evaluateMod`):
+   for each variant in the active evaluation, check how many of the
+   variant's **required** secondaries the mod actually hits. Variant
+   "passes" if `requiredCount >= threshold`.
+2. **Stage 2 — quality gate** (`applyQualityGates`, post-pass): for any mod
+   still classified `UPGRADE` after stage 1, compare `absolute_quality`
+   against `QUALITY_RAMP[level]`. If below, the verdict flips to `SELL`.
+
+`QUALITY_RAMP` is intentionally **only** defined for levels in the ramp:
+
+| Level | Threshold |
+|-------|-----------|
+| 1     | 30        |
+| 3     | 35        |
+| 6     | 40        |
+| 9     | 45        |
+| 12    | 50        |
+
+L15 is deliberately absent — the engine routes L15 mods to `PASS_RULES`
+(handed to Slice/Deploy decisioning) instead of running them through the
+quality gate. See `evaluationEngine.ts` around the L15 branch.
+
+### Variant tiebreaking
+
+When multiple variants match a mod, the winner is selected by this exact
+priority (`evaluationEngine.ts` ~line 282-291):
+
+1. Higher `requiredCount` wins
+2. Then higher `absolute_quality` wins
+3. Then earlier insertion order wins
+
+There is no separate "complementary count" tiebreaker — earlier design
+notes mentioned one, but the shipped engine does not implement it.
+
+### Storage
+
+Evaluations are persisted to **localStorage** via
+`src/services/evaluationStorage.ts`. Backend integration (storing
+evaluations in `mod-ledger`) is deferred — when it lands, the storage
+layer is the single seam that needs to change. UI code reads/writes
+through `evaluationStorage`, not localStorage directly.
+
+### When extending the engine
+
+- A new gate type goes in `evaluationEngine.ts` and runs either inline
+  in `runVariantChain` (per-variant stage 1) or as a new post-pass
+  beside `applyQualityGates` (global stage 2+).
+- Verdict strings (`KEEP` / `UPGRADE` / `SELL` / `PASS_RULES`) are part
+  of the storage format — adding a new one means a migration in
+  `evaluationStorage`.
+- Per-character overrides are out of scope (see the workspace memory
+  rule: mod-ledger is general inventory analysis, never per-character).
+
 ## Critical rules
 
 **Vite build-time env var inlining.** Any value used in the bundle must come

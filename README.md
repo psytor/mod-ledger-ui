@@ -16,6 +16,7 @@ filtering. Part of [The Astrogator's Table](../) workspace.
 
 ## Features
 
+### Mod inventory
 - Ally-code selection (saved codes from the backend, or add new)
 - Responsive mod grid (5 columns down to 1 on mobile)
 - Mod card with primary stat, sprite, level/tier/pips, secondary stats with
@@ -23,6 +24,25 @@ filtering. Part of [The Astrogator's Table](../) workspace.
 - Sliding filter panel: sets, slots, tiers, rarity, primaries, characters, lock
 - Sorting by character, set, slot, level, rarity, tier, or speed
 - Mod detail modal with secondary-roll efficiency breakdown
+
+### Evaluations
+Player-authored rules that classify each mod as `KEEP`, `UPGRADE`, `SELL`, or
+`PASS_RULES` (handed off to Slice/Deploy for 6-dot mods). Stored in
+localStorage today; backend persistence is deferred.
+
+- Catalog page at **`/evaluations`** — list of saved evaluations, with
+  selector for the active one
+- Rule builder at **`/evaluations/new`** and **`/evaluations/:id/edit`** —
+  define variants (each with required/preferred secondaries), set quality
+  thresholds, and master roll targets per stat
+- Detail page at **`/evaluations/:id`** — per-mod breakdown, drilldown by
+  action stage (Level / Slice / Deploy / Pre-Eval) with variant grouping
+- Two-stage gate model: rule-match (Stage 1) then absolute-quality gate
+  (Stage 2). See `CLAUDE.md` for the engine internals.
+
+### Design system
+Chamfered Card layout system comes from `astrogators-shared-ui` (Card
+component with `chamfered` / `chamferSize` props). No local fork.
 
 ## Where this fits
 
@@ -120,13 +140,23 @@ src/
 │       └── SecondaryStatColumn.tsx
 ├── pages/
 │   ├── AllyCodeSelectionPage.tsx
-│   └── ModGridPage.tsx
+│   ├── ModGridPage.tsx
+│   ├── EvaluationsPage.tsx       # evaluations catalog
+│   ├── EvaluationDetailPage.tsx  # per-evaluation breakdown
+│   └── RuleBuilderPage.tsx       # create / edit an evaluation
 ├── services/
 │   ├── modLedgerApi.ts
-│   └── gameDataApi.ts
+│   ├── gameDataApi.ts
+│   └── evaluationStorage.ts      # localStorage CRUD for evaluations
+├── types/
+│   └── evaluation.ts             # Evaluation, Variant, Verdict types
 └── utils/
     ├── modFilters.ts
     ├── modSorting.ts
+    ├── modScorer.ts              # per-mod absolute_quality scorer
+    ├── cohortRanking.ts          # peer-relative ranking helpers
+    ├── scoringConstants.ts
+    ├── evaluationEngine.ts       # rule + quality gate engine (see CLAUDE.md)
     └── modSpriteConfig.ts
 ```
 
