@@ -3,7 +3,7 @@ import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import type { Verdict, VerdictResult } from '@/types/evaluation';
-import { deriveActionBand, type ModRanking, type ActionBand } from '@/utils/cohortRanking';
+import { deriveActionBand, deriveAbsoluteBand, type ModRanking, type ActionBand } from '@/utils/cohortRanking';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
 
@@ -44,8 +44,10 @@ function bandLabel(band: ActionBand, ranking: ModRanking): string {
   }
 }
 
-function bandTooltip(ranking: ModRanking): string {
+function bandTooltip(ranking: ModRanking, absoluteBand: boolean): string {
   const parts: string[] = [`${Math.round(ranking.absolute_quality)}% of max`];
+  // Absolute-band chips are not cohort-relative — omit the percentile line.
+  if (absoluteBand) return parts.join(' · ');
   if (ranking.relative_position !== null) {
     parts.push(`top ${Math.round(100 - ranking.relative_position)}% of similar mods`);
   } else if (ranking.action === 'slice' || ranking.action === 'deploy') {
@@ -58,6 +60,9 @@ interface ModCardProps {
   mod: ParsedMod;
   onClick: () => void;
   ranking?: ModRanking;
+  // When true, the band chip is derived from absolute_quality (deriveAbsoluteBand)
+  // instead of the cohort percentile — used by the Overall slice list.
+  absoluteBand?: boolean;
 }
 
 const tierBorderColors = {
@@ -68,10 +73,14 @@ const tierBorderColors = {
   5: '#fbbf24',  // Gold
 } as const;
 
-export default function ModCard({ mod, onClick, ranking }: ModCardProps) {
+export default function ModCard({ mod, onClick, ranking, absoluteBand = false }: ModCardProps) {
   const { verdicts } = useEvaluation();
   const verdict = verdicts.get(mod.mod_id);
-  const band = ranking ? deriveActionBand(ranking) : null;
+  const band = ranking
+    ? absoluteBand
+      ? deriveAbsoluteBand(ranking)
+      : deriveActionBand(ranking)
+    : null;
 
   const secondarySlots = Array(4).fill(null).map((_, index) => {
     return mod.secondary_stats[index] || null;
@@ -120,7 +129,7 @@ export default function ModCard({ mod, onClick, ranking }: ModCardProps) {
       {ranking && band && ranking.action !== 'level' && (
         <div
           className={`${styles.bandChip} ${bandClassName(band)}`}
-          title={bandTooltip(ranking)}
+          title={bandTooltip(ranking, absoluteBand)}
         >
           {bandLabel(band, ranking)}
           <span className={styles.bandQuality}>

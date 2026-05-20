@@ -6,6 +6,8 @@ import {
   SELL_PERCENTILE_THRESHOLD,
   PUSH_ABSOLUTE_FLOOR,
   SELL_ABSOLUTE_CEILING,
+  OVERALL_PUSH_QUALITY,
+  OVERALL_SELL_QUALITY,
 } from './scoringConstants';
 
 export type ModAction = 'level' | 'slice' | 'deploy' | 'pre-eval' | 'sell';
@@ -202,4 +204,18 @@ export function deriveActionBand(ranking: ModRanking): ActionBand {
     default:
       return 'none';
   }
+}
+
+/**
+ * Absolute-quality band for the "Overall" cross-stage slice list. Unlike
+ * deriveActionBand, this ignores cohort percentile and labels a mod purely on
+ * its own absolute_quality — so the chip stays consistent with that list's
+ * absolute-% ordering, and a strong mod is not demoted to "Keep" merely
+ * because better mods happen to share its stage. Level/deploy mods get no band.
+ */
+export function deriveAbsoluteBand(ranking: ModRanking): ActionBand {
+  if (ranking.action === 'level' || ranking.action === 'deploy') return 'none';
+  if (ranking.absolute_quality >= OVERALL_PUSH_QUALITY) return 'push';
+  if (ranking.absolute_quality < OVERALL_SELL_QUALITY) return 'consider-selling';
+  return 'keep';
 }

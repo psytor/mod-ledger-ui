@@ -33,6 +33,12 @@
   color: var(--color-text-disabled);
 }
 
+.viewToggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
 .stageGroup {
   margin-bottom: 2rem;
 }

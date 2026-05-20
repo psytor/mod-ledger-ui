@@ -9,9 +9,12 @@ interface ModGridProps {
   onModClick: (mod: ParsedMod) => void;
   rankings?: Map<string, ModRanking>;
   trailing?: ReactNode;
+  // Forwarded to each ModCard: derive the band chip from absolute_quality
+  // rather than cohort percentile. Used by the Overall slice list.
+  absoluteBand?: boolean;
 }
 
-export default function ModGrid({ mods, onModClick, rankings, trailing }: ModGridProps) {
+export default function ModGrid({ mods, onModClick, rankings, trailing, absoluteBand }: ModGridProps) {
   if (mods.length === 0 && !trailing) {
     return (
       <div className={styles.emptyState}>
@@ -28,6 +31,7 @@ export default function ModGrid({ mods, onModClick, rankings, trailing }: ModGri
           mod={mod}
           onClick={() => onModClick(mod)}
           ranking={rankings?.get(mod.mod_id)}
+          absoluteBand={absoluteBand}
         />
       ))}
       {trailing}

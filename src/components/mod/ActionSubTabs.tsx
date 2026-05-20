@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
 import { useFilters } from '@/contexts/FilterContext';
@@ -37,6 +38,12 @@ export default function ActionSubTabs({
   onModClick,
 }: ActionSubTabsProps) {
   const { filters, setFilter } = useFilters();
+
+  // Ephemeral view preference for the Slice tab: "stage" = the per-stage
+  // grouped view (SliceGroups), "overall" = one flat list ranked by quality
+  // across all stages. Local state (not persisted in FilterContext) because
+  // it is a transient view choice, unlike actionTab.
+  const [sliceView, setSliceView] = useState<'stage' | 'overall'>('stage');
 
   // Bucket mods by drilldown action.
   const byAction = new Map<ModAction, ParsedMod[]>();
@@ -101,11 +108,36 @@ export default function ActionSubTabs({
       </div>
 
       {activeTab === 'slice' ? (
-        <SliceGroups
-          mods={activeMods}
-          rankings={rankings}
-          onModClick={onModClick}
-        />
+        <>
+          <div className={styles.viewToggle}>
+            <button
+              className={`${styles.tab} ${sliceView === 'stage' ? styles.tabActive : ''}`}
+              onClick={() => setSliceView('stage')}
+            >
+              By stage
+            </button>
+            <button
+              className={`${styles.tab} ${sliceView === 'overall' ? styles.tabActive : ''}`}
+              onClick={() => setSliceView('overall')}
+            >
+              Overall
+            </button>
+          </div>
+          {sliceView === 'stage' ? (
+            <SliceGroups
+              mods={activeMods}
+              rankings={rankings}
+              onModClick={onModClick}
+            />
+          ) : (
+            <SliceOverall
+              mods={activeMods}
+              verdicts={verdicts}
+              rankings={rankings}
+              onModClick={onModClick}
+            />
+          )}
+        </>
       ) : activeTab === 'level' ? (
         <LevelGroups
           mods={activeMods}
@@ -229,5 +261,44 @@ function SliceGroups({
         );
       })}
     </>
+  );
+}
+
+// "Overall" slice view: one flat list across ALL stages, ordered by
+// absolute_quality desc — the global "best slicing candidate first" priority
+// queue. relative_position is deliberately NOT the sort key: it is a
+// per-(stage, variant) cohort percentile (see cohortRanking.ts cohortKey) and
+// is not comparable across stages. The per-cohort band chips on each ModCard
+// are unaffected — rankings is still passed through.
+function SliceOverall({
+  mods,
+  verdicts,
+  rankings,
+  onModClick,
+}: {
+  mods: ParsedMod[];
+  verdicts: Map<string, VerdictResult>;
+  rankings: Map<string, ModRanking>;
+  onModClick: (mod: ParsedMod) => void;
+}) {
+  const sorted = [...mods].sort((a, b) => {
+    const va = verdicts.get(a.mod_id);
+    const vb = verdicts.get(b.mod_id);
+    const qa = va?.absolute_quality ?? 0;
+    const qb = vb?.absolute_quality ?? 0;
+    if (qa !== qb) return qb - qa;
+    const sa = va?.score ?? 0;
+    const sb = vb?.score ?? 0;
+    if (sa !== sb) return sb - sa;
+    return a.mod_id < b.mod_id ? -1 : a.mod_id > b.mod_id ? 1 : 0;
+  });
+
+  return (
+    <ModGrid
+      mods={sorted}
+      rankings={rankings}
+      onModClick={onModClick}
+      absoluteBand
+    />
   );
 }
