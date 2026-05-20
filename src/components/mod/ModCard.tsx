@@ -4,6 +4,7 @@ import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import type { Verdict, VerdictResult } from '@/types/evaluation';
 import { deriveActionBand, deriveAbsoluteBand, type ModRanking, type ActionBand } from '@/utils/cohortRanking';
+import { verdictTooltip } from '@/utils/verdictExplain';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
 
@@ -121,6 +122,7 @@ export default function ModCard({ mod, onClick, ranking, absoluteBand = false }:
       {verdict && (
         <div
           className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict)}`}
+          title={verdictTooltip(verdict)}
         >
           {verdictLabel(verdict)}
         </div>

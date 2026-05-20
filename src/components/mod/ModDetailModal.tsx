@@ -2,6 +2,7 @@ import { Modal } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import type { VerdictResult } from '@/types/evaluation';
+import { explainVerdict } from '@/utils/verdictExplain';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
 
@@ -75,21 +76,30 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
         </div>
 
         {/* Evaluation Section — only when an evaluation is active for this mod */}
-        {verdict && (
+        {verdict && (() => {
+          const exp = explainVerdict(verdict);
+          return (
           <div className={styles['modal-stats-section']}>
             <h3>Evaluation</h3>
             <div className={styles.evalSummary}>
               <span className={`${styles.evalBadge} ${verdictBadgeClass(verdict.verdict)}`}>
                 {verdictLabel(verdict)}
               </span>
-              {verdict.reason && (
-                <span className={styles.evalReason}>{verdict.reason}</span>
+              <span className={styles.evalMeaning}>{exp.meaning}</span>
+            </div>
+
+            <div className={styles.evalExplain}>
+              {exp.detail && (
+                <p className={styles.evalExplainDetail}>{exp.detail}</p>
               )}
+              <p className={styles.evalNextStep}>
+                <span className={styles.evalNextStepLabel}>Next step:</span> {exp.nextStep}
+              </p>
             </div>
 
             {verdict.winning_variant_name && (
               <div className={styles.evalWinner}>
-                <span className={styles['info-label']}>Winning rule:</span>
+                <span className={styles['info-label']}>Winning scoring rule:</span>
                 <span className={styles['info-value']}>{verdict.winning_variant_name}</span>
                 {verdict.absolute_quality !== undefined && (
                   <span className={styles.evalQuality}>
@@ -103,7 +113,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
               <table className={styles.evalTable}>
                 <thead>
                   <tr>
-                    <th>Variant</th>
+                    <th>Scoring Rule</th>
                     <th>Result</th>
                     <th>Required hits</th>
                     <th>Reason</th>
@@ -133,7 +143,8 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
               </table>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* Calibration Section for 6-rarity mods */}
         {mod.rarity === 6 && mod.calibrations_left !== undefined && (
