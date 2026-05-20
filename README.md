@@ -23,20 +23,22 @@ filtering. Part of [The Astrogator's Table](../) workspace.
   efficiency, and character/calibration/lock state
 - Sliding filter panel: sets, slots, tiers, rarity, primaries, characters, lock
 - Sorting by character, set, slot, level, rarity, tier, or speed
-- Mod detail modal with secondary-roll efficiency breakdown
+- Mod detail modal with secondary-roll efficiency breakdown and, when an
+  evaluation is active, a plain-language verdict explanation
 
 ### Evaluations
-Player-authored rules that classify each mod as `KEEP`, `UPGRADE`, `SELL`, or
-`PASS_RULES` (handed off to Slice/Deploy for 6-dot mods). Stored in
-localStorage today; backend persistence is deferred.
+Player-authored rules that classify each mod as `SELL`, `UPGRADE`,
+`PASS_RULES`, or `UNCONFIGURED`. `PASS_RULES` mods are bucketed downstream
+into Slice / Maxed actions. Stored in localStorage today; backend
+persistence is deferred.
 
 - Catalog page at **`/evaluations`** — list of saved evaluations, with
   selector for the active one
 - Rule builder at **`/evaluations/new`** and **`/evaluations/:id/edit`** —
-  define variants (each with required/preferred secondaries), set quality
-  thresholds, and master roll targets per stat
+  define scoring rules (each with required/complementary secondaries), set
+  quality thresholds, and master roll targets per stat
 - Detail page at **`/evaluations/:id`** — per-mod breakdown, drilldown by
-  action stage (Level / Slice / Deploy / Pre-Eval) with variant grouping
+  action stage (Level / Slice / Maxed / Pre-Eval) with scoring-rule grouping
 - Two-stage gate model: rule-match (Stage 1) then absolute-quality gate
   (Stage 2). See `CLAUDE.md` for the engine internals.
 
@@ -157,6 +159,7 @@ src/
     ├── cohortRanking.ts          # peer-relative ranking helpers
     ├── scoringConstants.ts
     ├── evaluationEngine.ts       # rule + quality gate engine (see CLAUDE.md)
+    ├── verdictExplain.ts         # plain-language verdict prose for the UI
     └── modSpriteConfig.ts
 ```
 

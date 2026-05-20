@@ -2,6 +2,14 @@
 
 Guide for Claude Code when working inside this submodule.
 
+## Documentation currency (update when you edit docs)
+
+**Docs current as of:** commit `b3cf353` (`Rename deploy ModAction to maxed`).
+
+When you make a change that affects documented behaviour, update this line
+to the commit you have brought the docs level with — so the next session
+can `git log <hash>..HEAD` to see what is not yet documented.
+
 ## Scope rule (read first)
 
 This is a **submodule**. Everything you change must stay inside
@@ -130,6 +138,14 @@ A mod runs through two passes in sequence:
 2. **Stage 2 — quality gate** (`applyQualityGates`, post-pass): for any mod
    still classified `UPGRADE` after stage 1, compare `absolute_quality`
    against `QUALITY_RAMP[level]`. If below, the verdict flips to `SELL`.
+   `applyQualityGates` takes the `evaluation` and `statDefs` so it can apply
+   the **primary-aware threshold relief**: when the mod's primary stat is
+   itself a Required stat, the game blocks that stat from rolling as a
+   secondary, so the reachable Required pool is `required \ {primary}`. The
+   raw threshold is discounted by `coverage × COVERAGE_DISCOUNT_K` (k=0.2,
+   capping the relief at 20%), where coverage is how much of the reachable
+   pool the mod actually hit. The same reachable-pool logic shapes the
+   Stage 1 `threshold` in `checkSecondary`.
 
 `QUALITY_RAMP` is intentionally **only** defined for levels in the ramp:
 
@@ -142,8 +158,11 @@ A mod runs through two passes in sequence:
 | 12    | 50        |
 
 L15 is deliberately absent — the engine routes L15 mods to `PASS_RULES`
-(handed to Slice/Deploy decisioning) instead of running them through the
-quality gate. See `evaluationEngine.ts` around the L15 branch.
+instead of running them through the quality gate. `PASS_RULES` mods are
+then bucketed by `actionOf` in `cohortRanking.ts` into the `slice` and
+`maxed` actions (the latter is a 6-dot A-tier mod with no further upgrade;
+the UI labels that tab "Maxed"). See `evaluationEngine.ts` around the L15
+branch.
 
 ### Variant tiebreaking
 
@@ -170,11 +189,36 @@ through `evaluationStorage`, not localStorage directly.
 - A new gate type goes in `evaluationEngine.ts` and runs either inline
   in `runVariantChain` (per-variant stage 1) or as a new post-pass
   beside `applyQualityGates` (global stage 2+).
-- Verdict strings (`KEEP` / `UPGRADE` / `SELL` / `PASS_RULES`) are part
-  of the storage format — adding a new one means a migration in
+- Verdict strings (`SELL` / `UPGRADE` / `PASS_RULES` / `UNCONFIGURED`) are
+  part of the storage format — adding a new one means a migration in
   `evaluationStorage`.
 - Per-character overrides are out of scope (see the workspace memory
   rule: mod-ledger is general inventory analysis, never per-character).
+
+### Verdict labels & explanations
+
+The four verdicts above are terse. `src/utils/verdictExplain.ts` turns any
+`VerdictResult` into plain-language prose — `explainVerdict()` returns
+`{ label, meaning, detail, nextStep }`, and `verdictTooltip()` formats that
+for a native `title` tooltip. It is presentation-only: it reads existing
+verdict fields (`reason`, `all_results`, `winning_variant_name`,
+`absolute_quality`) and never re-runs the engine.
+
+It surfaces in two places:
+
+- **`ModCard`** — the verdict badge has a `title` tooltip (`verdictTooltip`).
+- **`ModDetailModal`** — the Evaluation section shows the badge + `meaning`,
+  an explanation block (`detail` + `Next step`), the winning scoring rule,
+  and a per-rule breakdown table.
+
+The engine only emits a `reason` string on failures; `verdictExplain`
+synthesises the "why it passed" line for passing mods from `required_count`
+/ `complementary_count`. Keep prose claims limited to what the engine
+actually establishes — do not invent mod-lifecycle semantics.
+
+> **Terminology:** user-facing UI calls a `Variant` a **"scoring rule"**.
+> The `Variant` type name is kept internally; only visible text uses
+> "scoring rule".
 
 ## Critical rules
 
