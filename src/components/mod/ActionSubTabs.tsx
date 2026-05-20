@@ -18,11 +18,11 @@ import styles from './ActionSubTabs.module.css';
 
 // Pre-eval is intentionally absent — pre-eval mods have no winning variant so
 // they cannot live inside a variant view. They are surfaced in the Overview.
-const TAB_ORDER: ActionTab[] = ['level', 'slice', 'deploy'];
+const TAB_ORDER: ActionTab[] = ['level', 'slice', 'maxed'];
 const TAB_LABELS: Record<ActionTab, string> = {
   level: 'Upgrade',
   slice: 'Slice',
-  deploy: 'Maxed',
+  maxed: 'Maxed',
   'pre-eval': 'Unrevealed',
 };
 
@@ -51,7 +51,7 @@ export default function ActionSubTabs({
     const verdict = verdicts.get(mod.mod_id);
     if (!verdict) continue;
     const action = actionOf(mod, verdict);
-    if (action === 'level' || action === 'slice' || action === 'deploy') {
+    if (action === 'level' || action === 'slice' || action === 'maxed') {
       const bucket = byAction.get(action);
       if (bucket) bucket.push(mod);
       else byAction.set(action, [mod]);

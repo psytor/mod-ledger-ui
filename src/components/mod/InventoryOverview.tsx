@@ -7,7 +7,7 @@ import styles from './InventoryOverview.module.css';
 const SHAPES = ['Square', 'Diamond', 'Arrow', 'Triangle', 'Circle', 'Cross'] as const;
 type Shape = (typeof SHAPES)[number];
 
-type CategoryKey = 'level' | 'slice' | 'deploy' | 'pre-eval' | 'sell-pile' | 'unconfigured';
+type CategoryKey = 'level' | 'slice' | 'maxed' | 'pre-eval' | 'sell-pile' | 'unconfigured';
 
 interface CategoryDef {
   key: CategoryKey;
@@ -30,7 +30,7 @@ const CATEGORIES: readonly CategoryDef[] = [
     description: 'Passed rules — ready to slice up a tier',
   },
   {
-    key: 'deploy',
+    key: 'maxed',
     label: 'Maxed',
     description: '6★ Gold passed rules — ready to equip',
   },
@@ -66,7 +66,7 @@ function categoryOf(
   const action = actionOf(mod, verdict);
   if (action === null) return null;
   if (action === 'sell') return 'sell-pile';
-  return action; // 'level' | 'slice' | 'deploy' | 'pre-eval'
+  return action; // 'level' | 'slice' | 'maxed' | 'pre-eval'
 }
 
 export default function InventoryOverview({

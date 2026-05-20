@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { defaultFilters } from './defaultFilters';
 
 export type FilterMode = 'flat' | 'push-or-sell' | 'sell-pile' | 'unconfigured';
-export type ActionTab = 'level' | 'slice' | 'deploy' | 'pre-eval';
+export type ActionTab = 'level' | 'slice' | 'maxed' | 'pre-eval';
 
 export interface ModFilters {
   mode: FilterMode;

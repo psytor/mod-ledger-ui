@@ -51,7 +51,7 @@ function bandTooltip(ranking: ModRanking, absoluteBand: boolean): string {
   if (absoluteBand) return parts.join(' · ');
   if (ranking.relative_position !== null) {
     parts.push(`top ${Math.round(100 - ranking.relative_position)}% of similar mods`);
-  } else if (ranking.action === 'slice' || ranking.action === 'deploy') {
+  } else if (ranking.action === 'slice' || ranking.action === 'maxed') {
     parts.push('too few similar mods to rank');
   }
   return parts.join(' · ');

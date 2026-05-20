@@ -66,7 +66,7 @@ function buildStageGroups(
     if (action === 'pre-eval') {
       ensureStage(stage).preEval.push(mod);
     } else if (
-      (action === 'level' || action === 'slice' || action === 'deploy') &&
+      (action === 'level' || action === 'slice' || action === 'maxed') &&
       verdict.winning_variant_id
     ) {
       const entry = ensureStage(stage);

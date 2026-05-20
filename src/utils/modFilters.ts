@@ -13,7 +13,7 @@ export function isVariablePrimarySlot(slot: string): boolean {
 
 // Actions reachable via the variant drilldown. Pre-eval mods have no winning
 // variant, so they are surfaced separately (Overview), not in this pool.
-const DRILLDOWN_ACTIONS = new Set<ModAction>(['level', 'slice', 'deploy']);
+const DRILLDOWN_ACTIONS = new Set<ModAction>(['level', 'slice', 'maxed']);
 
 function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
   if (filters.locked === 'locked' && !mod.locked) return false;

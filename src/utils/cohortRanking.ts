@@ -10,7 +10,7 @@ import {
   OVERALL_SELL_QUALITY,
 } from './scoringConstants';
 
-export type ModAction = 'level' | 'slice' | 'deploy' | 'pre-eval' | 'sell';
+export type ModAction = 'level' | 'slice' | 'maxed' | 'pre-eval' | 'sell';
 
 // Developmental stages, in upgrade order. Used to sort stage pickers/sections.
 export const STAGE_ORDER = [
@@ -20,7 +20,7 @@ export const STAGE_ORDER = [
 
 // Action sub-tab order: most-actionable first so a freshly-entered variant
 // view defaults to something the player can act on.
-export const ACTION_ORDER: ModAction[] = ['level', 'slice', 'deploy', 'pre-eval', 'sell'];
+export const ACTION_ORDER: ModAction[] = ['level', 'slice', 'maxed', 'pre-eval', 'sell'];
 
 // Stage identifies the developmental peer group: 5d-E ... 6d-A. Returns null
 // for rarity <4 (legacy, auto-sell) and any unexpected shape.
@@ -56,7 +56,7 @@ export function actionOf(mod: ParsedMod, verdict: VerdictResult): ModAction | nu
     case 'UPGRADE':
       return verdict.winning_variant_id ? 'level' : 'pre-eval';
     case 'PASS_RULES':
-      if (mod.rarity === 6 && mod.tier_name === 'A') return 'deploy';
+      if (mod.rarity === 6 && mod.tier_name === 'A') return 'maxed';
       return 'slice';
     case 'UNCONFIGURED':
       return null;
@@ -66,7 +66,7 @@ export function actionOf(mod: ParsedMod, verdict: VerdictResult): ModAction | nu
 // Cohort key for relative ranking. Mods sharing a key are direct peers.
 // - Slicing: stage + variant. A 5d-A and a 6d-E are never peers because
 //   slicing cost and roll opportunities differ.
-// - Deploy: variant only, scoped to 6d-A by actionOf.
+// - Maxed: variant only, scoped to 6d-A by actionOf.
 // - Level / Pre-eval / sell / null: no cohort. Level mods are judged
 //   individually against the milestone quality gate (QUALITY_RAMP); the
 //   relative-band UI doesn't apply to them.
@@ -79,20 +79,20 @@ export function cohortKey(mod: ParsedMod, verdict: VerdictResult): string | null
       if (!stage || !verdict.winning_variant_id) return null;
       return `slice|${stage}|${verdict.winning_variant_id}`;
     }
-    case 'deploy':
-      return `deploy|${verdict.winning_variant_id}`;
+    case 'maxed':
+      return `maxed|${verdict.winning_variant_id}`;
     default:
       return null;
   }
 }
 
 // Returns the metric used to rank within a given action's cohort.
-// Slicing uses raw score (total accumulated quality vs peers); deploy uses
+// Slicing uses raw score (total accumulated quality vs peers); maxed uses
 // per-roll absolute quality. Level mods have no cohort and aren't ranked.
 function rankMetric(mod: ParsedMod, verdict: VerdictResult): number | null {
   const action = actionOf(mod, verdict);
   if (action === 'slice') return verdict.score ?? null;
-  if (action === 'deploy') return verdict.absolute_quality ?? null;
+  if (action === 'maxed') return verdict.absolute_quality ?? null;
   return null;
 }
 
@@ -140,7 +140,7 @@ export function computeRelativePositions(
 
 /**
  * Assembles per-mod ModRanking objects from verdicts + a relative-position map.
- * Only rankable mods (level/slice/deploy actions) are included; mods in
+ * Only rankable mods (level/slice/maxed actions) are included; mods in
  * sub-MIN_COHORT_SIZE cohorts get relative_position: null.
  */
 export function buildRankings(
@@ -153,7 +153,7 @@ export function buildRankings(
     const verdict = verdicts.get(mod.mod_id);
     if (!verdict) continue;
     const action = actionOf(mod, verdict);
-    if (action !== 'level' && action !== 'slice' && action !== 'deploy') continue;
+    if (action !== 'level' && action !== 'slice' && action !== 'maxed') continue;
     out.set(mod.mod_id, {
       action,
       relative_position: relativePositions.get(mod.mod_id) ?? null,
@@ -163,7 +163,7 @@ export function buildRankings(
   return out;
 }
 
-// 'none' = ranked but no push/sell call (deploy mods are already maxed).
+// 'none' = ranked but no push/sell call (maxed mods have no further action).
 export type ActionBand = 'push' | 'keep' | 'consider-selling' | 'none';
 
 export interface ModRanking {
@@ -199,7 +199,7 @@ export function deriveActionBand(ranking: ModRanking): ActionBand {
         return 'consider-selling';
       }
       return 'keep';
-    case 'deploy':
+    case 'maxed':
       return 'none';
     default:
       return 'none';
@@ -211,10 +211,10 @@ export function deriveActionBand(ranking: ModRanking): ActionBand {
  * deriveActionBand, this ignores cohort percentile and labels a mod purely on
  * its own absolute_quality — so the chip stays consistent with that list's
  * absolute-% ordering, and a strong mod is not demoted to "Keep" merely
- * because better mods happen to share its stage. Level/deploy mods get no band.
+ * because better mods happen to share its stage. Level/maxed mods get no band.
  */
 export function deriveAbsoluteBand(ranking: ModRanking): ActionBand {
-  if (ranking.action === 'level' || ranking.action === 'deploy') return 'none';
+  if (ranking.action === 'level' || ranking.action === 'maxed') return 'none';
   if (ranking.absolute_quality >= OVERALL_PUSH_QUALITY) return 'push';
   if (ranking.absolute_quality < OVERALL_SELL_QUALITY) return 'consider-selling';
   return 'keep';
