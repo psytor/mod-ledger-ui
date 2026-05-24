@@ -365,7 +365,7 @@ export default function RuleBuilderPage() {
 
               <div className={styles.metaFields}>
                 <label className={styles.fieldLabel}>
-                  <span>Name</span>
+                  <span>Evaluation name</span>
                   <input
                     type="text"
                     value={name}
@@ -373,8 +373,6 @@ export default function RuleBuilderPage() {
                     required
                     className={styles.input}
                     autoComplete="off"
-                    data-lpignore="true"
-                    data-form-type="other"
                   />
                   {nameCollides && (
                     <small className={styles.fieldWarning}>

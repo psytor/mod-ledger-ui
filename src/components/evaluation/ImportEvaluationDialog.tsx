@@ -51,10 +51,11 @@ export default function ImportEvaluationDialog({
     >
       <div className={styles.body}>
         <Input
-          label="Name"
+          label="Evaluation name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           fullWidth
+          autoComplete="off"
           error={nameCollides ? `An evaluation named "${trimmedName}" already exists. Import will still create a separate copy.` : undefined}
           helperText={nameCollides ? undefined : "Rename if you want — defaults to the file's name."}
         />
