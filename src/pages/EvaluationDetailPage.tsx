@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Badge, Button, Card, Container } from 'astrogators-shared-ui';
+import { Badge, Button, Card, Container, useAuth } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useEvaluation } from '@/contexts/EvaluationContext';
@@ -14,11 +14,20 @@ function isOwner(ev: Evaluation): boolean {
   return ev.ownerUserId === null;
 }
 
+function slugifyForFilename(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || 'evaluation';
+}
+
 export default function EvaluationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { activeEvaluationId, setActiveEvaluationId } = useEvaluation();
   const { modSets } = useMods();
+  const { user } = useAuth();
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'not-found' }
@@ -55,6 +64,22 @@ export default function EvaluationDetailPage() {
   const handleUseThis = () => {
     setActiveEvaluationId(evaluation.id);
     navigate('/');
+  };
+
+  const handleExport = () => {
+    const author = user
+      ? { userId: user.id, username: user.username }
+      : null;
+    const json = evaluationStorage.exportToJson(evaluation.id, author);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mod-ledger-${slugifyForFilename(evaluation.name)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleDelete = () => {
@@ -111,6 +136,9 @@ export default function EvaluationDetailPage() {
                     <Button variant="outline">Edit</Button>
                   </Link>
                 )}
+                <Button variant="outline" onClick={handleExport}>
+                  Export
+                </Button>
                 {owner && (
                   <span className={styles.danger}>
                     <Button variant="danger" onClick={handleDelete}>

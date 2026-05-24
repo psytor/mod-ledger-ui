@@ -29,6 +29,24 @@ export type ModSetConfig = {
   variants: Variant[]; // Insertion order is the sub-tiebreak when verdicts tie.
 };
 
+// Snapshot of the original author, captured at export time and carried with
+// imported copies. Denormalized into the JSON because the recipient has no
+// way to look up astrogators-table at Phase 1. userId is a string to match
+// shared-ui's User.id type (the auth context exposes id as a string).
+export type EvaluationAuthor = {
+  userId: string | null;
+  username: string | null;
+};
+
+// Reserved for the future "official templates" feature. User-authored
+// evaluations have sourceTemplate === null. When a template is imported,
+// the local copy stores its templateId + version here so a future "update
+// available" notifier can compare against the published version.
+export type EvaluationSourceTemplate = {
+  templateId: string;
+  templateVersion: number;
+};
+
 export type Evaluation = {
   id: string;
   // Matches astrogators-table users.id (Integer). null = local/unauth record.
@@ -40,6 +58,8 @@ export type Evaluation = {
   // Editor-level master values that opted-in variants follow. Same shape as
   // Variant.secondary_targets. Empty {} means "all sliders at default".
   master_secondary_targets: Record<number, number>;
+  authoredBy: EvaluationAuthor | null;
+  sourceTemplate: EvaluationSourceTemplate | null;
   createdAt: number;
   updatedAt: number;
 };

@@ -183,6 +183,12 @@
   box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
 }
 
+.fieldWarning {
+  color: var(--color-warning, #f5a623);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
 /* ============ Section header ============ */
 
 .sectionBlock {

@@ -75,6 +75,12 @@ export default function RuleBuilderPage() {
   const [pendingMasterOptIn, setPendingMasterOptIn] = useState<
     { setId: number; variantId: string } | null
   >(null);
+  // Snapshot once on mount — used for live name-collision detection.
+  // We don't refresh during the page session (no other tab is editing
+  // this user's evals concurrently from this UI).
+  const [otherEvaluations] = useState(() =>
+    evaluationStorage.listMine().map((e) => ({ id: e.id, name: e.name }))
+  );
 
   useEffect(() => {
     if (!isEditMode || !id) return;
@@ -127,6 +133,15 @@ export default function RuleBuilderPage() {
   }
 
   const { existing } = state;
+
+  const trimmedName = name.trim();
+  const nameCollides =
+    trimmedName.length > 0 &&
+    otherEvaluations.some(
+      (e) =>
+        e.id !== existing?.id &&
+        e.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
 
   const updateVariants = (setId: number, mutator: (vs: Variant[]) => Variant[]) => {
     setVariantsBySet((prev) => {
@@ -300,6 +315,8 @@ export default function RuleBuilderPage() {
         description,
         mod_set_configs: configs,
         master_secondary_targets: masterTargets,
+        authoredBy: null,
+        sourceTemplate: null,
       });
       navigate(`/evaluations/${created.id}`);
     }
@@ -359,6 +376,12 @@ export default function RuleBuilderPage() {
                     data-lpignore="true"
                     data-form-type="other"
                   />
+                  {nameCollides && (
+                    <small className={styles.fieldWarning}>
+                      An evaluation named "{trimmedName}" already exists. Saving
+                      will create a separate one with the same name.
+                    </small>
+                  )}
                 </label>
                 <label className={styles.fieldLabel}>
                   <span>Description</span>

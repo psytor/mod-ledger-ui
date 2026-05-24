@@ -128,7 +128,16 @@
   margin-top: var(--spacing-sm);
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--spacing-md);
+}
+
+.importError {
+  margin: var(--spacing-sm) 0 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  text-align: center;
 }
 
 .heroCount {
@@ -360,6 +369,16 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.cardMeta {
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-disabled);
+  margin: 0;
 }
 
 .cardFooter {
