@@ -1,5 +1,5 @@
-// Tunable thresholds for the action-band UI. Hardcoded for v1 — revisit
-// after we see real distributions in production.
+// Tunable thresholds for the action-band UI. Hardcoded for now —
+// revisit after we see real distributions in production.
 
 // Slicing: percentile cutoffs within (stage, variant) cohort.
 export const PUSH_PERCENTILE_THRESHOLD = 70;

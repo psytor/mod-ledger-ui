@@ -1,29 +1,16 @@
 import type { Evaluation } from '@/types/evaluation';
 
-// Bumped from "mod-ledger:evaluations" — old shape (rules: Rule[]) is incompatible
-// with the new variant model. Old key left untouched in localStorage.
-const STORAGE_KEY = 'mod-ledger:evaluations:v2';
+const STORAGE_KEY = 'mod-ledger:evaluations';
+
+// One-shot cleanup of pre-current storage shapes. The previous build keyed
+// the variant-model data under STORAGE_KEY + ':v2' and left a v1
+// { rules: Rule[] } blob untouched under STORAGE_KEY. Both are incompatible
+// with the current Evaluation shape. Safe to delete once any browser that
+// ran a pre-cleanup build has loaded the app at least once.
+localStorage.removeItem('mod-ledger:evaluations:v2');
 
 type CreateInput = Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>;
 type UpdatePatch = Partial<Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>>;
-
-function normalize(e: Evaluation): Evaluation {
-  // Backfill fields added after the v2 key was stamped. Legacy variants default
-  // uses_master_targets=false so their original slider values aren't silently
-  // overwritten the first time the user opens the editor.
-  return {
-    ...e,
-    master_secondary_targets: e.master_secondary_targets ?? {},
-    mod_set_configs: e.mod_set_configs.map((cfg) => ({
-      ...cfg,
-      variants: cfg.variants.map((v) => ({
-        ...v,
-        secondary_targets: v.secondary_targets ?? {},
-        uses_master_targets: v.uses_master_targets ?? false,
-      })),
-    })),
-  };
-}
 
 class EvaluationStorage {
   private readAll(): Evaluation[] {
@@ -31,7 +18,14 @@ class EvaluationStorage {
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.map(normalize) : [];
+      if (!Array.isArray(parsed)) return [];
+      // Reject pre-current-shape blobs (v1 had `rules: Rule[]` and no
+      // `mod_set_configs`). One bad item wipes the whole key.
+      if (!parsed.every((e) => Array.isArray(e?.mod_set_configs))) {
+        localStorage.removeItem(STORAGE_KEY);
+        return [];
+      }
+      return parsed;
     } catch {
       return [];
     }

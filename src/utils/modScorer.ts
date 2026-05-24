@@ -5,8 +5,8 @@ import type {
   Variant,
 } from '@/types/evaluation';
 
-// v1: hardcoded. Lever to tune later is the neutral multiplier (drop to 0.05
-// if lucky-garbage mods feel overrepresented in real inventories).
+// Hardcoded multipliers. Lever to tune later is the neutral multiplier
+// (drop to 0.05 if lucky-garbage mods feel overrepresented in real inventories).
 const TIER_MULTIPLIERS: Record<SecondaryClassification | 'neutral', number> = {
   required: 1.0,
   complementary: 0.4,
@@ -58,7 +58,7 @@ export function scoreModForVariant(
   statDefs: StatDefinition[]
 ): ModScore {
   const statIdLookup = buildStatIdLookup(statDefs);
-  const targets = variant.secondary_targets ?? {};
+  const targets = variant.secondary_targets;
 
   let total = 0;
   let theoreticalMax = 0;

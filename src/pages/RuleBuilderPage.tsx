@@ -95,7 +95,7 @@ export default function RuleBuilderPage() {
       map.set(cfg.set_id, cfg.variants);
     }
     setVariantsBySet(map);
-    setMasterTargets(ev.master_secondary_targets ?? {});
+    setMasterTargets(ev.master_secondary_targets);
     setState({ kind: 'ready', existing: ev });
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [id, isEditMode]);
