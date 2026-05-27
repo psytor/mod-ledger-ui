@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Select } from 'astrogators-shared-ui';
+import { Button, Select, useAuth } from 'astrogators-shared-ui';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { useMods } from '@/contexts/ModContext';
 import { evaluationStorage } from '@/services/evaluationStorage';
@@ -9,7 +9,26 @@ import type { Evaluation } from '@/types/evaluation';
 export default function EvaluationSelector() {
   const { activeEvaluationId, setActiveEvaluationId, runEvaluation, verdicts } = useEvaluation();
   const { mods } = useMods();
-  const [evaluations] = useState<Evaluation[]>(() => evaluationStorage.listMine());
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+    let cancelled = false;
+    void evaluationStorage
+      .listMine()
+      .then((list) => {
+        if (cancelled) return;
+        setEvaluations(list);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setEvaluations([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthLoading, isAuthenticated]);
 
   const active = evaluations.find((e) => e.id === activeEvaluationId) ?? null;
 

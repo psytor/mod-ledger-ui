@@ -1,3 +1,4 @@
+import { getAccessToken } from 'astrogators-shared-ui';
 import type { Evaluation, EvaluationAuthor } from '@/types/evaluation';
 import {
   EVALUATION_EXPORT_FORMAT,
@@ -5,6 +6,7 @@ import {
   EvaluationImportError,
   type EvaluationExportV1,
 } from '@/types/evaluationExport';
+import { evaluationsApi, type MigrationResult } from './evaluationsApi';
 
 const STORAGE_KEY = 'mod-ledger:evaluations';
 
@@ -18,8 +20,23 @@ localStorage.removeItem('mod-ledger:evaluations:v2');
 type CreateInput = Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>;
 type UpdatePatch = Partial<Omit<Evaluation, 'id' | 'createdAt' | 'updatedAt'>>;
 
+// Auth-aware storage adapter.
+//
+// Two completely separate backends:
+//   - Authenticated (Bearer token present): all reads/writes go to the
+//     mod-ledger backend via evaluationsApi.
+//   - Unauthenticated: all reads/writes stay in localStorage.
+//
+// There is no merging or hidden coexistence. When the user is logged in
+// and localStorage still has records from their logged-out session, the
+// caller (EvaluationsPage) detects that via listLocal() and surfaces the
+// non-dismissable MigrationPromptDialog. Until the user picks Import or
+// Discard, the list shows only their backend evals — the local copies are
+// inert.
 class EvaluationStorage {
-  private readAll(): Evaluation[] {
+  // ─── local-only helpers (used by both modes + the migration prompt) ──
+
+  private readLocal(): Evaluation[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     try {
@@ -31,10 +48,14 @@ class EvaluationStorage {
         localStorage.removeItem(STORAGE_KEY);
         return [];
       }
-      // Soft-migrate records that pre-date authoredBy/sourceTemplate.
+      // Soft-migrate records that pre-date authoredBy/sourceProtocol/
+      // visibility/version. Pre-rename `sourceTemplate`/`isPublic` keys
+      // are dropped (pre-production rename, no compat shim).
       return parsed.map((e) => ({
         authoredBy: null,
-        sourceTemplate: null,
+        sourceProtocol: null,
+        visibility: 'private',
+        version: 1,
         ...e,
       }));
     } catch {
@@ -42,23 +63,52 @@ class EvaluationStorage {
     }
   }
 
-  private writeAll(evaluations: Evaluation[]): void {
+  private writeLocal(evaluations: Evaluation[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(evaluations));
   }
 
-  listMine(): Evaluation[] {
-    return this.readAll();
+  private isAuthenticated(): boolean {
+    return getAccessToken() != null;
   }
 
-  listPublic(): Evaluation[] {
-    return [];
+  // Returns whatever is in localStorage right now, regardless of auth
+  // state. The migration prompt uses this to decide whether to show
+  // itself; ordinary consumers should use listMine().
+  listLocal(): Evaluation[] {
+    return this.readLocal();
   }
 
-  get(id: string): Evaluation | null {
-    return this.readAll().find((e) => e.id === id) ?? null;
+  // Destructive: erase all localStorage evaluations. Used by the migration
+  // prompt's Discard flow after the second confirmation.
+  discardLocal(): void {
+    localStorage.removeItem(STORAGE_KEY);
   }
 
-  create(input: CreateInput): Evaluation {
+  // ─── unified read/write API (auth-aware) ─────────────────────────────
+
+  async listMine(): Promise<Evaluation[]> {
+    if (this.isAuthenticated()) {
+      return evaluationsApi.listMine();
+    }
+    return this.readLocal();
+  }
+
+  async get(id: string): Promise<Evaluation | null> {
+    if (this.isAuthenticated()) {
+      return evaluationsApi.get(id);
+    }
+    return this.readLocal().find((e) => e.id === id) ?? null;
+  }
+
+  async create(input: CreateInput): Promise<Evaluation> {
+    if (this.isAuthenticated()) {
+      return evaluationsApi.create({
+        name: input.name,
+        description: input.description,
+        mod_set_configs: input.mod_set_configs,
+        master_secondary_targets: input.master_secondary_targets,
+      });
+    }
     const now = Date.now();
     const evaluation: Evaluation = {
       ...input,
@@ -66,14 +116,31 @@ class EvaluationStorage {
       createdAt: now,
       updatedAt: now,
     };
-    const all = this.readAll();
+    const all = this.readLocal();
     all.push(evaluation);
-    this.writeAll(all);
+    this.writeLocal(all);
     return evaluation;
   }
 
-  update(id: string, patch: UpdatePatch): Evaluation | null {
-    const all = this.readAll();
+  async update(id: string, patch: UpdatePatch): Promise<Evaluation | null> {
+    if (this.isAuthenticated()) {
+      // Backend only accepts the four user-editable fields. Anything
+      // else in the patch (visibility/version/etc.) is ignored.
+      const backendPatch: Partial<
+        Pick<
+          Evaluation,
+          'name' | 'description' | 'mod_set_configs' | 'master_secondary_targets'
+        >
+      > = {};
+      if (patch.name !== undefined) backendPatch.name = patch.name;
+      if (patch.description !== undefined) backendPatch.description = patch.description;
+      if (patch.mod_set_configs !== undefined)
+        backendPatch.mod_set_configs = patch.mod_set_configs;
+      if (patch.master_secondary_targets !== undefined)
+        backendPatch.master_secondary_targets = patch.master_secondary_targets;
+      return evaluationsApi.update(id, backendPatch);
+    }
+    const all = this.readLocal();
     const idx = all.findIndex((e) => e.id === id);
     if (idx === -1) return null;
     const updated: Evaluation = {
@@ -82,36 +149,39 @@ class EvaluationStorage {
       updatedAt: Date.now(),
     };
     all[idx] = updated;
-    this.writeAll(all);
+    this.writeLocal(all);
     return updated;
   }
 
-  delete(id: string): void {
-    const all = this.readAll().filter((e) => e.id !== id);
-    this.writeAll(all);
+  async delete(id: string): Promise<void> {
+    if (this.isAuthenticated()) {
+      await evaluationsApi.delete(id);
+      return;
+    }
+    const all = this.readLocal().filter((e) => e.id !== id);
+    this.writeLocal(all);
   }
 
-  // Serialize an evaluation to the wire format. The caller supplies the
-  // current user (the storage layer does not depend on auth). `id`,
-  // `ownerUserId`, timestamps, and `isPublic` are stripped — they are
-  // recipient-side facts.
-  exportToJson(id: string, author: EvaluationAuthor | null): string {
-    const ev = this.get(id);
-    if (!ev) throw new Error(`Evaluation ${id} not found`);
+  // ─── export / import (offline-friendly, takes the eval directly) ─────
+
+  // Serialize an evaluation to the wire format. The caller passes the
+  // already-loaded eval (so this stays synchronous) and the current user
+  // for author-snapshot fallback.
+  exportToJson(evaluation: Evaluation, author: EvaluationAuthor | null): string {
     const payload: EvaluationExportV1 = {
       format: EVALUATION_EXPORT_FORMAT,
       schemaVersion: EVALUATION_EXPORT_SCHEMA_VERSION,
       exportedAt: Date.now(),
       evaluation: {
-        name: ev.name,
-        description: ev.description,
-        mod_set_configs: ev.mod_set_configs,
-        master_secondary_targets: ev.master_secondary_targets,
+        name: evaluation.name,
+        description: evaluation.description,
+        mod_set_configs: evaluation.mod_set_configs,
+        master_secondary_targets: evaluation.master_secondary_targets,
         // Prefer the existing authoredBy (imports carry the original
         // author through subsequent re-exports). Fall back to the
         // exporter's identity when this is a fresh user-created eval.
-        authoredBy: ev.authoredBy ?? author,
-        sourceTemplate: ev.sourceTemplate,
+        authoredBy: evaluation.authoredBy ?? author,
+        sourceProtocol: evaluation.sourceProtocol,
       },
     };
     return JSON.stringify(payload, null, 2);
@@ -129,22 +199,40 @@ class EvaluationStorage {
     return migrate(raw);
   }
 
-  importFromJson(
+  async importFromJson(
     json: string,
     opts: { nameOverride?: string } = {}
-  ): Evaluation {
+  ): Promise<Evaluation> {
     const payload = this.parseImportJson(json);
     const ev = payload.evaluation;
     return this.create({
       ownerUserId: null,
-      isPublic: false,
+      visibility: 'private',
+      version: 1,
       name: opts.nameOverride?.trim() || ev.name,
       description: ev.description,
       mod_set_configs: ev.mod_set_configs,
       master_secondary_targets: ev.master_secondary_targets,
       authoredBy: ev.authoredBy,
-      sourceTemplate: ev.sourceTemplate,
+      sourceProtocol: ev.sourceProtocol,
     });
+  }
+
+  // ─── migration ───────────────────────────────────────────────────────
+
+  // Upload local evals to the backend. Clears localStorage on full
+  // success. On partial failure (API throws), localStorage is left
+  // intact so the caller can retry.
+  async migrateLocalToBackend(): Promise<MigrationResult> {
+    const locals = this.readLocal();
+    if (locals.length === 0) {
+      return { inserted: [], skippedIds: [] };
+    }
+    const result = await evaluationsApi.migrate(locals);
+    // Only clear local once the request returned 2xx — caller's responsibility
+    // to handle exceptions (they leave localStorage intact for retry).
+    this.discardLocal();
+    return result;
   }
 }
 

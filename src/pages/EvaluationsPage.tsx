@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Card, Container, useAuth } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import ImportEvaluationDialog from '@/components/evaluation/ImportEvaluationDialog';
+import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { EvaluationImportError, type EvaluationExportV1 } from '@/types/evaluationExport';
 import type { Evaluation } from '@/types/evaluation';
@@ -18,13 +19,42 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
 
 export default function EvaluationsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [evaluations] = useState<Evaluation[]>(() => evaluationStorage.listMine());
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [isLoadingEvals, setIsLoadingEvals] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [localCount, setLocalCount] = useState<number>(
+    () => evaluationStorage.listLocal().length
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<{
     payload: EvaluationExportV1;
   } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoadError(null);
+    setIsLoadingEvals(true);
+    try {
+      const list = await evaluationStorage.listMine();
+      setEvaluations(list);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load evaluations.';
+      setLoadError(message);
+      setEvaluations([]);
+    } finally {
+      setIsLoadingEvals(false);
+    }
+  }, []);
+
+  // Re-fetch whenever the auth state finishes resolving or flips — the
+  // storage adapter swaps backends based on getAccessToken().
+  useEffect(() => {
+    if (isAuthLoading) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void reload();
+  }, [isAuthLoading, isAuthenticated, reload]);
 
   const handleImportClick = () => {
     setImportError(null);
@@ -49,15 +79,39 @@ export default function EvaluationsPage() {
     }
   };
 
-  const handleImportConfirm = (nameOverride: string) => {
+  const handleImportConfirm = async (nameOverride: string) => {
     if (!pendingImport) return;
-    const created = evaluationStorage.importFromJson(
-      JSON.stringify(pendingImport.payload),
-      { nameOverride }
-    );
-    setPendingImport(null);
-    navigate(`/evaluations/${created.id}`);
+    try {
+      const created = await evaluationStorage.importFromJson(
+        JSON.stringify(pendingImport.payload),
+        { nameOverride }
+      );
+      setPendingImport(null);
+      navigate(`/evaluations/${created.id}`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to import evaluation.';
+      setImportError(message);
+      setPendingImport(null);
+    }
   };
+
+  // Migration flow — fires once the user signs in with localStorage evals
+  // present. The dialog itself is non-dismissable; success / discard both
+  // drive localCount → 0 and unmount the modal.
+  const handleMigrationImport = useCallback(async () => {
+    await evaluationStorage.migrateLocalToBackend();
+    setLocalCount(0);
+    await reload();
+  }, [reload]);
+
+  const handleMigrationDiscard = useCallback(() => {
+    evaluationStorage.discardLocal();
+    setLocalCount(0);
+  }, []);
+
+  const showMigrationPrompt =
+    !isAuthLoading && isAuthenticated && localCount > 0;
 
   return (
     <Layout>
@@ -104,9 +158,18 @@ export default function EvaluationsPage() {
                 {importError}
               </p>
             )}
+            {loadError && (
+              <p className={styles.importError} role="alert">
+                {loadError}
+              </p>
+            )}
           </Card>
 
-          {evaluations.length === 0 ? (
+          {isLoadingEvals ? (
+            <Card chamfered padding="none" className={styles.empty}>
+              <p className={styles.emptyText}>Loading evaluations…</p>
+            </Card>
+          ) : evaluations.length === 0 ? (
             <Card
               chamfered
               padding="none"
@@ -182,6 +245,12 @@ export default function EvaluationsPage() {
         existingNames={evaluations.map((e) => e.name)}
         onCancel={() => setPendingImport(null)}
         onConfirm={handleImportConfirm}
+      />
+      <MigrationPromptDialog
+        isOpen={showMigrationPrompt}
+        localCount={localCount}
+        onImport={handleMigrationImport}
+        onDiscard={handleMigrationDiscard}
       />
     </Layout>
   );

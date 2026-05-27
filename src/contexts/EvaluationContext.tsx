@@ -4,7 +4,7 @@ import { evaluationStorage } from '@/services/evaluationStorage';
 import { evaluateAll, applyQualityGates } from '@/utils/evaluationEngine';
 import { useMods } from '@/contexts/ModContext';
 import type { ParsedMod } from '@/services/modLedgerApi';
-import type { VerdictResult } from '@/types/evaluation';
+import type { Evaluation, VerdictResult } from '@/types/evaluation';
 
 const ACTIVE_ID_KEY = 'mod-ledger:active-evaluation-id';
 
@@ -12,7 +12,7 @@ interface EvaluationContextType {
   activeEvaluationId: string | null;
   verdicts: Map<string, VerdictResult>;
   setActiveEvaluationId: (id: string | null) => void;
-  runEvaluation: (mods: ParsedMod[]) => void;
+  runEvaluation: (mods: ParsedMod[]) => Promise<void>;
   clearVerdicts: () => void;
 }
 
@@ -24,6 +24,10 @@ export function EvaluationProvider({ children }: { children: ReactNode }) {
     () => localStorage.getItem(ACTIVE_ID_KEY)
   );
   const [verdicts, setVerdicts] = useState<Map<string, VerdictResult>>(new Map());
+  // Session-cached eval for the active id. Lets users "Use" a Protocol
+  // they don't own without refetching on every grading run. Cleared when
+  // activeEvaluationId changes.
+  const [cachedEval, setCachedEval] = useState<Evaluation | null>(null);
 
   useEffect(() => {
     if (activeEvaluationId === null) {
@@ -36,19 +40,30 @@ export function EvaluationProvider({ children }: { children: ReactNode }) {
   const setActiveEvaluationId = useCallback((id: string | null) => {
     setActiveEvaluationIdState(id);
     setVerdicts(new Map());
+    setCachedEval(null);
   }, []);
 
   const runEvaluation = useCallback(
-    (mods: ParsedMod[]) => {
+    async (mods: ParsedMod[]) => {
       if (!activeEvaluationId) return;
-      const evaluation = evaluationStorage.get(activeEvaluationId);
-      if (!evaluation) return;
+      // Reuse the cached eval if it matches; otherwise fetch (covers
+      // both owned evals and remote-only Protocols the user is "using").
+      let evaluation = cachedEval;
+      if (evaluation === null || evaluation.id !== activeEvaluationId) {
+        try {
+          evaluation = await evaluationStorage.get(activeEvaluationId);
+        } catch {
+          evaluation = null;
+        }
+        if (evaluation === null) return;
+        setCachedEval(evaluation);
+      }
       // Union of primary + secondary stat lists; the engine dedupes by (name, is_percent).
       const statDefs = [...primaryStats, ...secondaryStats];
       const verdictMap = evaluateAll(mods, evaluation, statDefs);
       setVerdicts(applyQualityGates(mods, verdictMap, evaluation, statDefs));
     },
-    [activeEvaluationId, primaryStats, secondaryStats]
+    [activeEvaluationId, cachedEval, primaryStats, secondaryStats]
   );
 
   const clearVerdicts = useCallback(() => {

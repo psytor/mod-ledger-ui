@@ -38,20 +38,29 @@ export type EvaluationAuthor = {
   username: string | null;
 };
 
-// Reserved for the future "official templates" feature. User-authored
-// evaluations have sourceTemplate === null. When a template is imported,
-// the local copy stores its templateId + version here so a future "update
-// available" notifier can compare against the published version.
-export type EvaluationSourceTemplate = {
-  templateId: string;
-  templateVersion: number;
+// For forks of admin-curated Protocols: the local copy stores the source
+// Protocol's lineage key + the version it was forked from. The Stage D
+// "update available" banner compares storedProtocolVersion against the
+// Protocol's current version.
+export type EvaluationSourceProtocol = {
+  protocolId: string;
+  protocolVersion: number;
 };
+
+// Visibility levels: mirrors the backend enum.
+// - private: owner-only (the default)
+// - protocol: admin-curated, anyone can Use or Fork
+// - manifest: reserved for the future user-shared surface; no UI yet.
+export type EvaluationVisibility = 'private' | 'protocol' | 'manifest';
 
 export type Evaluation = {
   id: string;
   // Matches astrogators-table users.id (Integer). null = local/unauth record.
   ownerUserId: number | null;
-  isPublic: boolean;
+  visibility: EvaluationVisibility;
+  // Bumps on every save server-side; the Stage D "update available" banner
+  // compares against sourceProtocol.protocolVersion. Local-only records use 1.
+  version: number;
   name: string;
   description: string;
   mod_set_configs: ModSetConfig[];
@@ -59,7 +68,7 @@ export type Evaluation = {
   // Variant.secondary_targets. Empty {} means "all sliders at default".
   master_secondary_targets: Record<number, number>;
   authoredBy: EvaluationAuthor | null;
-  sourceTemplate: EvaluationSourceTemplate | null;
+  sourceProtocol: EvaluationSourceProtocol | null;
   createdAt: number;
   updatedAt: number;
 };

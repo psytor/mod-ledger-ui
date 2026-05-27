@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Badge, Button, Card, Container, useAuth } from 'astrogators-shared-ui';
+import { Badge, Button, Card, Container, useAuth, type User } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useEvaluation } from '@/contexts/EvaluationContext';
@@ -8,10 +8,13 @@ import { useMods } from '@/contexts/ModContext';
 import type { Evaluation } from '@/types/evaluation';
 import styles from './EvaluationDetailPage.module.css';
 
-// Phase 1: local records (ownerUserId === null) are owned by the current user.
-// When auth lands, compare against the authenticated user's id.
-function isOwner(ev: Evaluation): boolean {
-  return ev.ownerUserId === null;
+// Ownership predicate.
+// - Logged out: localStorage records have ownerUserId === null → owner.
+// - Logged in: backend records carry ownerUserId === user.id (numeric).
+//   Shared-ui's User.id is a string, so we coerce for the comparison.
+function isOwner(ev: Evaluation, user: User | null): boolean {
+  if (user == null) return ev.ownerUserId === null;
+  return ev.ownerUserId === Number(user.id);
 }
 
 function slugifyForFilename(name: string): string {
@@ -27,7 +30,7 @@ export default function EvaluationDetailPage() {
   const navigate = useNavigate();
   const { activeEvaluationId, setActiveEvaluationId } = useEvaluation();
   const { modSets } = useMods();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'not-found' }
@@ -36,10 +39,24 @@ export default function EvaluationDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    const ev = evaluationStorage.get(id);
+    if (isAuthLoading) return;
+    let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState(ev ? { kind: 'ready', evaluation: ev } : { kind: 'not-found' });
-  }, [id]);
+    setState({ kind: 'loading' });
+    void evaluationStorage
+      .get(id)
+      .then((ev) => {
+        if (cancelled) return;
+        setState(ev ? { kind: 'ready', evaluation: ev } : { kind: 'not-found' });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState({ kind: 'not-found' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isAuthLoading]);
 
   if (state.kind === 'loading') {
     return (
@@ -70,7 +87,7 @@ export default function EvaluationDetailPage() {
     const author = user
       ? { userId: user.id, username: user.username }
       : null;
-    const json = evaluationStorage.exportToJson(evaluation.id, author);
+    const json = evaluationStorage.exportToJson(evaluation, author);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -82,7 +99,7 @@ export default function EvaluationDetailPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const confirmed = window.confirm(
       `Delete "${evaluation.name}"? This cannot be undone.`
     );
@@ -90,8 +107,14 @@ export default function EvaluationDetailPage() {
     if (activeEvaluationId === evaluation.id) {
       setActiveEvaluationId(null);
     }
-    evaluationStorage.delete(evaluation.id);
-    navigate('/evaluations');
+    try {
+      await evaluationStorage.delete(evaluation.id);
+      navigate('/evaluations');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to delete evaluation.';
+      window.alert(message);
+    }
   };
 
   const configuredCount = evaluation.mod_set_configs.filter(
@@ -100,7 +123,7 @@ export default function EvaluationDetailPage() {
   const totalSets = modSets.length;
   const progressPercent =
     totalSets === 0 ? 0 : Math.round((configuredCount / totalSets) * 100);
-  const owner = isOwner(evaluation);
+  const owner = isOwner(evaluation, user);
 
   return (
     <Layout>

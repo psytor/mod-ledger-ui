@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Container, Modal } from 'astrogators-shared-ui';
+import { Button, Card, Container, Modal, useAuth, type User } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useMods } from '@/contexts/ModContext';
@@ -14,8 +14,10 @@ import type {
 } from '@/types/evaluation';
 import styles from './RuleBuilderPage.module.css';
 
-function isOwner(ev: Evaluation): boolean {
-  return ev.ownerUserId === null;
+// Ownership predicate — see EvaluationDetailPage.isOwner for the rationale.
+function isOwner(ev: Evaluation, user: User | null): boolean {
+  if (user == null) return ev.ownerUserId === null;
+  return ev.ownerUserId === Number(user.id);
 }
 
 type LoadState =
@@ -62,6 +64,7 @@ export default function RuleBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { modSets, primaryStats, secondaryStats } = useMods();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const isEditMode = Boolean(id);
 
   const [state, setState] = useState<LoadState>(
@@ -75,36 +78,69 @@ export default function RuleBuilderPage() {
   const [pendingMasterOptIn, setPendingMasterOptIn] = useState<
     { setId: number; variantId: string } | null
   >(null);
-  // Snapshot once on mount — used for live name-collision detection.
-  // We don't refresh during the page session (no other tab is editing
-  // this user's evals concurrently from this UI).
-  const [otherEvaluations] = useState(() =>
-    evaluationStorage.listMine().map((e) => ({ id: e.id, name: e.name }))
-  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Loaded once for live name-collision detection. We don't refresh
+  // during the page session (no other tab is editing this user's evals
+  // concurrently from this UI).
+  const [otherEvaluations, setOtherEvaluations] = useState<
+    { id: string; name: string }[]
+  >([]);
+
+  useEffect(() => {
+    if (isAuthLoading) return;
+    let cancelled = false;
+    void evaluationStorage
+      .listMine()
+      .then((list) => {
+        if (cancelled) return;
+        setOtherEvaluations(list.map((e) => ({ id: e.id, name: e.name })));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOtherEvaluations([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthLoading]);
 
   useEffect(() => {
     if (!isEditMode || !id) return;
-    const ev = evaluationStorage.get(id);
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (!ev) {
-      setState({ kind: 'not-found' });
-      return;
-    }
-    if (!isOwner(ev)) {
-      setState({ kind: 'forbidden' });
-      return;
-    }
-    setName(ev.name);
-    setDescription(ev.description);
-    const map = new Map<number, Variant[]>();
-    for (const cfg of ev.mod_set_configs) {
-      map.set(cfg.set_id, cfg.variants);
-    }
-    setVariantsBySet(map);
-    setMasterTargets(ev.master_secondary_targets);
-    setState({ kind: 'ready', existing: ev });
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [id, isEditMode]);
+    if (isAuthLoading) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState({ kind: 'loading' });
+    void evaluationStorage
+      .get(id)
+      .then((ev) => {
+        if (cancelled) return;
+        if (!ev) {
+          setState({ kind: 'not-found' });
+          return;
+        }
+        if (!isOwner(ev, user)) {
+          setState({ kind: 'forbidden' });
+          return;
+        }
+        setName(ev.name);
+        setDescription(ev.description);
+        const map = new Map<number, Variant[]>();
+        for (const cfg of ev.mod_set_configs) {
+          map.set(cfg.set_id, cfg.variants);
+        }
+        setVariantsBySet(map);
+        setMasterTargets(ev.master_secondary_targets);
+        setState({ kind: 'ready', existing: ev });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState({ kind: 'not-found' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isEditMode, isAuthLoading, user]);
 
   const orderedPrimaryStats = useMemo(() => {
     return [...primaryStats].sort((a, b) => a.name.localeCompare(b.name));
@@ -291,34 +327,45 @@ export default function RuleBuilderPage() {
 
   const cancelMasterOptIn = () => setPendingMasterOptIn(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const configs: ModSetConfig[] = [];
     for (const [setId, variants] of variantsBySet.entries()) {
       if (variants.length === 0) continue;
       configs.push({ set_id: setId, variants });
     }
 
-    if (existing) {
-      evaluationStorage.update(existing.id, {
-        name,
-        description,
-        mod_set_configs: configs,
-        master_secondary_targets: masterTargets,
-      });
-      navigate(`/evaluations/${existing.id}`);
-    } else {
-      const created = evaluationStorage.create({
-        ownerUserId: null,
-        isPublic: false,
-        name,
-        description,
-        mod_set_configs: configs,
-        master_secondary_targets: masterTargets,
-        authoredBy: null,
-        sourceTemplate: null,
-      });
-      navigate(`/evaluations/${created.id}`);
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      if (existing) {
+        await evaluationStorage.update(existing.id, {
+          name,
+          description,
+          mod_set_configs: configs,
+          master_secondary_targets: masterTargets,
+        });
+        navigate(`/evaluations/${existing.id}`);
+      } else {
+        const created = await evaluationStorage.create({
+          ownerUserId: null,
+          visibility: 'private',
+          version: 1,
+          name,
+          description,
+          mod_set_configs: configs,
+          master_secondary_targets: masterTargets,
+          authoredBy: null,
+          sourceProtocol: null,
+        });
+        navigate(`/evaluations/${created.id}`);
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to save evaluation.';
+      setSaveError(message);
+      setIsSaving(false);
     }
   };
 
@@ -541,12 +588,33 @@ export default function RuleBuilderPage() {
                 <strong>{configuredSetCount}</strong> configured ·{' '}
                 <strong>{totalVariants}</strong> scoring rule{totalVariants === 1 ? '' : 's'}
               </p>
+              {saveError && (
+                <p
+                  role="alert"
+                  style={{ color: 'var(--color-danger, #d33)', margin: 0 }}
+                >
+                  {saveError}
+                </p>
+              )}
               <div className={styles.actionsButtons}>
-                <Button type="button" variant="outline" onClick={handleCancel}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" disabled={!name.trim()}>
-                  {existing ? 'Save changes' : 'Create evaluation'}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={!name.trim() || isSaving}
+                >
+                  {isSaving
+                    ? 'Saving…'
+                    : existing
+                      ? 'Save changes'
+                      : 'Create evaluation'}
                 </Button>
               </div>
             </Card>

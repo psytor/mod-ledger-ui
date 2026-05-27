@@ -178,11 +178,36 @@ notes mentioned one, but the shipped engine does not implement it.
 
 ### Storage
 
-Evaluations are persisted to **localStorage** via
-`src/services/evaluationStorage.ts`. Backend integration (storing
-evaluations in `mod-ledger`) is deferred — when it lands, the storage
-layer is the single seam that needs to change. UI code reads/writes
-through `evaluationStorage`, not localStorage directly.
+`src/services/evaluationStorage.ts` is an **auth-aware async adapter**.
+All UI code reads/writes through this single seam — never via
+`localStorage` directly or `evaluationsApi` directly.
+
+- **Logged out:** all reads/writes go to browser localStorage (the
+  offline scratchpad).
+- **Logged in:** all reads/writes go to the `mod-ledger` backend via
+  `src/services/evaluationsApi.ts`. The backend is the single source of
+  truth; localStorage leftovers from a prior logged-out session are
+  treated as a separate pool to migrate, not as an alternate store to
+  read from.
+
+The auth boundary uses `getAccessToken()` from `astrogators-shared-ui`.
+Methods are all async (`Promise<...>`), even for the localStorage path,
+so callers don't branch on auth state.
+
+**Migration prompt.** When the user logs in with localStorage records
+present, `EvaluationsPage` renders the **non-dismissable**
+`MigrationPromptDialog` forcing a choice: Import to my account (uploads
+via `/evaluations/migrate` and clears local on success) or Discard
+local evaluations (with a second confirmation). There is no "later"
+escape — see the workspace memory rule
+`no-silent-local-fallback-when-authed` for the rationale.
+
+**Backend wire format vs frontend type.** The backend uses snake_case
+and ISO datetimes (`owner_user_id`, `source_protocol_id`,
+`created_at`); the frontend type uses camelCase epoch ms
+(`ownerUserId`, `sourceProtocol`, `createdAt`). The translation lives
+inside `evaluationsApi.ts` (`fromWire` / `toWriteWire`); the rest of
+the app sees Evaluations in the frontend shape only.
 
 ### When extending the engine
 
