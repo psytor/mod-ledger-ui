@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Card, Container, useAuth } from 'astrogators-shared-ui';
-import Layout from '@/components/layout/Layout';
+import Layout, { EVALS_MIGRATED_EVENT } from '@/components/layout/Layout';
 import ImportEvaluationDialog from '@/components/evaluation/ImportEvaluationDialog';
-import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { EvaluationImportError, type EvaluationExportV1 } from '@/types/evaluationExport';
 import type { Evaluation } from '@/types/evaluation';
@@ -23,9 +22,6 @@ export default function EvaluationsPage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [isLoadingEvals, setIsLoadingEvals] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [localCount, setLocalCount] = useState<number>(
-    () => evaluationStorage.listLocal().length
-  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<{
     payload: EvaluationExportV1;
@@ -55,6 +51,18 @@ export default function EvaluationsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reload();
   }, [isAuthLoading, isAuthenticated, reload]);
+
+  // Refetch after the migration prompt (owned by Layout) imports local
+  // evals to the backend. Without this, an EvaluationsPage that mounted
+  // before the migration finished would keep showing the empty backend
+  // list it fetched on first mount.
+  useEffect(() => {
+    const onMigrated = () => {
+      void reload();
+    };
+    window.addEventListener(EVALS_MIGRATED_EVENT, onMigrated);
+    return () => window.removeEventListener(EVALS_MIGRATED_EVENT, onMigrated);
+  }, [reload]);
 
   const handleImportClick = () => {
     setImportError(null);
@@ -95,23 +103,6 @@ export default function EvaluationsPage() {
       setPendingImport(null);
     }
   };
-
-  // Migration flow — fires once the user signs in with localStorage evals
-  // present. The dialog itself is non-dismissable; success / discard both
-  // drive localCount → 0 and unmount the modal.
-  const handleMigrationImport = useCallback(async () => {
-    await evaluationStorage.migrateLocalToBackend();
-    setLocalCount(0);
-    await reload();
-  }, [reload]);
-
-  const handleMigrationDiscard = useCallback(() => {
-    evaluationStorage.discardLocal();
-    setLocalCount(0);
-  }, []);
-
-  const showMigrationPrompt =
-    !isAuthLoading && isAuthenticated && localCount > 0;
 
   return (
     <Layout>
@@ -245,12 +236,6 @@ export default function EvaluationsPage() {
         existingNames={evaluations.map((e) => e.name)}
         onCancel={() => setPendingImport(null)}
         onConfirm={handleImportConfirm}
-      />
-      <MigrationPromptDialog
-        isOpen={showMigrationPrompt}
-        localCount={localCount}
-        onImport={handleMigrationImport}
-        onDiscard={handleMigrationDiscard}
       />
     </Layout>
   );
