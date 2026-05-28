@@ -152,17 +152,6 @@ function EditModeCard({
           data-lpignore="true"
           data-form-type="other"
         />
-        <label
-          className={styles.followMasterToggle}
-          title="Mirror the master Roll Targets panel"
-        >
-          <input
-            type="checkbox"
-            checked={following}
-            onChange={(e) => onToggleMaster(e.target.checked)}
-          />
-          <span>Follow master</span>
-        </label>
         <Button
           type="button"
           variant="ghost"
@@ -235,9 +224,17 @@ function EditModeCard({
       <div className={styles.section}>
         <div className={styles.sectionHeadInline}>
           <h4 className={styles.sectionTitle}>Roll targets</h4>
-          {following && (
-            <span className={styles.followingHint}>Following master</span>
-          )}
+          <label
+            className={styles.followMasterToggle}
+            title="Mirror the master Roll Targets panel"
+          >
+            <input
+              type="checkbox"
+              checked={following}
+              onChange={(e) => onToggleMaster(e.target.checked)}
+            />
+            <span>Follow master</span>
+          </label>
         </div>
         <p className={styles.targetIntro}>
           Efficiency you'd be happy to hit per stat. Target = 50 points,
