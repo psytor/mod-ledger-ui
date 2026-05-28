@@ -162,6 +162,16 @@ class EvaluationStorage {
     this.writeLocal(all);
   }
 
+  // Fork is a backend-only operation. Logged-out callers shouldn't see the
+  // Fork affordance at all; if they reach this method anyway, surface a
+  // clear error rather than silently creating a detached local copy.
+  async fork(id: string): Promise<Evaluation> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Sign in to fork evaluations.');
+    }
+    return evaluationsApi.fork(id);
+  }
+
   // ─── export / import (offline-friendly, takes the eval directly) ─────
 
   // Serialize an evaluation to the wire format. The caller passes the

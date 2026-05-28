@@ -1,0 +1,139 @@
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.sectionMeta {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-disabled);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionMeta strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.intro {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  margin: 0;
+  max-width: 70ch;
+}
+
+.masterCard.masterCard {
+  padding: var(--spacing-lg);
+  border-color: var(--color-info);
+  background: linear-gradient(
+    180deg,
+    rgba(26, 115, 232, 0.08) 0%,
+    var(--color-background-elevated) 60%
+  );
+}
+
+.masterEmpty {
+  font-style: italic;
+  color: var(--color-text-disabled);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.tierToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  align-self: flex-start;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(10, 14, 39, 0.5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.tierToggleLabel {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.tierToggleButtons {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--color-background);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.tierToggleButton {
+  padding: 0.3rem 0.75rem;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tierToggleButton:hover {
+  color: var(--color-text-primary);
+}
+
+.tierToggleButton[data-active='true'] {
+  background: rgba(26, 115, 232, 0.18);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 8px rgba(26, 115, 232, 0.25);
+}
+
+.setList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.empty {
+  font-style: italic;
+  color: var(--color-text-disabled);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  margin: 0;
+  padding: var(--spacing-xl);
+}

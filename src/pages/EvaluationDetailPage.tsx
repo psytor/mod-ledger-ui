@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Badge, Button, Card, Container, useAuth, type User } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
+import EvaluationView from '@/components/evaluation/EvaluationView';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { useMods } from '@/contexts/ModContext';
-import type { Evaluation } from '@/types/evaluation';
+import type { Evaluation, EvaluationVisibility } from '@/types/evaluation';
 import styles from './EvaluationDetailPage.module.css';
 
 // Ownership predicate.
@@ -25,6 +26,15 @@ function slugifyForFilename(name: string): string {
   return slug || 'evaluation';
 }
 
+function visibilityBadge(v: EvaluationVisibility): {
+  label: string;
+  variant: 'default' | 'info' | 'success';
+} {
+  if (v === 'protocol') return { label: 'Protocol', variant: 'info' };
+  if (v === 'manifest') return { label: 'Manifest', variant: 'success' };
+  return { label: 'Private', variant: 'default' };
+}
+
 export default function EvaluationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -36,6 +46,8 @@ export default function EvaluationDetailPage() {
     | { kind: 'not-found' }
     | { kind: 'ready'; evaluation: Evaluation }
   >({ kind: 'loading' });
+  const [forkError, setForkError] = useState<string | null>(null);
+  const [isForking, setIsForking] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -77,6 +89,13 @@ export default function EvaluationDetailPage() {
   }
 
   const { evaluation } = state;
+  const owner = isOwner(evaluation, user);
+  const badge = visibilityBadge(evaluation.visibility);
+  // Fork is offered when a logged-in user is viewing a Protocol they don't
+  // own. Logged-out users see Protocols too but can't fork (no account to
+  // own a copy); they can still Use.
+  const canFork =
+    !owner && evaluation.visibility === 'protocol' && user != null;
 
   const handleUseThis = () => {
     setActiveEvaluationId(evaluation.id);
@@ -117,13 +136,27 @@ export default function EvaluationDetailPage() {
     }
   };
 
+  const handleFork = async () => {
+    if (isForking) return;
+    setForkError(null);
+    setIsForking(true);
+    try {
+      const copy = await evaluationStorage.fork(evaluation.id);
+      navigate(`/evaluations/${copy.id}`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to fork evaluation.';
+      setForkError(message);
+      setIsForking(false);
+    }
+  };
+
   const configuredCount = evaluation.mod_set_configs.filter(
     (c) => c.variants.length > 0
   ).length;
   const totalSets = modSets.length;
   const progressPercent =
     totalSets === 0 ? 0 : Math.round((configuredCount / totalSets) * 100);
-  const owner = isOwner(evaluation, user);
 
   return (
     <Layout>
@@ -144,7 +177,12 @@ export default function EvaluationDetailPage() {
               className={styles.heroCard}
             >
               <span className={styles.heroAccent} aria-hidden="true" />
-              <p className={styles.heroEyebrow}>Evaluation Profile</p>
+              <div className={styles.heroTopRow}>
+                <p className={styles.heroEyebrow}>Evaluation Profile</p>
+                <Badge variant={badge.variant} size="sm">
+                  {badge.label}
+                </Badge>
+              </div>
               <h1 className={styles.heroTitle}>{evaluation.name}</h1>
               {evaluation.description && (
                 <p className={styles.heroDesc}>{evaluation.description}</p>
@@ -159,6 +197,15 @@ export default function EvaluationDetailPage() {
                     <Button variant="outline">Edit</Button>
                   </Link>
                 )}
+                {canFork && (
+                  <Button
+                    variant="outline"
+                    onClick={handleFork}
+                    disabled={isForking}
+                  >
+                    {isForking ? 'Forking…' : 'Fork'}
+                  </Button>
+                )}
                 <Button variant="outline" onClick={handleExport}>
                   Export
                 </Button>
@@ -170,6 +217,11 @@ export default function EvaluationDetailPage() {
                   </span>
                 )}
               </div>
+              {forkError && (
+                <p role="alert" style={{ color: 'var(--color-danger, #d33)', margin: 0 }}>
+                  {forkError}
+                </p>
+              )}
             </Card>
 
             <Card chamfered chamferSize="sm" padding="none" className={styles.statusCard}>
@@ -188,57 +240,7 @@ export default function EvaluationDetailPage() {
               </div>
             </Card>
 
-            <section className={styles.section}>
-              <header className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>Mod sets</h2>
-                <p className={styles.sectionMeta}>
-                  {totalSets === 0
-                    ? 'Awaiting set data'
-                    : `${configuredCount} of ${totalSets} configured`}
-                </p>
-              </header>
-
-              {totalSets === 0 ? (
-                <p className={styles.loading}>Loading mod sets…</p>
-              ) : (
-                <div className={styles.setList} role="list">
-                  {modSets.map((set) => {
-                    const config = evaluation.mod_set_configs.find(
-                      (c) => c.set_id === set.set_id
-                    );
-                    const count = config?.variants.length ?? 0;
-                    const configured = count > 0;
-                    return (
-                      <Card
-                        key={set.set_id}
-                        chamfered
-                        padding="none"
-                        showDiagonalBorders
-                        diagonalBorderColor={
-                          configured ? 'var(--color-success)' : 'var(--color-border)'
-                        }
-                        className={`${styles.setRow} ${configured ? styles.setRowConfigured : ''}`}
-                      >
-                        <span className={styles.setRowName}>{set.name}</span>
-                        <div className={styles.setRowMeta}>
-                          <span className={styles.setRowCount}>
-                            {configured
-                              ? `${count} scoring rule${count === 1 ? '' : 's'}`
-                              : 'No scoring rules'}
-                          </span>
-                          <Badge
-                            variant={configured ? 'success' : 'default'}
-                            size="sm"
-                          >
-                            {configured ? 'Configured' : 'Unconfigured'}
-                          </Badge>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+            <EvaluationView evaluation={evaluation} />
           </div>
         </div>
       </Container>

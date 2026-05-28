@@ -43,10 +43,18 @@
 
 .shell {
   width: 100%;
-  max-width: 960px;
+  max-width: 1100px;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+}
+
+.heroTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .back {

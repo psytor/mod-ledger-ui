@@ -4,7 +4,9 @@ import { Button, Card, Container, Modal, useAuth, type User } from 'astrogators-
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useMods } from '@/contexts/ModContext';
-import type { StatDefinition } from '@/services/gameDataApi';
+import RollTargetsGrid from '@/components/evaluation/RollTargetsGrid';
+import SetBlock from '@/components/evaluation/SetBlock';
+import type { TierView } from '@/components/evaluation/evaluationHelpers';
 import type {
   Evaluation,
   ModSetConfig,
@@ -25,27 +27,6 @@ type LoadState =
   | { kind: 'ready'; existing: Evaluation | null }
   | { kind: 'not-found' }
   | { kind: 'forbidden' };
-
-function statDisplayName(s: StatDefinition): string {
-  return s.is_percentage ? `${s.name} %` : s.name;
-}
-
-type TierView = 5 | 6;
-
-// Linear interp on the stat's per-roll range. Whole number for flat stats,
-// 2 decimals + "%" for percent stats (matches in-game presentation).
-// Returns null when the stat has no roll bounds (e.g. primary-only stats).
-function formatRollAt(
-  stat: StatDefinition,
-  efficiency: number,
-  tier: TierView
-): string | null {
-  const min = tier === 6 ? stat.min_roll_6 : stat.min_roll_5;
-  const max = tier === 6 ? stat.max_roll_6 : stat.max_roll_5;
-  if (min === undefined || max === undefined) return null;
-  const value = min + efficiency * (max - min);
-  return stat.is_percentage ? `${value.toFixed(2)}%` : `${Math.round(value)}`;
-}
 
 function emptyVariant(masterTargets: Record<number, number> = {}): Variant {
   return {
@@ -519,64 +500,32 @@ export default function RuleBuilderPage() {
                 <div className={styles.setList}>
                   {modSets.map((set) => {
                     const variants = variantsBySet.get(set.set_id) ?? [];
-                    const configured = variants.length > 0;
                     return (
-                      <Card
+                      <SetBlock
                         key={set.set_id}
-                        chamfered
-                        chamferSize="md"
-                        padding="none"
-                        showDiagonalBorders
-                        diagonalBorderColor={configured ? 'var(--color-success)' : 'var(--color-border)'}
-                        className={`${styles.setCard} ${configured ? styles.setCardConfigured : ''}`}
-                      >
-                        <div className={styles.setHeader}>
-                          <h3 className={styles.setName}>{set.name} Set</h3>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addVariant(set.set_id)}
-                          >
-                            + Add scoring rule
-                          </Button>
-                        </div>
-
-                        {variants.length === 0 ? (
-                          <p className={styles.setEmpty}>
-                            No scoring rules — mods of this set will be UNCONFIGURED.
-                          </p>
-                        ) : (
-                          <div className={styles.variantList}>
-                            {variants.map((v, idx) => (
-                              <VariantEditor
-                                key={v.id}
-                                variant={v}
-                                index={idx}
-                                total={variants.length}
-                                primaryStats={orderedPrimaryStats}
-                                secondaryStats={orderedSecondaryStats}
-                                tierView={tierView}
-                                onRename={(n) => renameVariant(set.set_id, v.id, n)}
-                                onDelete={() => deleteVariant(set.set_id, v.id)}
-                                onMove={(dir) => moveVariant(set.set_id, v.id, dir)}
-                                onSetPrimary={(sid, c) =>
-                                  setPrimaryClass(set.set_id, v.id, sid, c)
-                                }
-                                onSetSecondary={(sid, c) =>
-                                  setSecondaryClass(set.set_id, v.id, sid, c)
-                                }
-                                onSetTarget={(sid, val) =>
-                                  setSecondaryTarget(set.set_id, v.id, sid, val)
-                                }
-                                onToggleMaster={(checked) =>
-                                  toggleVariantMaster(set.set_id, v.id, checked)
-                                }
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </Card>
+                        mode="edit"
+                        set={set}
+                        variants={variants}
+                        primaryStats={orderedPrimaryStats}
+                        secondaryStats={orderedSecondaryStats}
+                        tierView={tierView}
+                        onAddVariant={() => addVariant(set.set_id)}
+                        onRenameVariant={(vid, n) => renameVariant(set.set_id, vid, n)}
+                        onDeleteVariant={(vid) => deleteVariant(set.set_id, vid)}
+                        onMoveVariant={(vid, dir) => moveVariant(set.set_id, vid, dir)}
+                        onSetPrimary={(vid, sid, c) =>
+                          setPrimaryClass(set.set_id, vid, sid, c)
+                        }
+                        onSetSecondary={(vid, sid, c) =>
+                          setSecondaryClass(set.set_id, vid, sid, c)
+                        }
+                        onSetTarget={(vid, sid, val) =>
+                          setSecondaryTarget(set.set_id, vid, sid, val)
+                        }
+                        onToggleMaster={(vid, checked) =>
+                          toggleVariantMaster(set.set_id, vid, checked)
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -647,289 +596,5 @@ export default function RuleBuilderPage() {
         </div>
       </Modal>
     </Layout>
-  );
-}
-
-interface RollTargetsGridProps {
-  values: Record<number, number>;
-  secondaryStats: StatDefinition[];
-  tierView: TierView;
-  onSetTarget: (statId: number, sliderValue: number) => void;
-  disabled?: boolean;
-}
-
-function RollTargetsGrid({
-  values,
-  secondaryStats,
-  tierView,
-  onSetTarget,
-  disabled = false,
-}: RollTargetsGridProps) {
-  return (
-    <div className={styles.targetGrid}>
-      {secondaryStats.map((stat) => {
-        const stored = values[stat.stat_id];
-        const value = stored === undefined ? 50 : Math.round(stored * 100);
-        const rollText = formatRollAt(stat, value / 100, tierView);
-        return (
-          <div
-            key={stat.stat_id}
-            className={styles.targetRow}
-            data-disabled={disabled || undefined}
-          >
-            <span className={styles.targetName}>
-              {stat.is_percentage ? `${stat.name} %` : stat.name}
-            </span>
-            <span className={styles.targetValue}>
-              {value}%
-              {rollText !== null && (
-                <span className={styles.targetApprox}> (≈{rollText})</span>
-              )}
-            </span>
-            <input
-              type="range"
-              min={1}
-              max={99}
-              step={1}
-              value={value}
-              disabled={disabled}
-              onChange={(e) => onSetTarget(stat.stat_id, Number(e.target.value))}
-              className={styles.targetSlider}
-              autoComplete="off"
-              data-lpignore="true"
-              data-form-type="other"
-            />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-interface VariantEditorProps {
-  variant: Variant;
-  index: number;
-  total: number;
-  primaryStats: StatDefinition[];
-  secondaryStats: StatDefinition[];
-  tierView: TierView;
-  onRename: (name: string) => void;
-  onDelete: () => void;
-  onMove: (dir: -1 | 1) => void;
-  onSetPrimary: (statId: number, c: PrimaryClassification) => void;
-  onSetSecondary: (statId: number, c: SecondaryClassification) => void;
-  onSetTarget: (statId: number, sliderValue: number) => void;
-  onToggleMaster: (checked: boolean) => void;
-}
-
-function VariantEditor({
-  variant,
-  index,
-  total,
-  primaryStats,
-  secondaryStats,
-  tierView,
-  onRename,
-  onDelete,
-  onMove,
-  onSetPrimary,
-  onSetSecondary,
-  onSetTarget,
-  onToggleMaster,
-}: VariantEditorProps) {
-  const counts = countClassifications(variant);
-  const following = variant.uses_master_targets;
-
-  return (
-    <Card chamfered chamferSize="sm" padding="none" className={styles.variantCard}>
-      <div className={styles.variantHeader}>
-        <input
-          type="text"
-          value={variant.name}
-          onChange={(e) => onRename(e.target.value)}
-          className={styles.variantNameInput}
-          autoComplete="off"
-          data-lpignore="true"
-          data-form-type="other"
-        />
-        <label className={styles.followMasterToggle} title="Mirror the master Roll Targets panel">
-          <input
-            type="checkbox"
-            checked={following}
-            onChange={(e) => onToggleMaster(e.target.checked)}
-          />
-          <span>Follow master</span>
-        </label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={index === 0}
-          onClick={() => onMove(-1)}
-        >
-          ↑
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={index === total - 1}
-          onClick={() => onMove(1)}
-        >
-          ↓
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onDelete}>
-          Delete
-        </Button>
-      </div>
-
-      <hr className={styles.divider} />
-
-      <ChipSection
-        title="Primary stats"
-        stats={primaryStats}
-        cycle={PRIMARY_CYCLE}
-        getClass={(sid) => variant.primary_classifications[sid] ?? 'neutral'}
-        setClass={(sid, c) => onSetPrimary(sid, c as PrimaryClassification)}
-        counts={[
-          { color: 'var(--color-secondary)', label: 'Wanted', value: counts.wanted },
-          { color: 'var(--color-error)', label: 'Not wanted', value: counts.notWanted },
-        ]}
-      />
-
-      <hr className={styles.divider} />
-
-      <ChipSection
-        title="Secondary stats"
-        stats={secondaryStats}
-        cycle={SECONDARY_CYCLE}
-        getClass={(sid) => variant.secondary_classifications[sid] ?? 'neutral'}
-        setClass={(sid, c) => onSetSecondary(sid, c as SecondaryClassification)}
-        counts={[
-          { color: 'var(--color-secondary)', label: 'Required', value: counts.required },
-          { color: 'var(--color-info)', label: 'Complementary', value: counts.complementary },
-        ]}
-      />
-
-      <hr className={styles.divider} />
-
-      <div className={styles.section}>
-        <div className={styles.sectionHeadInline}>
-          <h4 className={styles.sectionTitle}>Roll targets</h4>
-          {following && (
-            <span className={styles.followingHint}>Following master</span>
-          )}
-        </div>
-        <p className={styles.targetIntro}>
-          Efficiency you'd be happy to hit per stat. Target = 50 points,
-          100% = 100 points; below scales down, above scales up steeply.
-          The approximate value in parentheses is the per-roll stat amount at
-          that efficiency for a {tierView}-dot mod.
-        </p>
-        <RollTargetsGrid
-          values={variant.secondary_targets}
-          secondaryStats={secondaryStats}
-          tierView={tierView}
-          onSetTarget={onSetTarget}
-          disabled={following}
-        />
-      </div>
-    </Card>
-  );
-}
-
-function countClassifications(variant: Variant) {
-  let wanted = 0;
-  let notWanted = 0;
-  for (const c of Object.values(variant.primary_classifications)) {
-    if (c === 'wanted') wanted++;
-    else if (c === 'not_wanted') notWanted++;
-  }
-  let required = 0;
-  let complementary = 0;
-  for (const c of Object.values(variant.secondary_classifications)) {
-    if (c === 'required') required++;
-    else if (c === 'complementary') complementary++;
-  }
-  return { wanted, notWanted, required, complementary };
-}
-
-// State cycle: click neutral → first non-neutral state → second → back to neutral.
-type ChipState = {
-  value: string;
-  label: string;
-  swatchColor: string;
-};
-
-const PRIMARY_CYCLE: ChipState[] = [
-  { value: 'neutral', label: 'Neutral', swatchColor: 'transparent' },
-  { value: 'wanted', label: 'Wanted', swatchColor: 'var(--color-secondary)' },
-  { value: 'not_wanted', label: 'Not wanted', swatchColor: 'var(--color-error)' },
-];
-
-const SECONDARY_CYCLE: ChipState[] = [
-  { value: 'neutral', label: 'Neutral', swatchColor: 'transparent' },
-  { value: 'required', label: 'Required', swatchColor: 'var(--color-secondary)' },
-  { value: 'complementary', label: 'Complementary', swatchColor: 'var(--color-info)' },
-];
-
-interface SectionCount {
-  color: string;
-  label: string;
-  value: number;
-}
-
-interface ChipSectionProps {
-  title: string;
-  stats: StatDefinition[];
-  cycle: ChipState[];
-  getClass: (statId: number) => string;
-  setClass: (statId: number, value: string) => void;
-  counts?: SectionCount[];
-}
-
-function ChipSection({ title, stats, cycle, getClass, setClass, counts }: ChipSectionProps) {
-  const nextState = (current: string): string => {
-    const idx = cycle.findIndex((s) => s.value === current);
-    return cycle[(idx + 1) % cycle.length].value;
-  };
-
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeadInline}>
-        <h4 className={styles.sectionTitle}>{title}</h4>
-        <div className={styles.legend}>
-          {(counts ?? cycle
-            .filter((s) => s.value !== 'neutral')
-            .map((s) => ({ color: s.swatchColor, label: s.label, value: undefined as number | undefined }))
-          ).map((item) => (
-            <span key={item.label}>
-              <span
-                className={styles.swatch}
-                style={{ background: item.color }}
-              />
-              {item.label}
-              {item.value !== undefined && ` ${item.value}`}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className={styles.chips}>
-        {stats.map((stat) => {
-          const current = getClass(stat.stat_id);
-          return (
-            <button
-              key={stat.stat_id}
-              type="button"
-              data-state={current}
-              className={styles.chip}
-              onClick={() => setClass(stat.stat_id, nextState(current))}
-            >
-              {statDisplayName(stat)}
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
