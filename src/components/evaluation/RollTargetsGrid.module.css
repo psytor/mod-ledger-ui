@@ -1,7 +1,17 @@
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* Fixed 3 columns so the master panel and the per-rule cards render
+     identically regardless of their differing container widths — the
+     master is full-width while the rule grids are nested inside the set
+     and rule card padding. Width-driven auto-fill diverged (4 vs 3). */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--spacing-sm) var(--spacing-md);
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
 }
 
 .row {
