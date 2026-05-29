@@ -1,8 +1,4 @@
-import type {
-  EvaluationAuthor,
-  EvaluationSourceProtocol,
-  ModSetConfig,
-} from './evaluation';
+import type { EvaluationAuthor, ModSetConfig } from './evaluation';
 
 export const EVALUATION_EXPORT_FORMAT = 'mod-ledger.evaluation';
 export const EVALUATION_EXPORT_SCHEMA_VERSION = 1;
@@ -21,7 +17,6 @@ export type EvaluationExportV1 = {
     mod_set_configs: ModSetConfig[];
     master_secondary_targets: Record<number, number>;
     authoredBy: EvaluationAuthor | null;
-    sourceProtocol: EvaluationSourceProtocol | null;
   };
 };
 

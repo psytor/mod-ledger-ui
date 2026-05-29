@@ -38,15 +38,6 @@ export type EvaluationAuthor = {
   username: string | null;
 };
 
-// For forks of admin-curated Protocols: the local copy stores the source
-// Protocol's lineage key + the version it was forked from. The Stage D
-// "update available" banner compares storedProtocolVersion against the
-// Protocol's current version.
-export type EvaluationSourceProtocol = {
-  protocolId: string;
-  protocolVersion: number;
-};
-
 // Visibility levels: mirrors the backend enum.
 // - private: owner-only (the default)
 // - protocol: admin-curated, anyone can Use or Fork
@@ -58,8 +49,7 @@ export type Evaluation = {
   // Matches astrogators-table users.id (Integer). null = local/unauth record.
   ownerUserId: number | null;
   visibility: EvaluationVisibility;
-  // Bumps on every save server-side; the Stage D "update available" banner
-  // compares against sourceProtocol.protocolVersion. Local-only records use 1.
+  // Bumps on every save server-side. Local-only records use 1.
   version: number;
   name: string;
   description: string;
@@ -68,7 +58,6 @@ export type Evaluation = {
   // Variant.secondary_targets. Empty {} means "all sliders at default".
   master_secondary_targets: Record<number, number>;
   authoredBy: EvaluationAuthor | null;
-  sourceProtocol: EvaluationSourceProtocol | null;
   createdAt: number;
   updatedAt: number;
 };

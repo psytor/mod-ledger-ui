@@ -48,12 +48,13 @@ class EvaluationStorage {
         localStorage.removeItem(STORAGE_KEY);
         return [];
       }
-      // Soft-migrate records that pre-date authoredBy/sourceProtocol/
-      // visibility/version. Pre-rename `sourceTemplate`/`isPublic` keys
-      // are dropped (pre-production rename, no compat shim).
+      // Soft-migrate records that pre-date authoredBy/visibility/version.
+      // Pre-rename keys (`sourceTemplate`, `isPublic`, `sourceProtocol`)
+      // ride along in the spread but become unused excess fields under
+      // the current type; nothing reads them (pre-production rename,
+      // no compat shim).
       return parsed.map((e) => ({
         authoredBy: null,
-        sourceProtocol: null,
         visibility: 'private',
         version: 1,
         ...e,
@@ -191,7 +192,6 @@ class EvaluationStorage {
         // author through subsequent re-exports). Fall back to the
         // exporter's identity when this is a fresh user-created eval.
         authoredBy: evaluation.authoredBy ?? author,
-        sourceProtocol: evaluation.sourceProtocol,
       },
     };
     return JSON.stringify(payload, null, 2);
@@ -224,7 +224,6 @@ class EvaluationStorage {
       mod_set_configs: ev.mod_set_configs,
       master_secondary_targets: ev.master_secondary_targets,
       authoredBy: ev.authoredBy,
-      sourceProtocol: ev.sourceProtocol,
     });
   }
 

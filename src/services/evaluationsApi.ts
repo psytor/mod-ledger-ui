@@ -23,8 +23,6 @@ interface EvaluationWire {
   visibility: EvaluationVisibility;
   protocol_id: string | null;
   version: number;
-  source_protocol_id: string | null;
-  source_protocol_version: number | null;
   authored_by_user_id: number | null;
   name: string;
   description: string;
@@ -71,13 +69,6 @@ function fromWire(w: EvaluationWire): Evaluation {
       w.authored_by_user_id == null
         ? null
         : { userId: String(w.authored_by_user_id), username: null },
-    sourceProtocol:
-      w.source_protocol_id == null
-        ? null
-        : {
-            protocolId: w.source_protocol_id,
-            protocolVersion: w.source_protocol_version ?? 1,
-          },
     createdAt: new Date(w.created_at).getTime(),
     updatedAt: new Date(w.updated_at).getTime(),
   };

@@ -338,7 +338,6 @@ export default function RuleBuilderPage() {
           mod_set_configs: configs,
           master_secondary_targets: masterTargets,
           authoredBy: null,
-          sourceProtocol: null,
         });
         navigate(`/evaluations/${created.id}`);
       }

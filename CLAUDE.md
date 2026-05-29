@@ -203,11 +203,11 @@ escape — see the workspace memory rule
 `no-silent-local-fallback-when-authed` for the rationale.
 
 **Backend wire format vs frontend type.** The backend uses snake_case
-and ISO datetimes (`owner_user_id`, `source_protocol_id`,
-`created_at`); the frontend type uses camelCase epoch ms
-(`ownerUserId`, `sourceProtocol`, `createdAt`). The translation lives
-inside `evaluationsApi.ts` (`fromWire` / `toWriteWire`); the rest of
-the app sees Evaluations in the frontend shape only.
+and ISO datetimes (`owner_user_id`, `authored_by_user_id`, `created_at`);
+the frontend type uses camelCase epoch ms (`ownerUserId`, `authoredBy`,
+`createdAt`). The translation lives inside `evaluationsApi.ts`
+(`fromWire` / `toWriteWire`); the rest of the app sees Evaluations in
+the frontend shape only.
 
 ### When extending the engine
 
