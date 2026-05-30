@@ -16,10 +16,26 @@ import type {
 } from '@/types/evaluation';
 import styles from './RuleBuilderPage.module.css';
 
+// shared-ui's User omits the optional `role`; astrogators-table returns it.
+type UserWithRole = User & { role?: string };
+
 // Ownership predicate — see EvaluationDetailPage.isOwner for the rationale.
+// Protocols are admin-collective (no individual owner), so they're never
+// "owned" here — edit access for them is the admin check below.
 function isOwner(ev: Evaluation, user: User | null): boolean {
+  if (ev.visibility === 'protocol') return false;
   if (user == null) return ev.ownerUserId === null;
   return ev.ownerUserId === Number(user.id);
+}
+
+function isAdmin(user: User | null): boolean {
+  return (user as UserWithRole | null)?.role === 'admin';
+}
+
+// Who may open this evaluation in the builder: its owner, or any admin if
+// it's a Protocol (admin-collective).
+function canEdit(ev: Evaluation, user: User | null): boolean {
+  return isOwner(ev, user) || (isAdmin(user) && ev.visibility === 'protocol');
 }
 
 type LoadState =
@@ -100,7 +116,7 @@ export default function RuleBuilderPage() {
           setState({ kind: 'not-found' });
           return;
         }
-        if (!isOwner(ev, user)) {
+        if (!canEdit(ev, user)) {
           setState({ kind: 'forbidden' });
           return;
         }

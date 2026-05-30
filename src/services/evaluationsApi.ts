@@ -195,16 +195,25 @@ class EvaluationsApiClient {
     await this.request<void>(`/${id}`, { method: 'DELETE' });
   }
 
+  // Owner-only Share / Stop-sharing — flips private ↔ manifest. Promotion
+  // to Protocol is a separate operation (publish), not a visibility set.
   async setVisibility(
     id: string,
-    body: { visibility: EvaluationVisibility; protocolId?: string }
+    visibility: Exclude<EvaluationVisibility, 'protocol'>
   ): Promise<Evaluation> {
     const row = await this.request<EvaluationWire>(`/${id}/visibility`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        visibility: body.visibility,
-        protocol_id: body.protocolId,
-      }),
+      body: JSON.stringify({ visibility }),
+    });
+    return fromWire(row);
+  }
+
+  // Admin-only: snapshot a viewable eval into a NEW admin-owned Protocol.
+  // Returns the new Protocol (a different id from the source).
+  async publish(id: string, protocolId: string): Promise<Evaluation> {
+    const row = await this.request<EvaluationWire>(`/${id}/publish`, {
+      method: 'POST',
+      body: JSON.stringify({ protocol_id: protocolId }),
     });
     return fromWire(row);
   }

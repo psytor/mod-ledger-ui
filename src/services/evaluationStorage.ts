@@ -177,21 +177,25 @@ class EvaluationStorage {
     return evaluationsApi.createCopy(id, name);
   }
 
-  // Visibility changes (Share / Stop Sharing / admin Publish) only exist
-  // server-side. The backend enforces role-aware transitions; the UI just
-  // sends the requested visibility (+ protocol_id on first promotion).
+  // Owner-driven Share / Stop Sharing — flips private ↔ manifest. Backend
+  // enforces ownership. Promotion to Protocol is `publish`, not this.
   async setVisibility(
     id: string,
-    visibility: EvaluationVisibility,
-    opts: { protocolId?: string } = {}
+    visibility: Exclude<EvaluationVisibility, 'protocol'>
   ): Promise<Evaluation> {
     if (!this.isAuthenticated()) {
       throw new Error('Sign in to change visibility.');
     }
-    return evaluationsApi.setVisibility(id, {
-      visibility,
-      protocolId: opts.protocolId,
-    });
+    return evaluationsApi.setVisibility(id, visibility);
+  }
+
+  // Admin-only Publish — snapshots a viewable eval into a NEW admin-owned
+  // Protocol. Returns the new Protocol (a different id from the source).
+  async publish(id: string, protocolId: string): Promise<Evaluation> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Sign in to publish.');
+    }
+    return evaluationsApi.publish(id, protocolId);
   }
 
   // ─── export / import (offline-friendly, takes the eval directly) ─────

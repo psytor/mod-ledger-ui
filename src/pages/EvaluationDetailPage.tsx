@@ -28,6 +28,9 @@ type UserWithRole = User & { role?: string };
 // - Logged in: backend records carry ownerUserId === user.id (numeric).
 //   Shared-ui's User.id is a string, so we coerce for the comparison.
 function isOwner(ev: Evaluation, user: User | null): boolean {
+  // Protocols are admin-collective (ownerUserId is null) — nobody owns one
+  // personally, so the null-means-mine localStorage rule must not apply.
+  if (ev.visibility === 'protocol') return false;
   if (user == null) return ev.ownerUserId === null;
   return ev.ownerUserId === Number(user.id);
 }
@@ -136,6 +139,12 @@ export default function EvaluationDetailPage() {
   const badge = visibilityBadge(evaluation.visibility);
   const canPublish = admin && evaluation.visibility === 'manifest';
   const canStopSharing = owner && evaluation.visibility === 'manifest';
+  // Protocols are admin-collective: any admin can edit/delete them even
+  // though nobody owns one. Edit/Delete show for the owner OR an admin
+  // looking at a Protocol.
+  const canManageProtocol = admin && evaluation.visibility === 'protocol';
+  const canEdit = owner || canManageProtocol;
+  const canDelete = owner || canManageProtocol;
   // Copy an eval you can see but don't own (a Protocol, or a Manifest link)
   // into your own account. Requires being signed in; your own evals offer
   // Edit instead.
@@ -295,17 +304,12 @@ export default function EvaluationDetailPage() {
     setPublishError(null);
     setIsPublishing(true);
     try {
-      const updated = await evaluationStorage.setVisibility(
-        evaluation.id,
-        'protocol',
-        { protocolId: slug }
-      );
-      replaceState(updated);
+      // Publish snapshots a NEW admin-owned Protocol (a different id). The
+      // source Manifest is untouched; navigate the admin to the live
+      // Protocol they just created.
+      const protocol = await evaluationStorage.publish(evaluation.id, slug);
       setPublishModal(false);
-      setShareFeedback({
-        kind: 'success',
-        message: `Published as Protocol "${slug}". Anyone can now find it.`,
-      });
+      navigate(`/evaluations/${protocol.id}`);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to publish.';
@@ -356,7 +360,7 @@ export default function EvaluationDetailPage() {
                 <Button variant="primary" onClick={handleUseThis}>
                   Use this
                 </Button>
-                {owner && (
+                {canEdit && (
                   <Link to={`/evaluations/${evaluation.id}/edit`}>
                     <Button variant="outline">Edit</Button>
                   </Link>
@@ -390,10 +394,10 @@ export default function EvaluationDetailPage() {
                 <Button variant="outline" onClick={handleExport}>
                   Export
                 </Button>
-                {owner && (
+                {canDelete && (
                   <span className={styles.danger}>
                     <Button variant="danger" onClick={handleDelete}>
-                      Delete
+                      {canManageProtocol && !owner ? 'Delete Protocol' : 'Delete'}
                     </Button>
                   </span>
                 )}

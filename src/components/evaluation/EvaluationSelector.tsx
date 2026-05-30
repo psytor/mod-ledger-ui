@@ -4,35 +4,40 @@ import { Button, Select, useAuth } from 'astrogators-shared-ui';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { useMods } from '@/contexts/ModContext';
 import { evaluationStorage } from '@/services/evaluationStorage';
+import { evaluationsApi } from '@/services/evaluationsApi';
 import type { Evaluation } from '@/types/evaluation';
 
 export default function EvaluationSelector() {
   const { activeEvaluationId, setActiveEvaluationId, runEvaluation, verdicts } = useEvaluation();
   const { mods } = useMods();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [mine, setMine] = useState<Evaluation[]>([]);
+  const [protocols, setProtocols] = useState<Evaluation[]>([]);
 
   useEffect(() => {
     if (isAuthLoading) return;
     let cancelled = false;
+    // Mine + Protocols are independent sources; Protocols are world-readable
+    // so they load regardless of auth (you can Use one without owning it).
     void evaluationStorage
       .listMine()
-      .then((list) => {
-        if (cancelled) return;
-        setEvaluations(list);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setEvaluations([]);
-      });
+      .then((list) => !cancelled && setMine(list))
+      .catch(() => !cancelled && setMine([]));
+    void evaluationsApi
+      .listProtocols()
+      .then((list) => !cancelled && setProtocols(list))
+      .catch(() => !cancelled && setProtocols([]));
     return () => {
       cancelled = true;
     };
   }, [isAuthLoading, isAuthenticated]);
 
-  const active = evaluations.find((e) => e.id === activeEvaluationId) ?? null;
+  // The active id may point at either list — a Used Protocol you don't own
+  // still needs to resolve here so the Evaluate button stays enabled.
+  const active =
+    [...mine, ...protocols].find((e) => e.id === activeEvaluationId) ?? null;
 
-  if (evaluations.length === 0) {
+  if (mine.length === 0 && protocols.length === 0) {
     return (
       <div
         style={{
@@ -76,11 +81,24 @@ export default function EvaluationSelector() {
         }
       >
         <option value="">— None —</option>
-        {evaluations.map((ev) => (
-          <option key={ev.id} value={ev.id}>
-            {ev.name}
-          </option>
-        ))}
+        {mine.length > 0 && (
+          <optgroup label="My Evaluations">
+            {mine.map((ev) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {protocols.length > 0 && (
+          <optgroup label="Protocols">
+            {protocols.map((ev) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
       </Select>
       <Button
         variant="primary"
