@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Badge, Button, Card, Container, useAuth, type User } from 'astrogators-shared-ui';
+import {
+  Badge,
+  Button,
+  Card,
+  Container,
+  Modal,
+  useAuth,
+  type User,
+} from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import EvaluationView from '@/components/evaluation/EvaluationView';
 import { evaluationStorage } from '@/services/evaluationStorage';
@@ -8,6 +16,11 @@ import { useEvaluation } from '@/contexts/EvaluationContext';
 import { useMods } from '@/contexts/ModContext';
 import type { Evaluation, EvaluationVisibility } from '@/types/evaluation';
 import styles from './EvaluationDetailPage.module.css';
+
+// shared-ui's User type omits `role` (it's optional in the shared package
+// today), but astrogators-table's /users/me does return it at runtime.
+// Local widening here lets us read role without a shared-ui bump.
+type UserWithRole = User & { role?: string };
 
 // Ownership predicate.
 // - Logged out: localStorage records have ownerUserId === null → owner.
@@ -18,6 +31,10 @@ function isOwner(ev: Evaluation, user: User | null): boolean {
   return ev.ownerUserId === Number(user.id);
 }
 
+function isAdmin(user: User | null): boolean {
+  return (user as UserWithRole | null)?.role === 'admin';
+}
+
 function slugifyForFilename(name: string): string {
   const slug = name
     .toLowerCase()
@@ -26,6 +43,8 @@ function slugifyForFilename(name: string): string {
   return slug || 'evaluation';
 }
 
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 function visibilityBadge(v: EvaluationVisibility): {
   label: string;
   variant: 'default' | 'info' | 'success';
@@ -33,6 +52,15 @@ function visibilityBadge(v: EvaluationVisibility): {
   if (v === 'protocol') return { label: 'Protocol', variant: 'info' };
   if (v === 'manifest') return { label: 'Manifest', variant: 'success' };
   return { label: 'Private', variant: 'default' };
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export default function EvaluationDetailPage() {
@@ -46,8 +74,16 @@ export default function EvaluationDetailPage() {
     | { kind: 'not-found' }
     | { kind: 'ready'; evaluation: Evaluation }
   >({ kind: 'loading' });
-  const [forkError, setForkError] = useState<string | null>(null);
-  const [isForking, setIsForking] = useState(false);
+  // Share / Stop Sharing share one feedback channel — they're never both
+  // mid-flight, and either lands by mutating the same hero badge.
+  const [shareFeedback, setShareFeedback] = useState<
+    { kind: 'success' | 'error'; message: string } | null
+  >(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [publishModal, setPublishModal] = useState(false);
+  const [publishSlug, setPublishSlug] = useState('');
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -90,12 +126,15 @@ export default function EvaluationDetailPage() {
 
   const { evaluation } = state;
   const owner = isOwner(evaluation, user);
+  const admin = isAdmin(user);
   const badge = visibilityBadge(evaluation.visibility);
-  // Fork is offered when a logged-in user is viewing a Protocol they don't
-  // own. Logged-out users see Protocols too but can't fork (no account to
-  // own a copy); they can still Use.
-  const canFork =
-    !owner && evaluation.visibility === 'protocol' && user != null;
+  const canPublish = admin && evaluation.visibility === 'manifest';
+  const canStopSharing = owner && evaluation.visibility === 'manifest';
+
+  const detailUrl = `${window.location.origin}${window.location.pathname}`;
+
+  const replaceState = (next: Evaluation) =>
+    setState({ kind: 'ready', evaluation: next });
 
   const handleUseThis = () => {
     setActiveEvaluationId(evaluation.id);
@@ -136,18 +175,109 @@ export default function EvaluationDetailPage() {
     }
   };
 
-  const handleFork = async () => {
-    if (isForking) return;
-    setForkError(null);
-    setIsForking(true);
+  const handleShare = async () => {
+    if (isSharing) return;
+    setShareFeedback(null);
+    // Owner + currently Private: Share is the flip-to-Manifest moment.
+    // Anything else: it's just a clipboard copy.
+    const shouldFlipToManifest = owner && evaluation.visibility === 'private';
+    setIsSharing(true);
     try {
-      const copy = await evaluationStorage.fork(evaluation.id);
-      navigate(`/evaluations/${copy.id}`);
+      if (shouldFlipToManifest) {
+        const updated = await evaluationStorage.setVisibility(
+          evaluation.id,
+          'manifest'
+        );
+        replaceState(updated);
+      }
+      const copied = await copyToClipboard(detailUrl);
+      setShareFeedback({
+        kind: 'success',
+        message: shouldFlipToManifest
+          ? copied
+            ? 'Shared — link copied to clipboard.'
+            : 'Shared. Copy the URL from the address bar to share it.'
+          : copied
+            ? 'Link copied to clipboard.'
+            : 'Copy the URL from the address bar.',
+      });
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Failed to fork evaluation.';
-      setForkError(message);
-      setIsForking(false);
+        err instanceof Error ? err.message : 'Failed to share evaluation.';
+      setShareFeedback({ kind: 'error', message });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleStopSharing = async () => {
+    if (isSharing) return;
+    const confirmed = window.confirm(
+      'Stop sharing this evaluation? Old shared links will stop working ' +
+        'for everyone except you.'
+    );
+    if (!confirmed) return;
+    setShareFeedback(null);
+    setIsSharing(true);
+    try {
+      const updated = await evaluationStorage.setVisibility(
+        evaluation.id,
+        'private'
+      );
+      replaceState(updated);
+      setShareFeedback({
+        kind: 'success',
+        message: 'Sharing stopped. Old shared links now 404 for others.',
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to stop sharing.';
+      setShareFeedback({ kind: 'error', message });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const openPublishModal = () => {
+    setPublishSlug('');
+    setPublishError(null);
+    setPublishModal(true);
+  };
+
+  const closePublishModal = () => {
+    if (isPublishing) return;
+    setPublishModal(false);
+  };
+
+  const submitPublish = async () => {
+    if (isPublishing) return;
+    const slug = publishSlug.trim();
+    if (!SLUG_PATTERN.test(slug)) {
+      setPublishError(
+        'Slug must be lowercase letters, numbers, and hyphens (e.g. speed-mod).'
+      );
+      return;
+    }
+    setPublishError(null);
+    setIsPublishing(true);
+    try {
+      const updated = await evaluationStorage.setVisibility(
+        evaluation.id,
+        'protocol',
+        { protocolId: slug }
+      );
+      replaceState(updated);
+      setPublishModal(false);
+      setShareFeedback({
+        kind: 'success',
+        message: `Published as Protocol "${slug}". Anyone can now find it.`,
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to publish.';
+      setPublishError(message);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -197,13 +327,25 @@ export default function EvaluationDetailPage() {
                     <Button variant="outline">Edit</Button>
                   </Link>
                 )}
-                {canFork && (
+                <Button
+                  variant="outline"
+                  onClick={handleShare}
+                  disabled={isSharing}
+                >
+                  {isSharing ? 'Sharing…' : 'Share'}
+                </Button>
+                {canStopSharing && (
                   <Button
                     variant="outline"
-                    onClick={handleFork}
-                    disabled={isForking}
+                    onClick={handleStopSharing}
+                    disabled={isSharing}
                   >
-                    {isForking ? 'Forking…' : 'Fork'}
+                    Stop sharing
+                  </Button>
+                )}
+                {canPublish && (
+                  <Button variant="outline" onClick={openPublishModal}>
+                    Publish as Protocol
                   </Button>
                 )}
                 <Button variant="outline" onClick={handleExport}>
@@ -217,9 +359,16 @@ export default function EvaluationDetailPage() {
                   </span>
                 )}
               </div>
-              {forkError && (
-                <p role="alert" style={{ color: 'var(--color-danger, #d33)', margin: 0 }}>
-                  {forkError}
+              {shareFeedback && (
+                <p
+                  role="status"
+                  className={
+                    shareFeedback.kind === 'success'
+                      ? styles.feedbackOk
+                      : styles.feedbackErr
+                  }
+                >
+                  {shareFeedback.message}
                 </p>
               )}
             </Card>
@@ -244,6 +393,61 @@ export default function EvaluationDetailPage() {
           </div>
         </div>
       </Container>
+
+      <Modal
+        isOpen={publishModal}
+        onClose={closePublishModal}
+        title="Publish as Protocol"
+        size="sm"
+      >
+        <div className={styles.publishBody}>
+          <p>
+            Promote this Manifest to a Protocol. Anyone will be able to
+            find it in the Protocols list — including logged-out users.
+          </p>
+          <label className={styles.publishLabel}>
+            <span>Protocol slug</span>
+            <input
+              type="text"
+              value={publishSlug}
+              onChange={(e) => setPublishSlug(e.target.value)}
+              placeholder="speed-mod"
+              autoComplete="off"
+              data-lpignore="true"
+              data-form-type="other"
+              className={styles.publishInput}
+              disabled={isPublishing}
+            />
+            <small className={styles.publishHint}>
+              Lowercase letters, numbers, and hyphens. This is the
+              permanent identifier and can&apos;t be changed later.
+            </small>
+          </label>
+          {publishError && (
+            <p role="alert" className={styles.feedbackErr}>
+              {publishError}
+            </p>
+          )}
+          <div className={styles.publishActions}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closePublishModal}
+              disabled={isPublishing}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={submitPublish}
+              disabled={isPublishing || publishSlug.trim().length === 0}
+            >
+              {isPublishing ? 'Publishing…' : 'Publish'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Layout>
   );
 }

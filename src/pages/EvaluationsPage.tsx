@@ -4,6 +4,8 @@ import { Button, Card, Container, useAuth } from 'astrogators-shared-ui';
 import Layout, { EVALS_MIGRATED_EVENT } from '@/components/layout/Layout';
 import ImportEvaluationDialog from '@/components/evaluation/ImportEvaluationDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
+import { evaluationsApi } from '@/services/evaluationsApi';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { EvaluationImportError, type EvaluationExportV1 } from '@/types/evaluationExport';
 import type { Evaluation } from '@/types/evaluation';
 import styles from './EvaluationsPage.module.css';
@@ -16,12 +18,23 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   minute: '2-digit',
 };
 
+// Mobile breakpoint mirrors the existing CSS @media (max-width: 640px).
+// Above this width: stack both sections; below: render tabs.
+const MOBILE_QUERY = '(max-width: 640px)';
+
+type Tab = 'mine' | 'protocols';
+
 export default function EvaluationsPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const isMobile = useMediaQuery(MOBILE_QUERY);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [isLoadingEvals, setIsLoadingEvals] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [protocols, setProtocols] = useState<Evaluation[]>([]);
+  const [isLoadingProtocols, setIsLoadingProtocols] = useState(true);
+  const [protocolsError, setProtocolsError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>('mine');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<{
     payload: EvaluationExportV1;
@@ -44,18 +57,38 @@ export default function EvaluationsPage() {
     }
   }, []);
 
-  // Re-fetch whenever the auth state finishes resolving or flips — the
-  // storage adapter swaps backends based on getAccessToken().
+  const reloadProtocols = useCallback(async () => {
+    setProtocolsError(null);
+    setIsLoadingProtocols(true);
+    try {
+      const list = await evaluationsApi.listProtocols();
+      setProtocols(list);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load Protocols.';
+      setProtocolsError(message);
+      setProtocols([]);
+    } finally {
+      setIsLoadingProtocols(false);
+    }
+  }, []);
+
+  // Re-fetch Mine whenever auth resolves or flips — the storage adapter
+  // swaps backends based on getAccessToken().
   useEffect(() => {
     if (isAuthLoading) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reload();
   }, [isAuthLoading, isAuthenticated, reload]);
 
-  // Refetch after the migration prompt (owned by Layout) imports local
-  // evals to the backend. Without this, an EvaluationsPage that mounted
-  // before the migration finished would keep showing the empty backend
-  // list it fetched on first mount.
+  // Protocols are world-readable; fetch once on mount regardless of auth.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void reloadProtocols();
+  }, [reloadProtocols]);
+
+  // Refetch Mine after the migration prompt (owned by Layout) imports
+  // local evals to the backend.
   useEffect(() => {
     const onMigrated = () => {
       void reload();
@@ -71,7 +104,6 @@ export default function EvaluationsPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // Reset so picking the same file twice in a row still fires onChange.
     e.target.value = '';
     if (!file) return;
     try {
@@ -103,6 +135,23 @@ export default function EvaluationsPage() {
       setPendingImport(null);
     }
   };
+
+  const mineSection = (
+    <MineSection
+      evaluations={evaluations}
+      isLoading={isLoadingEvals}
+      loadError={loadError}
+      currentUserId={user?.id ?? null}
+    />
+  );
+
+  const protocolsSection = (
+    <ProtocolsSection
+      protocols={protocols}
+      isLoading={isLoadingProtocols}
+      loadError={protocolsError}
+    />
+  );
 
   return (
     <Layout>
@@ -149,83 +198,38 @@ export default function EvaluationsPage() {
                 {importError}
               </p>
             )}
-            {loadError && (
-              <p className={styles.importError} role="alert">
-                {loadError}
-              </p>
-            )}
           </Card>
 
-          {isLoadingEvals ? (
-            <Card chamfered padding="none" className={styles.empty}>
-              <p className={styles.emptyText}>Loading evaluations…</p>
-            </Card>
-          ) : evaluations.length === 0 ? (
-            <Card
-              chamfered
-              padding="none"
-              showDiagonalBorders
-              diagonalBorderColor="var(--color-primary)"
-              className={styles.empty}
-            >
-              <span className={styles.emptyAccent} aria-hidden="true" />
-              <h2 className={styles.emptyTitle}>No evaluations yet</h2>
-              <p className={styles.emptyText}>
-                Build your first evaluation to start scoring mods. Configure variants per set, tune
-                stat targets, and reuse the result whenever you want a verdict.
-              </p>
-              <Link to="/evaluations/new" className={styles.emptyAction}>
-                <Button variant="primary">Create your first evaluation</Button>
-              </Link>
-            </Card>
+          {isMobile ? (
+            <>
+              <div className={styles.tabs} role="tablist" aria-label="Evaluations">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'mine'}
+                  data-active={activeTab === 'mine'}
+                  onClick={() => setActiveTab('mine')}
+                  className={styles.tab}
+                >
+                  My Evaluations
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'protocols'}
+                  data-active={activeTab === 'protocols'}
+                  onClick={() => setActiveTab('protocols')}
+                  className={styles.tab}
+                >
+                  Protocols
+                </button>
+              </div>
+              {activeTab === 'mine' ? mineSection : protocolsSection}
+            </>
           ) : (
             <>
-              <p className={styles.divider}>Saved Loadouts</p>
-              <div className={styles.grid}>
-                {evaluations.map((e) => {
-                  const dateLabel = new Date(e.createdAt).toLocaleDateString(
-                    undefined,
-                    DATE_FORMAT
-                  );
-                  const otherAuthor =
-                    e.authoredBy?.username &&
-                    e.authoredBy.userId !== (user?.id ?? null)
-                      ? e.authoredBy.username
-                      : null;
-                  return (
-                    <Link key={e.id} to={`/evaluations/${e.id}`} className={styles.cardLink}>
-                      <Card
-                        chamfered
-                        hoverable
-                        padding="none"
-                        showDiagonalBorders
-                        diagonalBorderColor="var(--color-primary)"
-                        className={styles.card}
-                      >
-                        <span className={styles.cardAccent} aria-hidden="true" />
-                        <p className={styles.cardEyebrow}>
-                          {otherAuthor ? 'Imported' : 'Evaluation'}
-                        </p>
-                        <h2 className={styles.cardName}>{e.name}</h2>
-                        {e.description && <p className={styles.cardDesc}>{e.description}</p>}
-                        <p className={styles.cardMeta}>
-                          {otherAuthor && (
-                            <>
-                              <span>by {otherAuthor}</span>
-                              <span aria-hidden="true"> · </span>
-                            </>
-                          )}
-                          <span>{dateLabel}</span>
-                        </p>
-                        <div className={styles.cardFooter}>
-                          <span>Loadout</span>
-                          <span className={styles.cardOpen}>Open →</span>
-                        </div>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
+              {mineSection}
+              {protocolsSection}
             </>
           )}
         </div>
@@ -238,5 +242,163 @@ export default function EvaluationsPage() {
         onConfirm={handleImportConfirm}
       />
     </Layout>
+  );
+}
+
+interface MineSectionProps {
+  evaluations: Evaluation[];
+  isLoading: boolean;
+  loadError: string | null;
+  currentUserId: string | null;
+}
+
+function MineSection({
+  evaluations,
+  isLoading,
+  loadError,
+  currentUserId,
+}: MineSectionProps) {
+  return (
+    <section className={styles.section} aria-label="My Evaluations">
+      <p className={styles.divider}>My Evaluations</p>
+      {loadError && (
+        <p className={styles.importError} role="alert">
+          {loadError}
+        </p>
+      )}
+      {isLoading ? (
+        <Card chamfered padding="none" className={styles.empty}>
+          <p className={styles.emptyText}>Loading evaluations…</p>
+        </Card>
+      ) : evaluations.length === 0 ? (
+        <Card
+          chamfered
+          padding="none"
+          showDiagonalBorders
+          diagonalBorderColor="var(--color-primary)"
+          className={styles.empty}
+        >
+          <span className={styles.emptyAccent} aria-hidden="true" />
+          <h2 className={styles.emptyTitle}>No evaluations yet</h2>
+          <p className={styles.emptyText}>
+            Build your first evaluation to start scoring mods. Configure variants per set, tune
+            stat targets, and reuse the result whenever you want a verdict.
+          </p>
+          <Link to="/evaluations/new" className={styles.emptyAction}>
+            <Button variant="primary">Create your first evaluation</Button>
+          </Link>
+        </Card>
+      ) : (
+        <div className={styles.grid}>
+          {evaluations.map((e) => (
+            <EvaluationCard
+              key={e.id}
+              evaluation={e}
+              currentUserId={currentUserId}
+              eyebrowOverride={undefined}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+interface ProtocolsSectionProps {
+  protocols: Evaluation[];
+  isLoading: boolean;
+  loadError: string | null;
+}
+
+function ProtocolsSection({
+  protocols,
+  isLoading,
+  loadError,
+}: ProtocolsSectionProps) {
+  return (
+    <section className={styles.section} aria-label="Protocols">
+      <p className={styles.divider}>Protocols</p>
+      {loadError && (
+        <p className={styles.importError} role="alert">
+          {loadError}
+        </p>
+      )}
+      {isLoading ? (
+        <Card chamfered padding="none" className={styles.empty}>
+          <p className={styles.emptyText}>Loading Protocols…</p>
+        </Card>
+      ) : protocols.length === 0 ? (
+        <Card chamfered padding="none" className={styles.empty}>
+          <p className={styles.emptyText}>
+            No Protocols yet. Admin-curated rule sets show up here once
+            they&apos;re published.
+          </p>
+        </Card>
+      ) : (
+        <div className={styles.grid}>
+          {protocols.map((e) => (
+            <EvaluationCard
+              key={e.id}
+              evaluation={e}
+              currentUserId={null}
+              eyebrowOverride="Protocol"
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+interface EvaluationCardProps {
+  evaluation: Evaluation;
+  currentUserId: string | null;
+  eyebrowOverride: string | undefined;
+}
+
+function EvaluationCard({
+  evaluation: e,
+  currentUserId,
+  eyebrowOverride,
+}: EvaluationCardProps) {
+  const dateLabel = new Date(e.createdAt).toLocaleDateString(
+    undefined,
+    DATE_FORMAT
+  );
+  const otherAuthor =
+    e.authoredBy?.username && e.authoredBy.userId !== currentUserId
+      ? e.authoredBy.username
+      : null;
+  const eyebrow =
+    eyebrowOverride ?? (otherAuthor ? 'Imported' : 'Evaluation');
+  return (
+    <Link to={`/evaluations/${e.id}`} className={styles.cardLink}>
+      <Card
+        chamfered
+        hoverable
+        padding="none"
+        showDiagonalBorders
+        diagonalBorderColor="var(--color-primary)"
+        className={styles.card}
+      >
+        <span className={styles.cardAccent} aria-hidden="true" />
+        <p className={styles.cardEyebrow}>{eyebrow}</p>
+        <h2 className={styles.cardName}>{e.name}</h2>
+        {e.description && <p className={styles.cardDesc}>{e.description}</p>}
+        <p className={styles.cardMeta}>
+          {otherAuthor && (
+            <>
+              <span>by {otherAuthor}</span>
+              <span aria-hidden="true"> · </span>
+            </>
+          )}
+          <span>{dateLabel}</span>
+        </p>
+        <div className={styles.cardFooter}>
+          <span>Loadout</span>
+          <span className={styles.cardOpen}>Open →</span>
+        </div>
+      </Card>
+    </Link>
   );
 }

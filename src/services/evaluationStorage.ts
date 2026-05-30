@@ -1,5 +1,9 @@
 import { getAccessToken } from 'astrogators-shared-ui';
-import type { Evaluation, EvaluationAuthor } from '@/types/evaluation';
+import type {
+  Evaluation,
+  EvaluationAuthor,
+  EvaluationVisibility,
+} from '@/types/evaluation';
 import {
   EVALUATION_EXPORT_FORMAT,
   EVALUATION_EXPORT_SCHEMA_VERSION,
@@ -171,6 +175,23 @@ class EvaluationStorage {
       throw new Error('Sign in to fork evaluations.');
     }
     return evaluationsApi.fork(id);
+  }
+
+  // Visibility changes (Share / Stop Sharing / admin Publish) only exist
+  // server-side. The backend enforces role-aware transitions; the UI just
+  // sends the requested visibility (+ protocol_id on first promotion).
+  async setVisibility(
+    id: string,
+    visibility: EvaluationVisibility,
+    opts: { protocolId?: string } = {}
+  ): Promise<Evaluation> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Sign in to change visibility.');
+    }
+    return evaluationsApi.setVisibility(id, {
+      visibility,
+      protocolId: opts.protocolId,
+    });
   }
 
   // ─── export / import (offline-friendly, takes the eval directly) ─────
