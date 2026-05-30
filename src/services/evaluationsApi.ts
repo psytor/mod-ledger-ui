@@ -209,9 +209,10 @@ class EvaluationsApiClient {
     return fromWire(row);
   }
 
-  async fork(id: string): Promise<Evaluation> {
-    const row = await this.request<EvaluationWire>(`/${id}/fork`, {
+  async createCopy(id: string, name: string): Promise<Evaluation> {
+    const row = await this.request<EvaluationWire>(`/${id}/copy`, {
       method: 'POST',
+      body: JSON.stringify({ name }),
     });
     return fromWire(row);
   }

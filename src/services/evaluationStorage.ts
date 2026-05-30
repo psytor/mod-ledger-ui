@@ -167,14 +167,14 @@ class EvaluationStorage {
     this.writeLocal(all);
   }
 
-  // Fork is a backend-only operation. Logged-out callers shouldn't see the
-  // Fork affordance at all; if they reach this method anyway, surface a
-  // clear error rather than silently creating a detached local copy.
-  async fork(id: string): Promise<Evaluation> {
+  // Creating a copy is a backend-only operation. Logged-out callers
+  // shouldn't see the affordance at all; if they reach this method anyway,
+  // surface a clear error rather than silently creating a detached local copy.
+  async createCopy(id: string, name: string): Promise<Evaluation> {
     if (!this.isAuthenticated()) {
-      throw new Error('Sign in to fork evaluations.');
+      throw new Error('Sign in to copy evaluations.');
     }
-    return evaluationsApi.fork(id);
+    return evaluationsApi.createCopy(id, name);
   }
 
   // Visibility changes (Share / Stop Sharing / admin Publish) only exist

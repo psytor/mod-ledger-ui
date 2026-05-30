@@ -40,7 +40,7 @@ export type EvaluationAuthor = {
 
 // Visibility levels: mirrors the backend enum.
 // - private: owner-only (the default)
-// - protocol: admin-curated, anyone can Use or Fork
+// - protocol: admin-curated, anyone can Use or copy
 // - manifest: reserved for the future user-shared surface; no UI yet.
 export type EvaluationVisibility = 'private' | 'protocol' | 'manifest';
 

@@ -11,6 +11,7 @@ import {
 } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import EvaluationView from '@/components/evaluation/EvaluationView';
+import CopyEvaluationDialog from '@/components/evaluation/CopyEvaluationDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { useMods } from '@/contexts/ModContext';
@@ -84,6 +85,11 @@ export default function EvaluationDetailPage() {
   const [publishSlug, setPublishSlug] = useState('');
   const [publishError, setPublishError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  // The caller's own eval names — fetched when the copy modal opens, drives
+  // the duplicate-name warning the same way the builder does.
+  const [myNames, setMyNames] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -130,6 +136,10 @@ export default function EvaluationDetailPage() {
   const badge = visibilityBadge(evaluation.visibility);
   const canPublish = admin && evaluation.visibility === 'manifest';
   const canStopSharing = owner && evaluation.visibility === 'manifest';
+  // Copy an eval you can see but don't own (a Protocol, or a Manifest link)
+  // into your own account. Requires being signed in; your own evals offer
+  // Edit instead.
+  const canCopy = !owner && !!user;
 
   const detailUrl = `${window.location.origin}${window.location.pathname}`;
 
@@ -139,6 +149,30 @@ export default function EvaluationDetailPage() {
   const handleUseThis = () => {
     setActiveEvaluationId(evaluation.id);
     navigate('/');
+  };
+
+  const handleOpenCopy = () => {
+    // Refresh the caller's eval names so the duplicate warning is current,
+    // then open the modal. A failed fetch just means no warning, not a block.
+    void evaluationStorage
+      .listMine()
+      .then((list) => setMyNames(list.map((e) => e.name)))
+      .catch(() => setMyNames([]));
+    setCopyModalOpen(true);
+  };
+
+  const handleConfirmCopy = async (name: string) => {
+    if (isCopying) return;
+    setIsCopying(true);
+    try {
+      const copy = await evaluationStorage.createCopy(evaluation.id, name);
+      navigate(`/evaluations/${copy.id}`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to create a copy.';
+      window.alert(message);
+      setIsCopying(false);
+    }
   };
 
   const handleExport = () => {
@@ -327,6 +361,11 @@ export default function EvaluationDetailPage() {
                     <Button variant="outline">Edit</Button>
                   </Link>
                 )}
+                {canCopy && (
+                  <Button variant="outline" onClick={handleOpenCopy}>
+                    Create a Copy
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={handleShare}
@@ -448,6 +487,15 @@ export default function EvaluationDetailPage() {
           </div>
         </div>
       </Modal>
+
+      <CopyEvaluationDialog
+        isOpen={copyModalOpen}
+        source={evaluation}
+        existingNames={myNames}
+        isCopying={isCopying}
+        onCancel={() => setCopyModalOpen(false)}
+        onConfirm={handleConfirmCopy}
+      />
     </Layout>
   );
 }
