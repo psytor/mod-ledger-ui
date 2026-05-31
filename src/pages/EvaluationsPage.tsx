@@ -267,7 +267,13 @@ function MineSection({
         </p>
       )}
       {isLoading ? (
-        <Card chamfered padding="none" className={styles.empty}>
+        <Card
+          chamfered
+          padding="none"
+          showDiagonalBorders
+          diagonalBorderColor="var(--color-primary)"
+          className={styles.empty}
+        >
           <p className={styles.emptyText}>Loading evaluations…</p>
         </Card>
       ) : evaluations.length === 0 ? (
@@ -324,11 +330,23 @@ function ProtocolsSection({
         </p>
       )}
       {isLoading ? (
-        <Card chamfered padding="none" className={styles.empty}>
+        <Card
+          chamfered
+          padding="none"
+          showDiagonalBorders
+          diagonalBorderColor="var(--color-primary)"
+          className={styles.empty}
+        >
           <p className={styles.emptyText}>Loading Protocols…</p>
         </Card>
       ) : protocols.length === 0 ? (
-        <Card chamfered padding="none" className={styles.empty}>
+        <Card
+          chamfered
+          padding="none"
+          showDiagonalBorders
+          diagonalBorderColor="var(--color-primary)"
+          className={styles.empty}
+        >
           <p className={styles.emptyText}>
             No Protocols yet. Admin-curated rule sets show up here once
             they&apos;re published.
