@@ -102,7 +102,14 @@ class EvaluationStorage {
     if (this.isAuthenticated()) {
       return evaluationsApi.get(id);
     }
-    return this.readLocal().find((e) => e.id === id) ?? null;
+    // Logged out: own offline evals live in localStorage, but a Protocol
+    // (or shared Manifest) lives only on the backend. The backend's GET is
+    // world-readable (see evaluationsApi), so fall back to it when the id
+    // isn't a local eval — otherwise opening a Protocol card 404s straight
+    // back to the list because the id is never in localStorage.
+    const local = this.readLocal().find((e) => e.id === id);
+    if (local) return local;
+    return evaluationsApi.get(id);
   }
 
   async create(input: CreateInput): Promise<Evaluation> {
