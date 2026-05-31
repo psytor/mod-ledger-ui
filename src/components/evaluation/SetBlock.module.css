@@ -13,26 +13,6 @@
   border-color: var(--color-success);
 }
 
-.card :global(.chamfered-diagonal-tl) {
-  top: -3px;
-  left: 9px;
-}
-
-.card :global(.chamfered-diagonal-tr) {
-  top: 8px;
-  right: -2px;
-}
-
-.card :global(.chamfered-diagonal-bl) {
-  bottom: -4px;
-  left: 10px;
-}
-
-.card :global(.chamfered-diagonal-br) {
-  bottom: 9px;
-  right: -3px;
-}
-
 .cardConfigured::before {
   content: '';
   position: absolute;

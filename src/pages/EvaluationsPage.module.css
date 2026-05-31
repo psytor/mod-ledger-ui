@@ -224,6 +224,32 @@
   background: linear-gradient(90deg, transparent, var(--color-border), transparent);
 }
 
+/* Desktop: the section labels are the only thing separating "My Evaluations"
+   from "Protocols" (mobile uses tabs instead), so make them read as real
+   headers — larger, brighter, with stronger rule lines and more breathing room. */
+@media (min-width: 641px) {
+  .divider {
+    max-width: 1024px;
+    gap: var(--spacing-lg);
+    font-size: var(--font-size-lg);
+    letter-spacing: 0.22em;
+    color: var(--color-text-primary);
+    margin-top: var(--spacing-lg);
+  }
+
+  .divider::before,
+  .divider::after {
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-primary),
+      transparent
+    );
+    box-shadow: 0 0 8px rgba(26, 115, 232, 0.35);
+  }
+}
+
 .empty.empty {
   position: relative;
   width: 100%;
@@ -239,30 +265,6 @@
      color (diagonalBorderColor="var(--color-primary)") so the box reads as a
      closed chamfered outline. */
   border: 1px solid var(--color-primary);
-}
-
-/* The chamfered-diagonal-* spans come from shared-ui (global classnames) and
-   are positioned for chamferSize="md" but sit slightly inset against the
-   actual corner cut. Nudge each ~2px toward its corner so they meet the
-   straight side border cleanly. Move to shared-ui if it ever becomes general. */
-.empty :global(.chamfered-diagonal-tl) {
-  top: -3px;
-  left: 9px;
-}
-
-.empty :global(.chamfered-diagonal-tr) {
-  top: 8px;
-  right: -2px;
-}
-
-.empty :global(.chamfered-diagonal-bl) {
-  bottom: -4px;
-  left: 10px;
-}
-
-.empty :global(.chamfered-diagonal-br) {
-  bottom: 9px;
-  right: -3px;
 }
 
 .emptyAccent {
@@ -331,35 +333,16 @@
   gap: var(--spacing-sm);
   min-height: 180px;
   transition: border-color var(--transition-base);
-  /* Straight-side border (corners are clipped). Matches the diagonal corner
-     color so the box reads as a closed chamfered outline. */
+  /* Straight-side border (corners are clipped). The diagonal corner lines read
+     --card-line-color (set below) so edges and corners stay the same colour and
+     read as one closed chamfered outline: grey at rest, blue on hover. */
+  --card-line-color: var(--color-border);
   border: 1px solid var(--color-border);
 }
 
 .cardLink:hover .card.card {
+  --card-line-color: var(--color-primary);
   border-color: var(--color-primary);
-}
-
-/* Nudge the shared-ui chamferSize="md" diagonal spans ~2px toward each corner
-   so they meet the straight side border cleanly. */
-.card :global(.chamfered-diagonal-tl) {
-  top: -3px;
-  left: 9px;
-}
-
-.card :global(.chamfered-diagonal-tr) {
-  top: 8px;
-  right: -2px;
-}
-
-.card :global(.chamfered-diagonal-bl) {
-  bottom: -4px;
-  left: 10px;
-}
-
-.card :global(.chamfered-diagonal-br) {
-  bottom: 9px;
-  right: -3px;
 }
 
 .cardAccent {

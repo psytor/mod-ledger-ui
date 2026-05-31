@@ -35,8 +35,6 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
       .filter((row) => row.variants.length > 0);
   }, [modSets, evaluation.mod_set_configs]);
 
-  const hasMaster =
-    Object.keys(evaluation.master_secondary_targets).length > 0;
   const totalVariants = configuredSets.reduce(
     (sum, row) => sum + row.variants.length,
     0
@@ -50,18 +48,14 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
           <p className={styles.sectionMeta}>Shared across all sets &amp; variants</p>
         </header>
         <Card chamfered chamferSize="sm" padding="none" className={styles.masterCard}>
-          {hasMaster ? (
-            <RollTargetsList
-              values={evaluation.master_secondary_targets}
-              secondaryStats={orderedSecondaryStats}
-              tierView={tierView}
-            />
-          ) : (
-            <p className={styles.masterEmpty}>
-              Using default roll targets — nothing customised at the master
-              level.
-            </p>
-          )}
+          {/* Show every secondary, not just customised ones. Untouched stats
+              render at the 50% default the scorer actually uses, so the view
+              matches the editor — what you see is what you save. */}
+          <RollTargetsList
+            values={evaluation.master_secondary_targets}
+            secondaryStats={orderedSecondaryStats}
+            tierView={tierView}
+          />
         </Card>
       </section>
 

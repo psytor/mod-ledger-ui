@@ -378,7 +378,7 @@ function EvaluationCard({
         hoverable
         padding="none"
         showDiagonalBorders
-        diagonalBorderColor="var(--color-primary)"
+        diagonalBorderColor="var(--card-line-color)"
         className={styles.card}
       >
         <span className={styles.cardAccent} aria-hidden="true" />

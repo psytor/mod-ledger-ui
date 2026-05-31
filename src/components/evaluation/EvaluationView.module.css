@@ -62,13 +62,6 @@
   );
 }
 
-.masterEmpty {
-  font-style: italic;
-  color: var(--color-text-disabled);
-  font-size: var(--font-size-sm);
-  margin: 0;
-}
-
 .tierToggle {
   display: inline-flex;
   align-items: center;

@@ -368,30 +368,6 @@
   border: 1px solid var(--color-border);
 }
 
-/* The chamfered-diagonal-* spans come from shared-ui (global classnames) and
-   are positioned for chamferSize="md" but sit slightly inset against the
-   actual corner cut. Nudge each ~2px toward its corner so they meet the
-   straight side border cleanly. */
-.setRow :global(.chamfered-diagonal-tl) {
-  top: -3px;
-  left: 9px;
-}
-
-.setRow :global(.chamfered-diagonal-tr) {
-  top: 8px;
-  right: -2px;
-}
-
-.setRow :global(.chamfered-diagonal-bl) {
-  bottom: -4px;
-  left: 10px;
-}
-
-.setRow :global(.chamfered-diagonal-br) {
-  bottom: 9px;
-  right: -3px;
-}
-
 .setRow::before {
   content: '';
   position: absolute;

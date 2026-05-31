@@ -318,30 +318,6 @@
   border-color: var(--color-success);
 }
 
-/* The chamfered-diagonal-* spans come from shared-ui (global classnames) and
-   are positioned for chamferSize="md" but sit slightly inset against the
-   actual corner cut. Nudge each ~2px toward its corner so they meet the
-   straight side border cleanly. Move to shared-ui if it ever becomes general. */
-.setCard :global(.chamfered-diagonal-tl) {
-  top: -3px;
-  left: 9px;
-}
-
-.setCard :global(.chamfered-diagonal-tr) {
-  top: 8px;
-  right: -2px;
-}
-
-.setCard :global(.chamfered-diagonal-bl) {
-  bottom: -4px;
-  left: 10px;
-}
-
-.setCard :global(.chamfered-diagonal-br) {
-  bottom: 9px;
-  right: -3px;
-}
-
 .setCardConfigured::before {
   content: '';
   position: absolute;
