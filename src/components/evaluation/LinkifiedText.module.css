@@ -1,0 +1,10 @@
+.link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+
+.link:hover {
+  text-decoration: none;
+}

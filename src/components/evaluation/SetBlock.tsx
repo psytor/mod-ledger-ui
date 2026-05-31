@@ -127,6 +127,13 @@ function ViewBody({
   secondaryStats,
   tierView,
 }: ViewProps) {
+  if (variants.length === 0) {
+    return (
+      <p className={styles.empty}>
+        Empty — no scoring rules, mods of this set will be UNCONFIGURED.
+      </p>
+    );
+  }
   return (
     <div className={styles.list}>
       {variants.map((v) => (

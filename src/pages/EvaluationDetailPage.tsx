@@ -11,6 +11,7 @@ import {
 } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import EvaluationView from '@/components/evaluation/EvaluationView';
+import LinkifiedText from '@/components/evaluation/LinkifiedText';
 import CopyEvaluationDialog from '@/components/evaluation/CopyEvaluationDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useEvaluation } from '@/contexts/EvaluationContext';
@@ -353,7 +354,9 @@ export default function EvaluationDetailPage() {
               </div>
               <h1 className={styles.heroTitle}>{evaluation.name}</h1>
               {evaluation.description && (
-                <p className={styles.heroDesc}>{evaluation.description}</p>
+                <p className={styles.heroDesc}>
+                  <LinkifiedText text={evaluation.description} />
+                </p>
               )}
 
               <div className={styles.heroActions}>

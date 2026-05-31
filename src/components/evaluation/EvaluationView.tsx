@@ -24,18 +24,22 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
     [secondaryStats]
   );
 
-  const configuredSets = useMemo(() => {
-    return modSets
-      .map((set) => {
-        const cfg = evaluation.mod_set_configs.find(
-          (c) => c.set_id === set.set_id
-        );
-        return { set, variants: cfg?.variants ?? [] };
-      })
-      .filter((row) => row.variants.length > 0);
+  // Every set, configured or not. Empty sets render with an "Empty" marker
+  // so the detail view matches the editor — you can see what's unconfigured,
+  // not just what's filled in.
+  const allSets = useMemo(() => {
+    return modSets.map((set) => {
+      const cfg = evaluation.mod_set_configs.find(
+        (c) => c.set_id === set.set_id
+      );
+      return { set, variants: cfg?.variants ?? [] };
+    });
   }, [modSets, evaluation.mod_set_configs]);
 
-  const totalVariants = configuredSets.reduce(
+  const configuredCount = allSets.filter(
+    (row) => row.variants.length > 0
+  ).length;
+  const totalVariants = allSets.reduce(
     (sum, row) => sum + row.variants.length,
     0
   );
@@ -63,7 +67,7 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
         <header className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>Mod sets</h2>
           <p className={styles.sectionMeta}>
-            <strong>{configuredSets.length}</strong> configured ·{' '}
+            <strong>{configuredCount}</strong> configured ·{' '}
             <strong>{totalVariants}</strong> scoring rule
             {totalVariants === 1 ? '' : 's'}
           </p>
@@ -93,13 +97,13 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
 
         {modSets.length === 0 ? (
           <p className={styles.empty}>Loading mod sets…</p>
-        ) : configuredSets.length === 0 ? (
+        ) : configuredCount === 0 ? (
           <p className={styles.empty}>
             No scoring rules configured. Edit to add some.
           </p>
         ) : (
           <div className={styles.setList}>
-            {configuredSets.map(({ set, variants }) => (
+            {allSets.map(({ set, variants }) => (
               <SetBlock
                 key={set.set_id}
                 mode="view"
