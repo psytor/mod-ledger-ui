@@ -5,12 +5,14 @@
  * snake_case and ISO datetime strings throughout; this file is the single
  * seam that translates to/from the frontend's Evaluation type.
  *
- * Auth: Bearer token from shared-ui's getAccessToken(). listProtocols and
+ * Auth: requests go through shared-ui's authedFetch, which injects the bearer
+ * token and transparently refreshes it on a 401 (so a 30-min access-token
+ * expiry self-heals rather than blanking the user's lists). listProtocols and
  * get tolerate the missing-token case (Protocols are world-readable).
  * Everything else 401s without a token — that's a programming error
  * (the storage adapter only calls them when isAuthenticated).
  */
-import { getAccessToken } from 'astrogators-shared-ui';
+import { authedFetch, getAccessToken } from 'astrogators-shared-ui';
 import type { Evaluation, EvaluationVisibility } from '@/types/evaluation';
 
 const BASE_URL = import.meta.env.VITE_MOD_LEDGER_URL || 'http://localhost/mod-ledger';
@@ -111,15 +113,18 @@ class EvaluationsApiClient {
     init: RequestInit & { authRequired?: boolean } = {}
   ): Promise<T> {
     const { authRequired = true, headers, ...rest } = init;
-    const token = getAccessToken();
-    if (authRequired && !token) {
+    if (authRequired && !getAccessToken()) {
       throw new EvaluationsApiError('Not authenticated', 401);
     }
-    const response = await fetch(this.url(path), {
+    // authedFetch injects the bearer token AND transparently refreshes it on a
+    // 401, so an expired 30-min access token self-heals instead of blanking
+    // the user's evaluations. World-readable calls (authRequired:false) still
+    // work: a stale token riding along is now ignored by the backend's
+    // optional auth, and a fresh one just unlocks owner-aware fields.
+    const response = await authedFetch(this.url(path), {
       ...rest,
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
     });

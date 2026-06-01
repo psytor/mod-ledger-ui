@@ -14,19 +14,28 @@ export default function EvaluationSelector() {
   const [mine, setMine] = useState<Evaluation[]>([]);
   const [protocols, setProtocols] = useState<Evaluation[]>([]);
 
+  // Protocols are world-readable and independent of auth, so load them
+  // immediately — no need to wait on the /users/me round-trip. This is what
+  // makes the bar fill quickly instead of stalling behind auth resolution.
   useEffect(() => {
-    if (isAuthLoading) return;
     let cancelled = false;
-    // Mine + Protocols are independent sources; Protocols are world-readable
-    // so they load regardless of auth (you can Use one without owning it).
-    void evaluationStorage
-      .listMine()
-      .then((list) => !cancelled && setMine(list))
-      .catch(() => !cancelled && setMine([]));
     void evaluationsApi
       .listProtocols()
       .then((list) => !cancelled && setProtocols(list))
       .catch(() => !cancelled && setProtocols([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // "Mine" depends on identity, so it waits for auth to resolve.
+  useEffect(() => {
+    if (isAuthLoading) return;
+    let cancelled = false;
+    void evaluationStorage
+      .listMine()
+      .then((list) => !cancelled && setMine(list))
+      .catch(() => !cancelled && setMine([]));
     return () => {
       cancelled = true;
     };
