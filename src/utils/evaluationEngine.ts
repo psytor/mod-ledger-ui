@@ -136,13 +136,23 @@ function checkSecondary(
     };
   }
 
-  // Threshold = the size of the *reachable* Required pool, capped further by
-  // visibleCount slack so a mod with fewer visible secondaries than required
-  // stats still has a path to pass. When the mod's primary is itself a
-  // Required stat, the game blocks that stat from rolling as a secondary, so
-  // the reachable pool is `required \ {primary}` — size shrinks by one. Floor
-  // of 1 keeps grey-L6 + primary-on-required from auto-passing with zero
-  // required secondaries visible.
+  // Threshold = how many Required secondaries the mod must hit. The bar scales
+  // with the *reachable* Required pool, not just the presence of the primary:
+  //
+  //   bar = max(1, min(visibleCount - 1, reachableRequiredSize - 1))
+  //
+  // - `reachableRequiredSize` is the Required list minus the primary when the
+  //   primary is itself a Required stat (the game blocks the primary stat from
+  //   also rolling as a secondary, so it can never be hit there).
+  // - `visibleCount - 1` is the "3 of 4" ideal — you're allowed to miss one of
+  //   the four secondary slots. On a fully-revealed mod this is 3.
+  // - `reachableRequiredSize - 1` is "allowed to miss one Required too". This
+  //   only bites when the reachable pool is tight: a big pool (e.g. Defensive's
+  //   7 Required, 6 reachable) stays capped at 3, while a tight pool (Offensive's
+  //   4 Required, 3 reachable once the primary takes one) eases to 2.
+  // - The floor of 1 covers the short-list case: 2 Required with the primary on
+  //   one leaves only 1 reachable, so the bar can't exceed 1 — never impossible,
+  //   never auto-pass at 0.
   const primaryInRequired =
     primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
   const reachableRequiredSize = primaryInRequired
@@ -150,7 +160,7 @@ function checkSecondary(
     : requiredStatIds.size;
   const threshold = Math.max(
     1,
-    Math.min(visibleCount - 1, reachableRequiredSize)
+    Math.min(visibleCount - 1, reachableRequiredSize - 1)
   );
 
   return {
