@@ -145,7 +145,15 @@ A mod runs through two passes in sequence:
    raw threshold is discounted by `coverage × COVERAGE_DISCOUNT_K` (k=0.2,
    capping the relief at 20%), where coverage is how much of the reachable
    pool the mod actually hit. The same reachable-pool logic shapes the
-   Stage 1 `threshold` in `checkSecondary`.
+   Stage 1 `threshold` in `checkSecondary`: the bar is
+   `max(1, min(visibleCount - 1, reachableRequiredSize - 1))` — the `- 1` on
+   the reachable pool only bites when the pool is tight (a 7-Required Defensive
+   set stays capped at 3; a 4-Required Offensive set with the primary on a
+   Required stat eases to 2). When `reachableRequiredSize` is **0** (the sole
+   Required stat IS the primary — e.g. a Speed-primary mod in a Speed set whose
+   only Required is Speed), there is nothing left to demand of the secondaries:
+   the gate passes on the primary and the winner-picking tiebreakers decide the
+   mod's direction.
 
 `QUALITY_RAMP` is intentionally **only** defined for levels in the ramp:
 
@@ -170,11 +178,14 @@ When multiple variants match a mod, the winner is selected by this exact
 priority (`evaluationEngine.ts` ~line 282-291):
 
 1. Higher `requiredCount` wins
-2. Then higher `absolute_quality` wins
-3. Then earlier insertion order wins
-
-There is no separate "complementary count" tiebreaker — earlier design
-notes mentioned one, but the shipped engine does not implement it.
+2. Then higher `complementaryCount` wins — the **direction signal**. When the
+   Required gate ties (e.g. a Speed-primary mod in a Speed set, where every
+   variant requires only Speed and the primary satisfies it for all of them),
+   the complementary spread routes the mod into its flavor (Offense / Defense /
+   Tenacity / Potency). `absolute_quality` can't do this: it is normalized
+   per-variant, so it measures roll quality, not which direction the mod fits.
+3. Then higher `absolute_quality` wins
+4. Then earlier insertion order wins
 
 ### Storage
 

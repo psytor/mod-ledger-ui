@@ -158,6 +158,24 @@ function checkSecondary(
   const reachableRequiredSize = primaryInRequired
     ? requiredStatIds.size - 1
     : requiredStatIds.size;
+
+  // Reachable pool empty: the sole Required stat IS the mod's primary, so the
+  // game blocks it from also rolling as a secondary — there is nothing left to
+  // demand of the secondaries. The primary itself satisfies the requirement, so
+  // the gate passes and the mod's value/direction is decided downstream by
+  // complementary coverage + quality. (Only reachable when primaryInRequired and
+  // the Required list has exactly one stat; the requiredStatIds.size === 0
+  // early-return above guarantees this can't be a zero-Required variant.)
+  if (reachableRequiredSize === 0) {
+    return {
+      pass: true,
+      requiredCount,
+      complementaryCount,
+      visibleCount,
+      threshold: 0,
+    };
+  }
+
   const threshold = Math.max(
     1,
     Math.min(visibleCount - 1, reachableRequiredSize - 1)
@@ -288,10 +306,17 @@ export function evaluateMod(
   //    most thoroughly. A 3-of-4 match describes the mod better than a 1-of-1
   //    match even when the latter has higher absolute_quality (which it often
   //    does, since looser rules have smaller theoretical maxes).
-  // 2. Highest absolute_quality — among rules tied on requiredCount, the one
-  //    that scores the mod's actual rolls best (weighted by per-stat targets
-  //    and required/complementary multipliers).
-  // 3. Insertion order — final deterministic tiebreak.
+  // 2. Highest complementaryCount — among rules tied on requiredCount, the one
+  //    that "cares about" more of the mod's actual stats wins. This is the
+  //    direction signal: when the Required gate is a tie (e.g. a Speed-primary
+  //    mod in a Speed set, where every variant requires only Speed and the
+  //    primary satisfies it for all of them), the complementary spread is what
+  //    routes the mod into Offense / Defense / Tenacity / Potency flavor.
+  //    absolute_quality can't do this — it's normalized per-variant, so it
+  //    measures roll quality, not which direction the mod belongs to.
+  // 3. Highest absolute_quality — among rules tied on required AND complementary
+  //    coverage, the one that scores the mod's actual rolls best.
+  // 4. Insertion order — final deterministic tiebreak.
   const variantOrder = new Map<string, number>();
   config.variants.forEach((v, i) => variantOrder.set(v.id, i));
 
@@ -303,6 +328,9 @@ export function evaluateMod(
   scored.sort((a, b) => {
     if (a.chain.requiredCount !== b.chain.requiredCount) {
       return b.chain.requiredCount - a.chain.requiredCount;
+    }
+    if (a.chain.complementaryCount !== b.chain.complementaryCount) {
+      return b.chain.complementaryCount - a.chain.complementaryCount;
     }
     if (a.score.absolute_quality !== b.score.absolute_quality) {
       return b.score.absolute_quality - a.score.absolute_quality;
