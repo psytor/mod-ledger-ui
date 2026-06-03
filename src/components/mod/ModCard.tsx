@@ -33,6 +33,18 @@ function qualityBandClass(band: QualityBand): string {
   }
 }
 
+// Same band hue, muted with dark slate — maxed mods read as "done", but the
+// best ones still stand out by colour.
+function maxedBandClass(band: QualityBand): string {
+  switch (band) {
+    case 'slice-sure': return styles.maxedSliceSure;
+    case 'consider': return styles.maxedConsider;
+    case 'average': return styles.maxedAverage;
+    case 'consider-sell': return styles.maxedConsiderSell;
+    case 'sell': return styles.maxedSell;
+  }
+}
+
 interface ModCardProps {
   mod: ParsedMod;
   onClick: () => void;
@@ -51,11 +63,13 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
   const verdict = verdicts.get(mod.mod_id);
   const action = verdict ? actionOf(mod, verdict) : null;
   const quality = verdict?.absolute_quality;
-  // The 5-band quality scale is slicing advice — show it only on slice
-  // candidates. Maxed 6d-A mods get a neutral chip with their %; everything
-  // else relies on its verdict badge.
+  // The 5-band quality scale colours both slice candidates (vibrant) and maxed
+  // 6d-A mods (same hue, dark-muted). Everything else relies on its verdict
+  // badge.
   const band =
-    action === 'slice' && quality !== undefined ? qualityBand(quality) : null;
+    (action === 'slice' || action === 'maxed') && quality !== undefined
+      ? qualityBand(quality)
+      : null;
 
   const secondarySlots = Array(4).fill(null).map((_, index) => {
     return mod.secondary_stats[index] || null;
@@ -102,14 +116,18 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
         </div>
       )}
 
-      {band && quality !== undefined && (
+      {action === 'slice' && band && quality !== undefined && (
         <div className={`${styles.qualityChip} ${qualityBandClass(band)}`}>
           {Math.round(quality)}%
         </div>
       )}
 
       {action === 'maxed' && (
-        <div className={`${styles.qualityChip} ${styles.qualityMaxed}`}>
+        <div
+          className={`${styles.qualityChip} ${styles.qualityMaxed} ${
+            band ? maxedBandClass(band) : ''
+          }`}
+        >
           Maxed
           {quality !== undefined && (
             <span className={styles.qualityPercent}>{Math.round(quality)}%</span>

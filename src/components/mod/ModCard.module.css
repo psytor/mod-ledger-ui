@@ -396,9 +396,19 @@
   color: #f3f4f6;
 }
 
+/* Maxed mods (6d-A): "Maxed" label sizing. Colour comes from a maxed band
+   class below — same hue as the slice scale but muted with dark slate, so a
+   maxed mod reads as "done" while the best ones still stand out. Falls back to
+   plain dark if no band class is applied. */
 .qualityMaxed {
   background: rgba(31, 41, 55, 0.9);
   color: #e8e8e8;
   font-size: 0.8rem;
   font-weight: 700;
 }
+
+.maxedSliceSure    { background: #5c4d1f; color: #f0e2af; }
+.maxedConsider     { background: #3a2c52; color: #ddccf2; }
+.maxedAverage      { background: #243a5c; color: #c2d6f2; }
+.maxedConsiderSell { background: #234a30; color: #c2e4ca; }
+.maxedSell         { background: #33373f; color: #cdd4de; }
