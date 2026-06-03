@@ -1,7 +1,7 @@
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
 import type { ModFilters, GroupBy, SortBy } from '@/contexts/FilterContext';
-import { bucketOf, advancementRank } from './modDisposition';
+import { bucketOf, advancementRank, qualityBand, type QualityBand } from './modDisposition';
 
 function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
   if (filters.locked === 'locked' && !mod.locked) return false;
@@ -73,6 +73,40 @@ export function getBucketCounts(
     counts[bucketOf(mod, verdict)]++;
   }
   return counts;
+}
+
+/**
+ * Distribution of every *scored* mod across the five quality bands. "Scored"
+ * means the verdict carries a finite `absolute_quality` (the % shown on the
+ * card) — UNCONFIGURED and pre-eval mods have none and are excluded. The band
+ * is intrinsic to each mod (no cross-mod comparison), so this is computed over
+ * the whole inventory, not the filtered view: filtering changes what's *shown*,
+ * never a mod's band.
+ */
+export interface QualityBandCounts {
+  scored: number;
+  bands: Record<QualityBand, number>;
+}
+
+export function getQualityBandCounts(
+  mods: ParsedMod[],
+  verdicts: Map<string, VerdictResult>
+): QualityBandCounts {
+  const bands: Record<QualityBand, number> = {
+    'slice-sure': 0,
+    consider: 0,
+    average: 0,
+    'consider-sell': 0,
+    sell: 0,
+  };
+  let scored = 0;
+  for (const mod of mods) {
+    const quality = verdicts.get(mod.mod_id)?.absolute_quality;
+    if (quality === undefined || !Number.isFinite(quality)) continue;
+    scored++;
+    bands[qualityBand(quality)]++;
+  }
+  return { scored, bands };
 }
 
 /**

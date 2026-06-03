@@ -15,6 +15,7 @@ import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import ModDetailModal from '@/components/mod/ModDetailModal';
 import InventoryOverview from '@/components/mod/InventoryOverview';
+import ResultsDistribution from '@/components/mod/ResultsDistribution';
 import SliceLegend from '@/components/mod/SliceLegend';
 import FilterPanel from '@/components/filter/FilterPanel';
 import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
@@ -139,6 +140,7 @@ export default function ModGridPage() {
       return (
         <>
           {!noEvaluation && <InventoryOverview mods={mods} verdicts={verdicts} />}
+          {!noEvaluation && <ResultsDistribution mods={mods} verdicts={verdicts} />}
           {!noEvaluation && <SliceLegend />}
           {groups.map((group) => (
             <div key={group.key} className={styles.group}>
