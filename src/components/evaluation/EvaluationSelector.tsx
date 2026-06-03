@@ -13,6 +13,11 @@ export default function EvaluationSelector() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [mine, setMine] = useState<Evaluation[]>([]);
   const [protocols, setProtocols] = useState<Evaluation[]>([]);
+  // Track whether each list has resolved at least once. Both lists start
+  // empty, so without these we'd flash the "No evaluations yet" CTA on every
+  // reload until the fetches land. Only show that state once we actually know.
+  const [protocolsLoaded, setProtocolsLoaded] = useState(false);
+  const [mineLoaded, setMineLoaded] = useState(false);
 
   // Protocols are world-readable and independent of auth, so load them
   // immediately — no need to wait on the /users/me round-trip. This is what
@@ -22,7 +27,8 @@ export default function EvaluationSelector() {
     void evaluationsApi
       .listProtocols()
       .then((list) => !cancelled && setProtocols(list))
-      .catch(() => !cancelled && setProtocols([]));
+      .catch(() => !cancelled && setProtocols([]))
+      .finally(() => !cancelled && setProtocolsLoaded(true));
     return () => {
       cancelled = true;
     };
@@ -35,7 +41,8 @@ export default function EvaluationSelector() {
     void evaluationStorage
       .listMine()
       .then((list) => !cancelled && setMine(list))
-      .catch(() => !cancelled && setMine([]));
+      .catch(() => !cancelled && setMine([]))
+      .finally(() => !cancelled && setMineLoaded(true));
     return () => {
       cancelled = true;
     };
@@ -45,6 +52,31 @@ export default function EvaluationSelector() {
   // still needs to resolve here so the Evaluate button stays enabled.
   const active =
     [...mine, ...protocols].find((e) => e.id === activeEvaluationId) ?? null;
+
+  // Until both lists have resolved, render a neutral placeholder in the same
+  // framed bar — never the "No evaluations yet" CTA, which would flash on
+  // every reload while the fetches are still in flight.
+  const listsResolved = protocolsLoaded && mineLoaded;
+
+  if (!listsResolved) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.75rem 1rem',
+          border: '1px solid var(--color-border, #333)',
+          borderRadius: '4px',
+          marginBottom: '1rem',
+        }}
+      >
+        <span style={{ color: 'var(--color-text-secondary, #888)' }}>
+          Loading evaluations…
+        </span>
+      </div>
+    );
+  }
 
   if (mine.length === 0 && protocols.length === 0) {
     return (
