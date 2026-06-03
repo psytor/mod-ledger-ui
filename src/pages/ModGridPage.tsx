@@ -9,6 +9,7 @@ import {
   applySellPileFilters,
   applyUnconfiguredFilters,
   groupMods,
+  sortMods,
 } from '@/utils/modFilters';
 import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
@@ -136,7 +137,8 @@ export default function ModGridPage() {
       const rankings = noEvaluation
         ? undefined
         : buildRankings(mods, verdicts, computeRelativePositions(mods, verdicts));
-      const groups = groupMods(filtered, filters.groupBy);
+      const sorted = sortMods(filtered, filters.sortBy, verdicts);
+      const groups = groupMods(sorted, filters.groupBy);
       return (
         <>
           {!noEvaluation && <InventoryOverview mods={mods} verdicts={verdicts} />}

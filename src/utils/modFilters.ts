@@ -1,6 +1,6 @@
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
-import type { ModFilters, GroupBy } from '@/contexts/FilterContext';
+import type { ModFilters, GroupBy, SortBy } from '@/contexts/FilterContext';
 import { bucketOf } from './cohortRanking';
 
 function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
@@ -73,6 +73,25 @@ export function getBucketCounts(
     counts[bucketOf(mod, verdict)]++;
   }
   return counts;
+}
+
+/**
+ * Orders mods by their evaluation score (absolute_quality — the % shown on the
+ * card). `none` keeps inventory order. Mods without a score always sink to the
+ * bottom regardless of direction.
+ */
+export function sortMods(
+  mods: ParsedMod[],
+  sortBy: SortBy,
+  verdicts?: Map<string, VerdictResult>
+): ParsedMod[] {
+  if (sortBy === 'none' || !verdicts) return mods;
+  const missing = sortBy === 'score-asc' ? Infinity : -Infinity;
+  const scoreOf = (mod: ParsedMod): number =>
+    verdicts.get(mod.mod_id)?.absolute_quality ?? missing;
+  return [...mods].sort((a, b) =>
+    sortBy === 'score-asc' ? scoreOf(a) - scoreOf(b) : scoreOf(b) - scoreOf(a)
+  );
 }
 
 // Display order for grouping headings; unknown values sort to the end.

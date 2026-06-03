@@ -1,6 +1,6 @@
 import { Button } from 'astrogators-shared-ui';
 import { useFilters } from '@/contexts/FilterContext';
-import type { FilterMode, GroupBy } from '@/contexts/FilterContext';
+import type { FilterMode, GroupBy, SortBy } from '@/contexts/FilterContext';
 import { useMods } from '@/contexts/ModContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import {
@@ -16,6 +16,12 @@ const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'tier', label: 'Tier' },
   { value: 'set', label: 'Set' },
   { value: 'primary', label: 'Primary' },
+];
+
+const SORT_BY_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: 'none', label: 'None (inventory order)' },
+  { value: 'score-desc', label: 'Score: High → Low' },
+  { value: 'score-asc', label: 'Score: Low → High' },
 ];
 
 const MODE_LABELS: Record<FilterMode, string> = {
@@ -148,6 +154,21 @@ export default function FilterPanel() {
           {/* Flat view filters */}
           {filters.mode === 'flat' && (
             <>
+              <div className={styles.filterSection}>
+                <h4>Sort By</h4>
+                <select
+                  className={styles.select}
+                  value={filters.sortBy}
+                  onChange={(e) => setFilter('sortBy', e.target.value as SortBy)}
+                >
+                  {SORT_BY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className={styles.filterSection}>
                 <h4>Group By</h4>
                 <select

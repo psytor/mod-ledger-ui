@@ -5,6 +5,7 @@ import { defaultFilters } from './defaultFilters';
 
 export type FilterMode = 'flat' | 'sell-pile' | 'unconfigured';
 export type GroupBy = 'none' | 'shape' | 'tier' | 'set' | 'primary';
+export type SortBy = 'none' | 'score-desc' | 'score-asc';
 
 export interface ModFilters {
   mode: FilterMode;
@@ -18,6 +19,8 @@ export interface ModFilters {
   bucket: ActionBucket | null;
   // how the flat result grid is grouped (none = one flat list):
   groupBy: GroupBy;
+  // how the flat result grid is ordered (none = inventory order):
+  sortBy: SortBy;
   // sell-pile parallel filters:
   sellPileSets: string[];
   sellPileSlots: string[];

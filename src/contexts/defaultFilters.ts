@@ -9,6 +9,7 @@ export const defaultFilters: ModFilters = {
   flatPrimaries: [],
   bucket: null,
   groupBy: 'none',
+  sortBy: 'none',
   sellPileSets: [],
   sellPileSlots: [],
   locked: 'all',
