@@ -41,6 +41,10 @@ persistence is deferred.
   action stage (Level / Slice / Maxed / Pre-Eval) with scoring-rule grouping
 - Two-stage gate model: rule-match (Stage 1) then absolute-quality gate
   (Stage 2). See `CLAUDE.md` for the engine internals.
+- Slicing advice: each slice-candidate mod gets a 5-band quality rating
+  (Slice For Sure → Consider → Average → Consider Selling → Sell) derived from
+  its **own** quality %, shown as a colour-tinted % on the card with a legend.
+  Per-mod — no cross-mod comparison, so a lone mod still gets a real verdict.
 
 ### Design system
 Chamfered Card layout system comes from `astrogators-shared-ui` (Card
@@ -139,6 +143,8 @@ src/
 │       ├── ModDetailModal.tsx
 │       ├── ModSprite.tsx
 │       ├── PipIndicator.tsx
+│       ├── InventoryOverview.tsx   # disposition counts / bucket filter
+│       ├── SliceLegend.tsx         # key for the 5-band slicing advice
 │       └── SecondaryStatColumn.tsx
 ├── pages/
 │   ├── AllyCodeSelectionPage.tsx
@@ -156,7 +162,7 @@ src/
     ├── modFilters.ts
     ├── modSorting.ts
     ├── modScorer.ts              # per-mod absolute_quality scorer
-    ├── cohortRanking.ts          # peer-relative ranking helpers
+    ├── modDisposition.ts         # action buckets + per-mod quality bands
     ├── scoringConstants.ts
     ├── evaluationEngine.ts       # rule + quality gate engine (see CLAUDE.md)
     ├── verdictExplain.ts         # plain-language verdict prose for the UI

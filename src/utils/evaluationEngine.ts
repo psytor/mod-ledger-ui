@@ -322,7 +322,7 @@ export function evaluateMod(
 
   const scored = passing.map((p) => ({
     chain: p,
-    score: scoreModForVariant(mod, p.variant, statDefs),
+    quality: scoreModForVariant(mod, p.variant, statDefs),
   }));
 
   scored.sort((a, b) => {
@@ -332,8 +332,8 @@ export function evaluateMod(
     if (a.chain.complementaryCount !== b.chain.complementaryCount) {
       return b.chain.complementaryCount - a.chain.complementaryCount;
     }
-    if (a.score.absolute_quality !== b.score.absolute_quality) {
-      return b.score.absolute_quality - a.score.absolute_quality;
+    if (a.quality !== b.quality) {
+      return b.quality - a.quality;
     }
     return (
       (variantOrder.get(a.chain.variant.id) ?? 0) -
@@ -353,8 +353,7 @@ export function evaluateMod(
       target_level: nextMilestone(mod.level),
       winning_variant_id: winner.chain.variant.id,
       winning_variant_name: winner.chain.variant.name,
-      score: winner.score.score,
-      absolute_quality: winner.score.absolute_quality,
+      absolute_quality: winner.quality,
       all_results: results,
     };
   }
@@ -363,8 +362,7 @@ export function evaluateMod(
     verdict: 'PASS_RULES',
     winning_variant_id: winner.chain.variant.id,
     winning_variant_name: winner.chain.variant.name,
-    score: winner.score.score,
-    absolute_quality: winner.score.absolute_quality,
+    absolute_quality: winner.quality,
     all_results: results,
   };
 }

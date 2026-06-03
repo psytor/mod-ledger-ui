@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ActionBucket } from '@/utils/cohortRanking';
+import type { ActionBucket } from '@/utils/modDisposition';
 import { defaultFilters } from './defaultFilters';
 
 export type FilterMode = 'flat' | 'sell-pile' | 'unconfigured';

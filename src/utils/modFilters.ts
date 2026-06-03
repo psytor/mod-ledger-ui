@@ -1,7 +1,7 @@
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
 import type { ModFilters, GroupBy, SortBy } from '@/contexts/FilterContext';
-import { bucketOf } from './cohortRanking';
+import { bucketOf, advancementRank } from './modDisposition';
 
 function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
   if (filters.locked === 'locked' && !mod.locked) return false;
@@ -76,9 +76,11 @@ export function getBucketCounts(
 }
 
 /**
- * Orders mods by their evaluation score (absolute_quality — the % shown on the
+ * Orders mods by their evaluation quality (absolute_quality — the % shown on the
  * card). `none` keeps inventory order. Mods without a score always sink to the
- * bottom regardless of direction.
+ * bottom regardless of direction. Ties are broken toward the more-advanced mod
+ * (6-dot > 5-dot, then higher tier) — the better slice bet, since holding a
+ * given quality through more rolls is harder and it's closer to top characters.
  */
 export function sortMods(
   mods: ParsedMod[],
@@ -89,9 +91,11 @@ export function sortMods(
   const missing = sortBy === 'score-asc' ? Infinity : -Infinity;
   const scoreOf = (mod: ParsedMod): number =>
     verdicts.get(mod.mod_id)?.absolute_quality ?? missing;
-  return [...mods].sort((a, b) =>
-    sortBy === 'score-asc' ? scoreOf(a) - scoreOf(b) : scoreOf(b) - scoreOf(a)
-  );
+  return [...mods].sort((a, b) => {
+    const diff = sortBy === 'score-asc' ? scoreOf(a) - scoreOf(b) : scoreOf(b) - scoreOf(a);
+    if (diff !== 0) return diff;
+    return advancementRank(b) - advancementRank(a);
+  });
 }
 
 // Display order for grouping headings; unknown values sort to the end.

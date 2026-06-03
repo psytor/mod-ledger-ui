@@ -1,6 +1,6 @@
 import { useFilters } from '@/contexts/FilterContext';
 import { getBucketCounts } from '@/utils/modFilters';
-import type { ActionBucket } from '@/utils/cohortRanking';
+import type { ActionBucket } from '@/utils/modDisposition';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
 import styles from './InventoryOverview.module.css';

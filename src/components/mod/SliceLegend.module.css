@@ -1,0 +1,53 @@
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.85rem;
+  background: rgba(17, 24, 39, 0.45);
+  border: 1px solid rgba(75, 85, 99, 0.4);
+  border-radius: 8px;
+}
+
+.title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e5e7eb;
+  letter-spacing: 0.02em;
+}
+
+.bands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+}
+
+.band {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #d1d5db;
+  white-space: nowrap;
+}
+
+.range {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.swatch {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Mirror the card chip tints (ModCard.module.css). */
+.sliceSure   { background: rgba(234, 179, 8, 0.96); }
+.consider    { background: rgba(147, 51, 234, 0.96); }
+.average     { background: rgba(37, 99, 235, 0.96); }
+.considerSell { background: rgba(22, 163, 74, 0.96); }
+.sell        { background: rgba(107, 114, 128, 0.95); }

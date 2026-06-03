@@ -47,16 +47,18 @@ function resolveStatId(
   return lookup.get(`${stat.stat_name}|${stat.is_percent}`);
 }
 
-export type ModScore = {
-  score: number;
-  absolute_quality: number; // 0-100
-};
-
+/**
+ * Returns the mod's `absolute_quality` (0-100) under the given variant: how
+ * close its revealed rolls came to perfect, weighted by how much the variant
+ * cares about each stat. This is the single quality number the UI displays and
+ * ranks by — the old raw running total was only ever used by the (removed)
+ * cohort percentile, so it is no longer returned.
+ */
 export function scoreModForVariant(
   mod: ParsedMod,
   variant: Variant,
   statDefs: StatDefinition[]
-): ModScore {
+): number {
   const statIdLookup = buildStatIdLookup(statDefs);
   const targets = variant.secondary_targets;
 
@@ -82,6 +84,5 @@ export function scoreModForVariant(
     theoreticalMax += efficiencies.length * 100 * multiplier;
   }
 
-  const absolute_quality = theoreticalMax > 0 ? (total / theoreticalMax) * 100 : 0;
-  return { score: total, absolute_quality };
+  return theoreticalMax > 0 ? (total / theoreticalMax) * 100 : 0;
 }

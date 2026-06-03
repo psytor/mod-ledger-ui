@@ -15,7 +15,7 @@ import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import ModDetailModal from '@/components/mod/ModDetailModal';
 import InventoryOverview from '@/components/mod/InventoryOverview';
-import { buildRankings, computeRelativePositions } from '@/utils/cohortRanking';
+import SliceLegend from '@/components/mod/SliceLegend';
 import FilterPanel from '@/components/filter/FilterPanel';
 import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
 import type { ParsedMod } from '@/services/modLedgerApi';
@@ -134,20 +134,17 @@ export default function ModGridPage() {
   const renderContent = () => {
     if (filters.mode === 'flat') {
       const filtered = applyFlatFilters(mods, filters, verdicts);
-      const rankings = noEvaluation
-        ? undefined
-        : buildRankings(mods, verdicts, computeRelativePositions(mods, verdicts));
       const sorted = sortMods(filtered, filters.sortBy, verdicts);
       const groups = groupMods(sorted, filters.groupBy);
       return (
         <>
           {!noEvaluation && <InventoryOverview mods={mods} verdicts={verdicts} />}
+          {!noEvaluation && <SliceLegend />}
           {groups.map((group) => (
             <div key={group.key} className={styles.group}>
               {group.label && <h2 className={styles.groupHeading}>{group.label}</h2>}
               <ModGrid
                 mods={group.mods}
-                rankings={rankings}
                 onModClick={handleModClick}
               />
             </div>

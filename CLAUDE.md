@@ -4,9 +4,11 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `d954cfc` plus the working-tree removal of the
-"Review Mods" view (the `push-or-sell` filter mode and its tier-stage UI). Bump
-this to the removal's commit hash once it is committed.
+**Docs current as of:** commit `f395f09` plus this commit — which replaced the
+cohort/percentile slicing bands with a per-mod 5-band quality scale (see
+"Slicing advice" below), renamed `cohortRanking.ts` → `modDisposition.ts`, and
+removed the unused raw `score`. Next session: `git log f395f09..HEAD` for
+anything newer.
 
 When you make a change that affects documented behaviour, update this line
 to the commit you have brought the docs level with — so the next session
@@ -169,7 +171,7 @@ A mod runs through two passes in sequence:
 
 L15 is deliberately absent — the engine routes L15 mods to `PASS_RULES`
 instead of running them through the quality gate. `PASS_RULES` mods are
-then bucketed by `actionOf` in `cohortRanking.ts` into the `slice` and
+then bucketed by `actionOf` in `modDisposition.ts` into the `slice` and
 `maxed` actions (the latter is a 6-dot A-tier mod with no further upgrade).
 See `evaluationEngine.ts` around the L15 branch.
 
@@ -187,6 +189,40 @@ priority (`evaluationEngine.ts` ~line 282-291):
    per-variant, so it measures roll quality, not which direction the mod fits.
 3. Then higher `absolute_quality` wins
 4. Then earlier insertion order wins
+
+`scoreModForVariant` returns a single number — `absolute_quality` (0-100). The
+old raw running total (`score`) was only ever consumed by the removed cohort
+percentile, so it is no longer returned or stored on `VerdictResult`.
+
+### Slicing advice (quality bands)
+
+A `slice`-action mod's recommendation is decided **per-mod** from its own
+`absolute_quality`, with **no cross-mod comparison**. `qualityBand` in
+`modDisposition.ts` splits 0-100 into five equal 20-point bands:
+
+| % range | Band | Card colour | Legend label |
+|---|---|---|---|
+| 80–100 | `slice-sure` | Gold | Slice For Sure |
+| 60–80 | `consider` | Purple | Consider |
+| 40–60 | `average` | Blue | Average |
+| 20–40 | `consider-sell` | Green | Consider Selling |
+| 0–20 | `sell` | Grey | Sell |
+
+`ModCard` shows the % large and tinted by its band (slice mods only; maxed mods
+get a neutral "Maxed" chip; level/sell rely on the verdict badge). `SliceLegend`
+renders the key. Because the band is intrinsic to the mod, **filtering and
+sorting never change a mod's band** — they only change what's shown and in what
+order, and a lone mod still gets a real verdict.
+
+`sortMods` orders by `absolute_quality`, breaking ties toward the
+**more-advanced** mod via `advancementRank` (`rarity*10 + tier`: a 6-dot beats
+any 5-dot, then higher tier wins) — the better slice bet.
+
+> **History:** this replaced a cohort system that ranked each mod by *percentile
+> within a `dots+tier+variant` peer group*, keyed on the raw `score`. It was
+> removed because the deciding number was never shown, the peers were hidden by
+> the active filter, and a single-mod cohort silently defaulted to "Keep" — so a
+> perfect lone mod could never be flagged to slice.
 
 ### Storage
 

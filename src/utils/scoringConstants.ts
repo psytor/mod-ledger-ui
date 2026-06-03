@@ -1,16 +1,8 @@
-// Tunable thresholds for the action-band UI. Hardcoded for now —
-// revisit after we see real distributions in production.
-
-// Slicing: percentile cutoffs within (stage, variant) cohort.
-export const PUSH_PERCENTILE_THRESHOLD = 70;
-export const SELL_PERCENTILE_THRESHOLD = 30;
-
-// Slicing: absolute_quality floor/ceiling. The percentile-based band only
-// fires when these are also satisfied — so a "best of a bad lot" doesn't
-// become Push and a "worst of a brilliant lot" doesn't become Consider Selling.
-export const PUSH_ABSOLUTE_FLOOR = 45;
-export const SELL_ABSOLUTE_CEILING = 65;
-
-// Minimum cohort size for a percentile to be meaningful. Singletons get
-// no relative_position; the UI shows absolute_quality only.
-export const MIN_COHORT_SIZE_FOR_RANKING = 2;
+// Quality-band boundaries for the per-mod slicing advice scale.
+//
+// Advice is derived purely from a mod's own `absolute_quality` (0-100) — there
+// is no cross-mod comparison. The 0-100 range is split into five equal 20-point
+// bands; a mod's band is decided by where its quality falls. See `qualityBand`
+// in modDisposition.ts. Boundaries are ascending; a value lands in the lowest
+// band whose upper bound it is below (>= 80 is the top band).
+export const QUALITY_BAND_BOUNDARIES = [20, 40, 60, 80] as const;

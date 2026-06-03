@@ -338,59 +338,67 @@
   color: #d1d5db;
 }
 
-.scoreValue {
-  margin-left: 0.4rem;
-  padding-left: 0.4rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.35);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  pointer-events: auto;
-}
+/* ========== QUALITY BAND CHIP (slicing advice) ========== */
 
-/* ========== ACTION BAND CHIP ========== */
-
-.bandChip {
+/* The % shown big and tinted by its band. Solid fill + large weight keeps it
+   visually distinct from the thin tier-coloured card border, even where the
+   hues are in the same family. Band meaning lives in the SliceLegend. */
+.qualityChip {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.55rem;
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.03em;
-  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  border-radius: 6px;
   z-index: 10;
   pointer-events: none;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
 }
 
-.bandQuality {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+.qualityPercent {
+  font-size: 0.8rem;
+  font-weight: 700;
   padding-left: 0.35rem;
   border-left: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.bandPush {
-  background: rgba(22, 163, 74, 0.95);
-  color: white;
-  box-shadow: 0 0 8px rgba(22, 163, 74, 0.45);
+.qualitySliceSure {
+  background: rgba(234, 179, 8, 0.96);   /* gold */
+  color: #1a1206;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
 }
 
-.bandKeep {
-  background: rgba(75, 85, 99, 0.9);
+.qualityConsider {
+  background: rgba(147, 51, 234, 0.96);  /* purple */
+  box-shadow: 0 0 9px rgba(147, 51, 234, 0.45);
+}
+
+.qualityAverage {
+  background: rgba(37, 99, 235, 0.96);   /* blue */
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
+}
+
+.qualityConsiderSell {
+  background: rgba(22, 163, 74, 0.96);   /* green */
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+}
+
+.qualitySell {
+  background: rgba(107, 114, 128, 0.95); /* grey */
+  color: #f3f4f6;
+}
+
+.qualityMaxed {
+  background: rgba(31, 41, 55, 0.9);
   color: #e8e8e8;
-}
-
-.bandSell {
-  background: rgba(217, 119, 6, 0.95);
-  color: white;
-  box-shadow: 0 0 8px rgba(217, 119, 6, 0.4);
-}
-
-.bandNone {
-  background: rgba(37, 99, 235, 0.9);
-  color: white;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
