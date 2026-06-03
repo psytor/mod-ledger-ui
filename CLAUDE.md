@@ -4,10 +4,13 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `f395f09` plus this commit — which replaced the
-cohort/percentile slicing bands with a per-mod 5-band quality scale (see
-"Slicing advice" below), renamed `cohortRanking.ts` → `modDisposition.ts`, and
-removed the unused raw `score`. Next session: `git log f395f09..HEAD` for
+**Docs current as of:** commit `65e26c8` plus this commit — which consolidated
+the three top-of-page strips (`InventoryOverview` + `ResultsDistribution` +
+`SliceLegend`) into a single interactive `InventoryReadout` console and added a
+`band` quality-band filter alongside `bucket` (see "Top-of-page readout" below).
+The prior uncommitted change replaced the cohort/percentile slicing bands with a
+per-mod 5-band quality scale, renamed `cohortRanking.ts` → `modDisposition.ts`,
+and removed the unused raw `score`. Next session: `git log 65e26c8..HEAD` for
 anything newer.
 
 When you make a change that affects documented behaviour, update this line
@@ -209,10 +212,32 @@ A `slice`-action mod's recommendation is decided **per-mod** from its own
 | 0–20 | `sell` | Grey | Sell |
 
 `ModCard` shows the % large and tinted by its band (slice mods only; maxed mods
-get a neutral "Maxed" chip; level/sell rely on the verdict badge). `SliceLegend`
-renders the key. Because the band is intrinsic to the mod, **filtering and
-sorting never change a mod's band** — they only change what's shown and in what
-order, and a lone mod still gets a real verdict.
+get a neutral "Maxed" chip; level/sell rely on the verdict badge).
+`InventoryReadout` (the framed console at the top of the flat view) renders the
+key — see "Top-of-page readout" below. Because the band is intrinsic to the mod,
+**filtering and sorting never change a mod's band** — they only change what's
+shown and in what order, and a lone mod still gets a real verdict.
+
+### Top-of-page readout
+
+`InventoryReadout` (`src/components/mod/InventoryReadout.tsx`) is the single
+framed panel above the flat grid. It consolidates what used to be three separate
+strips (`InventoryOverview` + `ResultsDistribution` + `SliceLegend`, all now
+removed) into two interactive lenses, both computed from the **whole inventory**
+(not the filtered view) so the counts stay a stable overview:
+
+- **Disposition** — a count chip per `ActionBucket` (Sell / Level Up / Slice /
+  Maxed / Unconfigured) plus an "All" chip. Clicking sets `filters.bucket`
+  (`getBucketCounts`).
+- **Quality** — a segmented distribution bar over every *scored* mod
+  (`getQualityBandCounts`; a finite `absolute_quality`), highest band on the
+  left, plus an interactive legend doubling as the colour key. Clicking a
+  segment or legend item sets `filters.band`.
+
+`bucket` and `band` are **independent** filters that stack (e.g. slice mods in
+the gold band); a "Clear filter" pill resets both. The band filter lives in
+`ModFilters` and is applied in `applyFlatFilters` (stale-guarded by
+`verdicts?.size`, same as `bucket`).
 
 `sortMods` orders by `absolute_quality`, breaking ties toward the
 **more-advanced** mod via `advancementRank` (`rarity*10 + tier`: a 6-dot beats

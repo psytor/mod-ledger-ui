@@ -40,6 +40,12 @@ export function applyFlatFilters(
       const verdict = verdicts.get(mod.mod_id);
       if (!verdict || bucketOf(mod, verdict) !== filters.bucket) return false;
     }
+    // Quality-band lens — same stale-guard. Mods with no score (UNCONFIGURED /
+    // pre-eval) have no band, so a band filter excludes them.
+    if (filters.band && verdicts?.size) {
+      const quality = verdicts.get(mod.mod_id)?.absolute_quality;
+      if (quality === undefined || qualityBand(quality) !== filters.band) return false;
+    }
     if (!matchesCrossCutting(mod, filters)) return false;
     return true;
   });

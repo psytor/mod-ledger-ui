@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ActionBucket } from '@/utils/modDisposition';
+import type { ActionBucket, QualityBand } from '@/utils/modDisposition';
 import { defaultFilters } from './defaultFilters';
 
 export type FilterMode = 'flat' | 'sell-pile' | 'unconfigured';
@@ -17,6 +17,9 @@ export interface ModFilters {
   flatPrimaries: string[];
   // inventory-overview disposition (null = all dispositions):
   bucket: ActionBucket | null;
+  // quality-band lens (null = all bands); independent of `bucket` — both can
+  // be active at once to narrow e.g. "slice mods in the gold band":
+  band: QualityBand | null;
   // how the flat result grid is grouped (none = one flat list):
   groupBy: GroupBy;
   // how the flat result grid is ordered (none = inventory order):

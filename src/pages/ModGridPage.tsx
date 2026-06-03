@@ -14,9 +14,7 @@ import {
 import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import ModDetailModal from '@/components/mod/ModDetailModal';
-import InventoryOverview from '@/components/mod/InventoryOverview';
-import ResultsDistribution from '@/components/mod/ResultsDistribution';
-import SliceLegend from '@/components/mod/SliceLegend';
+import InventoryReadout from '@/components/mod/InventoryReadout';
 import FilterPanel from '@/components/filter/FilterPanel';
 import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
 import type { ParsedMod } from '@/services/modLedgerApi';
@@ -139,9 +137,7 @@ export default function ModGridPage() {
       const groups = groupMods(sorted, filters.groupBy);
       return (
         <>
-          {!noEvaluation && <InventoryOverview mods={mods} verdicts={verdicts} />}
-          {!noEvaluation && <ResultsDistribution mods={mods} verdicts={verdicts} />}
-          {!noEvaluation && <SliceLegend />}
+          {!noEvaluation && <InventoryReadout mods={mods} verdicts={verdicts} />}
           {groups.map((group) => (
             <div key={group.key} className={styles.group}>
               {group.label && <h2 className={styles.groupHeading}>{group.label}</h2>}

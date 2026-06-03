@@ -8,6 +8,7 @@ export const defaultFilters: ModFilters = {
   flatRarity: [],
   flatPrimaries: [],
   bucket: null,
+  band: null,
   groupBy: 'none',
   sortBy: 'none',
   sellPileSets: [],
