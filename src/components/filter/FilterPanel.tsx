@@ -1,20 +1,25 @@
 import { Button } from 'astrogators-shared-ui';
 import { useFilters } from '@/contexts/FilterContext';
-import type { FilterMode } from '@/contexts/FilterContext';
+import type { FilterMode, GroupBy } from '@/contexts/FilterContext';
 import { useMods } from '@/contexts/ModContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import {
-  getDrilldownOptions,
   getFlatOptions,
   getSellPileOptions,
-  isVariablePrimarySlot,
+  getCharacterOptions,
 } from '@/utils/modFilters';
-import { formatStage } from '@/utils/cohortRanking';
 import styles from './FilterPanel.module.css';
+
+const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'shape', label: 'Shape' },
+  { value: 'tier', label: 'Tier' },
+  { value: 'set', label: 'Set' },
+  { value: 'primary', label: 'Primary' },
+];
 
 const MODE_LABELS: Record<FilterMode, string> = {
   flat: 'All Mods',
-  'push-or-sell': 'Review Mods',
   'sell-pile': 'Sell Pile',
   unconfigured: 'Unconfigured',
 };
@@ -68,31 +73,16 @@ export default function FilterPanel() {
     return def ? `${def.name} (${def.shape})` : slotName;
   };
 
-  const drilldown = getDrilldownOptions(mods, verdicts, filters);
   const sellPile = getSellPileOptions(mods, verdicts);
   const flat = getFlatOptions(mods);
+  const characterOptions = getCharacterOptions(mods);
 
-  // Stage change clears the whole downstream drilldown.
-  const handleStageChange = (stage: string | null) => {
-    setFilter('stage', stage);
-    setFilter('variantId', null);
-    setFilter('slot', null);
-    setFilter('primary', null);
-    setFilter('actionTab', null);
-  };
-
-  // Variant change clears slot/primary/action.
-  const handleVariantChange = (variantId: string | null) => {
-    setFilter('variantId', variantId);
-    setFilter('slot', null);
-    setFilter('primary', null);
-    setFilter('actionTab', null);
-  };
-
-  // Slot change clears primary.
-  const handleSlotChange = (slot: string | null) => {
-    setFilter('slot', slot);
-    setFilter('primary', null);
+  const toggleCharacter = (value: string, checked: boolean) => {
+    const current = filters.characters;
+    setFilter(
+      'characters',
+      checked ? [...current, value] : current.filter((v) => v !== value)
+    );
   };
 
   const toggleSellPileArray = (
@@ -127,9 +117,6 @@ export default function FilterPanel() {
     );
   };
 
-  const showPrimaryPicker =
-    filters.slot !== null && isVariablePrimarySlot(filters.slot);
-
   return (
     <>
       {isPanelOpen && <div className={styles.overlay} onClick={closePanel} />}
@@ -161,6 +148,21 @@ export default function FilterPanel() {
           {/* Flat view filters */}
           {filters.mode === 'flat' && (
             <>
+              <div className={styles.filterSection}>
+                <h4>Group By</h4>
+                <select
+                  className={styles.select}
+                  value={filters.groupBy}
+                  onChange={(e) => setFilter('groupBy', e.target.value as GroupBy)}
+                >
+                  {GROUP_BY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className={styles.filterSection}>
                 <h4>
                   Mod Sets{' '}
@@ -269,81 +271,6 @@ export default function FilterPanel() {
             </>
           )}
 
-          {/* Push or Sell drilldown */}
-          {filters.mode === 'push-or-sell' && (
-            <>
-              <div className={styles.filterSection}>
-                <h4>Tier</h4>
-                <select
-                  className={styles.select}
-                  value={filters.stage ?? ''}
-                  onChange={(e) => handleStageChange(e.target.value || null)}
-                >
-                  <option value="">All tiers</option>
-                  {drilldown.stages.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {formatStage(s.value)} ({s.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.filterSection}>
-                <h4>Scoring Rule</h4>
-                <select
-                  className={styles.select}
-                  value={filters.variantId ?? ''}
-                  onChange={(e) => handleVariantChange(e.target.value || null)}
-                >
-                  <option value="">Overview — pick a scoring rule</option>
-                  {drilldown.variants.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {filters.variantId && (
-                <div className={styles.filterSection}>
-                  <h4>Slot</h4>
-                  <select
-                    className={styles.select}
-                    value={filters.slot ?? ''}
-                    onChange={(e) => handleSlotChange(e.target.value || null)}
-                  >
-                    <option value="">All slots</option>
-                    {drilldown.slots.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {slotDisplayName(s.value)} ({s.count})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {filters.variantId && showPrimaryPicker && (
-                <div className={styles.filterSection}>
-                  <h4>Primary Stat</h4>
-                  <select
-                    className={styles.select}
-                    value={filters.primary ?? ''}
-                    onChange={(e) =>
-                      setFilter('primary', e.target.value || null)
-                    }
-                  >
-                    <option value="">All primaries</option>
-                    {drilldown.primaries.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.value} ({p.count})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </>
-          )}
-
           {/* Sell Pile parallel filters */}
           {filters.mode === 'sell-pile' && (
             <>
@@ -402,6 +329,30 @@ export default function FilterPanel() {
                 evaluation. Configure rules for those sets to start evaluating
                 them.
               </p>
+            </div>
+          )}
+
+          {/* Cross-cutting: character (all modes) */}
+          {characterOptions.length > 0 && (
+            <div className={styles.filterSection}>
+              <h4>
+                Character{' '}
+                <span className={styles.count}>
+                  ({filters.characters.length}/{characterOptions.length})
+                </span>
+              </h4>
+              <div style={{ maxHeight: '12rem', overflowY: 'auto' }}>
+                {characterOptions.map((character) => (
+                  <label key={character} className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={filters.characters.includes(character)}
+                      onChange={(e) => toggleCharacter(character, e.target.checked)}
+                    />
+                    <span>{character}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
 

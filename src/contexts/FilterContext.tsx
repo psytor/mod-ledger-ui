@@ -1,9 +1,10 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { ActionBucket } from '@/utils/cohortRanking';
 import { defaultFilters } from './defaultFilters';
 
-export type FilterMode = 'flat' | 'push-or-sell' | 'sell-pile' | 'unconfigured';
-export type ActionTab = 'level' | 'slice' | 'maxed' | 'pre-eval';
+export type FilterMode = 'flat' | 'sell-pile' | 'unconfigured';
+export type GroupBy = 'none' | 'shape' | 'tier' | 'set' | 'primary';
 
 export interface ModFilters {
   mode: FilterMode;
@@ -13,12 +14,10 @@ export interface ModFilters {
   flatTiers: string[];
   flatRarity: number[];
   flatPrimaries: string[];
-  // push-or-sell drilldown:
-  stage: string | null;
-  variantId: string | null;
-  slot: string | null;
-  primary: string | null;
-  actionTab: ActionTab | null;
+  // inventory-overview disposition (null = all dispositions):
+  bucket: ActionBucket | null;
+  // how the flat result grid is grouped (none = one flat list):
+  groupBy: GroupBy;
   // sell-pile parallel filters:
   sellPileSets: string[];
   sellPileSlots: string[];
@@ -35,7 +34,6 @@ interface FilterContextType {
   filters: ModFilters;
   setFilter: <K extends keyof ModFilters>(key: K, value: ModFilters[K]) => void;
   clearFilters: () => void;
-  resetDrilldown: () => void;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
@@ -56,18 +54,6 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setFilters(defaultFilters);
   };
 
-  // Resets only the drilldown selections within push-or-sell mode (variant +
-  // downstream). Used when stage changes or the evaluation/ally code switches.
-  const resetDrilldown = () => {
-    setFilters((prev) => ({
-      ...prev,
-      variantId: null,
-      slot: null,
-      primary: null,
-      actionTab: null,
-    }));
-  };
-
   return (
     <FilterContext.Provider
       value={{
@@ -78,7 +64,6 @@ export function FilterProvider({ children }: { children: ReactNode }) {
         filters,
         setFilter,
         clearFilters,
-        resetDrilldown,
       }}
     >
       {children}

@@ -4,7 +4,9 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `b3cf353` (`Rename deploy ModAction to maxed`).
+**Docs current as of:** commit `d954cfc` plus the working-tree removal of the
+"Review Mods" view (the `push-or-sell` filter mode and its tier-stage UI). Bump
+this to the removal's commit hash once it is committed.
 
 When you make a change that affects documented behaviour, update this line
 to the commit you have brought the docs level with — so the next session
@@ -168,9 +170,8 @@ A mod runs through two passes in sequence:
 L15 is deliberately absent — the engine routes L15 mods to `PASS_RULES`
 instead of running them through the quality gate. `PASS_RULES` mods are
 then bucketed by `actionOf` in `cohortRanking.ts` into the `slice` and
-`maxed` actions (the latter is a 6-dot A-tier mod with no further upgrade;
-the UI labels that tab "Maxed"). See `evaluationEngine.ts` around the L15
-branch.
+`maxed` actions (the latter is a 6-dot A-tier mod with no further upgrade).
+See `evaluationEngine.ts` around the L15 branch.
 
 ### Variant tiebreaking
 

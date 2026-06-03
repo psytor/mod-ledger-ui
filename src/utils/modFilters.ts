@@ -1,19 +1,7 @@
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
-import type { ModFilters } from '@/contexts/FilterContext';
-import { actionOf, stageOf, STAGE_ORDER, ACTION_ORDER, type ModAction } from './cohortRanking';
-
-// Slots whose primary stat varies; the primary picker only matters for these.
-// Square/Diamond/Circle have a fixed primary.
-const VARIABLE_PRIMARY_SLOTS = new Set(['Arrow', 'Triangle', 'Cross', 'Plus']);
-
-export function isVariablePrimarySlot(slot: string): boolean {
-  return VARIABLE_PRIMARY_SLOTS.has(slot);
-}
-
-// Actions reachable via the variant drilldown. Pre-eval mods have no winning
-// variant, so they are surfaced separately (Overview), not in this pool.
-const DRILLDOWN_ACTIONS = new Set<ModAction>(['level', 'slice', 'maxed']);
+import type { ModFilters, GroupBy } from '@/contexts/FilterContext';
+import { bucketOf } from './cohortRanking';
 
 function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
   if (filters.locked === 'locked' && !mod.locked) return false;
@@ -24,46 +12,16 @@ function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
   return true;
 }
 
-function isDrilldownMod(mod: ParsedMod, verdicts: Map<string, VerdictResult>): boolean {
-  const verdict = verdicts.get(mod.mod_id);
-  if (!verdict) return false;
-  const action = actionOf(mod, verdict);
-  return action !== null && DRILLDOWN_ACTIONS.has(action);
-}
-
-/**
- * Push-or-sell drilldown filter. Applies stage → variant → slot → primary plus
- * cross-cutting filters. Does NOT filter by actionTab — ActionSubTabs buckets
- * by action itself so it can render every available tab.
- */
-export function applyPushOrSellFilters(
-  mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>,
-  filters: ModFilters
-): ParsedMod[] {
-  return mods.filter((mod) => {
-    const verdict = verdicts.get(mod.mod_id);
-    if (!verdict) return false;
-    const action = actionOf(mod, verdict);
-    if (action === null || !DRILLDOWN_ACTIONS.has(action)) return false;
-
-    if (filters.stage && stageOf(mod) !== filters.stage) return false;
-    if (filters.variantId && verdict.winning_variant_id !== filters.variantId) return false;
-    if (filters.slot && mod.slot !== filters.slot) return false;
-    if (filters.primary && mod.primary_stat.stat_name !== filters.primary) return false;
-    if (!matchesCrossCutting(mod, filters)) return false;
-    return true;
-  });
-}
-
 /**
  * Flat view filter: every mod that matches the selected set/slot/tier/rarity/
- * primary plus cross-cutting filters. No verdict dependency, so this works
- * before any evaluation has been run.
+ * primary plus cross-cutting filters. The facet checks have no verdict
+ * dependency, so this works before any evaluation has been run; the optional
+ * disposition `bucket` filter only engages when verdicts are supplied.
  */
 export function applyFlatFilters(
   mods: ParsedMod[],
-  filters: ModFilters
+  filters: ModFilters,
+  verdicts?: Map<string, VerdictResult>
 ): ParsedMod[] {
   return mods.filter((mod) => {
     if (filters.flatSets.length && !filters.flatSets.includes(mod.set)) return false;
@@ -76,9 +34,110 @@ export function applyFlatFilters(
     ) {
       return false;
     }
+    // Bucket only engages with live verdicts — a stale bucket from a prior
+    // evaluation is ignored (rather than emptying the grid) until one loads.
+    if (filters.bucket && verdicts?.size) {
+      const verdict = verdicts.get(mod.mod_id);
+      if (!verdict || bucketOf(mod, verdict) !== filters.bucket) return false;
+    }
     if (!matchesCrossCutting(mod, filters)) return false;
     return true;
   });
+}
+
+/** Per-disposition counts for the inventory overview. `total` is the whole inventory. */
+export interface BucketCounts {
+  total: number;
+  sell: number;
+  level: number;
+  slice: number;
+  maxed: number;
+  unconfigured: number;
+}
+
+export function getBucketCounts(
+  mods: ParsedMod[],
+  verdicts: Map<string, VerdictResult>
+): BucketCounts {
+  const counts: BucketCounts = {
+    total: mods.length,
+    sell: 0,
+    level: 0,
+    slice: 0,
+    maxed: 0,
+    unconfigured: 0,
+  };
+  for (const mod of mods) {
+    const verdict = verdicts.get(mod.mod_id);
+    if (!verdict) continue;
+    counts[bucketOf(mod, verdict)]++;
+  }
+  return counts;
+}
+
+// Display order for grouping headings; unknown values sort to the end.
+const SHAPE_ORDER = ['Square', 'Arrow', 'Diamond', 'Triangle', 'Circle', 'Cross'];
+const TIER_LETTER_ORDER = ['E', 'D', 'C', 'B', 'A'];
+const TIER_COLOR_BY_LETTER: Record<string, string> = {
+  E: 'Grey',
+  D: 'Green',
+  C: 'Blue',
+  B: 'Purple',
+  A: 'Gold',
+};
+
+export interface ModGroup {
+  key: string;
+  label: string;
+  mods: ParsedMod[];
+}
+
+/**
+ * Splits mods into display groups per the user-chosen axis. `none` returns a
+ * single unlabelled group (the flat list). Groups are ordered for shape/tier;
+ * set/primary fall back to alphabetical.
+ */
+export function groupMods(mods: ParsedMod[], groupBy: GroupBy): ModGroup[] {
+  if (groupBy === 'none') return [{ key: 'all', label: '', mods }];
+
+  const keyOf = (mod: ParsedMod): string => {
+    switch (groupBy) {
+      case 'shape':
+        return mod.shape;
+      case 'tier':
+        return mod.tier_name;
+      case 'set':
+        return mod.set;
+      case 'primary':
+        return mod.primary_stat.stat_name;
+    }
+  };
+
+  const groups = new Map<string, ParsedMod[]>();
+  for (const mod of mods) {
+    const k = keyOf(mod);
+    const bucket = groups.get(k);
+    if (bucket) bucket.push(mod);
+    else groups.set(k, [mod]);
+  }
+
+  const rank = (order: string[], v: string): number => {
+    const i = order.indexOf(v);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const compare = (a: string, b: string): number => {
+    if (groupBy === 'shape') return rank(SHAPE_ORDER, a) - rank(SHAPE_ORDER, b);
+    if (groupBy === 'tier') return rank(TIER_LETTER_ORDER, a) - rank(TIER_LETTER_ORDER, b);
+    return a.localeCompare(b);
+  };
+  const labelOf = (k: string): string =>
+    groupBy === 'tier' ? `${TIER_COLOR_BY_LETTER[k] ?? k} (${k})` : k;
+
+  return [...groups.keys()].sort(compare).map((k) => ({
+    key: k,
+    label: labelOf(k),
+    mods: groups.get(k)!,
+  }));
 }
 
 /** Set / slot / tier / rarity / primary options across all mods, for the flat view panel. */
@@ -138,128 +197,6 @@ export function applyUnconfiguredFilters(
   return mods.filter((mod) => verdicts.get(mod.mod_id)?.verdict === 'UNCONFIGURED');
 }
 
-/** Pre-eval mods: UPGRADE verdict with no winning variant. Surfaced in Overview. */
-export function getPreEvalMods(
-  mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>
-): ParsedMod[] {
-  return mods.filter((mod) => {
-    const verdict = verdicts.get(mod.mod_id);
-    if (!verdict) return false;
-    return actionOf(mod, verdict) === 'pre-eval';
-  });
-}
-
-export interface DrilldownOption<T = string> {
-  value: T;
-  count: number;
-}
-
-export interface VariantOption {
-  id: string;
-  name: string;
-  count: number;
-}
-
-export interface DrilldownOptions {
-  stages: DrilldownOption[];
-  variants: VariantOption[];
-  slots: DrilldownOption[];
-  primaries: DrilldownOption[];
-  actionTabs: DrilldownOption<ModAction>[];
-}
-
-/**
- * Cascading option lists for the push-or-sell drilldown. Each level is computed
- * against the upstream selections so pickers only show options that yield
- * non-empty results. Counts reflect the narrowed pool at that level.
- */
-export function getDrilldownOptions(
-  mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>,
-  filters: ModFilters
-): DrilldownOptions {
-  // Base pool: drilldown-eligible mods passing cross-cutting filters.
-  const base = mods.filter(
-    (mod) => isDrilldownMod(mod, verdicts) && matchesCrossCutting(mod, filters)
-  );
-
-  const stageCount = new Map<string, number>();
-  for (const mod of base) {
-    const s = stageOf(mod);
-    if (s) stageCount.set(s, (stageCount.get(s) ?? 0) + 1);
-  }
-
-  const afterStage = filters.stage
-    ? base.filter((m) => stageOf(m) === filters.stage)
-    : base;
-
-  const variantCount = new Map<string, { name: string; count: number }>();
-  for (const mod of afterStage) {
-    const v = verdicts.get(mod.mod_id);
-    const id = v?.winning_variant_id;
-    if (!id) continue;
-    const existing = variantCount.get(id);
-    if (existing) existing.count++;
-    else variantCount.set(id, { name: v.winning_variant_name ?? id, count: 1 });
-  }
-
-  const afterVariant = filters.variantId
-    ? afterStage.filter(
-        (m) => verdicts.get(m.mod_id)?.winning_variant_id === filters.variantId
-      )
-    : afterStage;
-
-  const slotCount = new Map<string, number>();
-  for (const mod of afterVariant) {
-    slotCount.set(mod.slot, (slotCount.get(mod.slot) ?? 0) + 1);
-  }
-
-  const afterSlot = filters.slot
-    ? afterVariant.filter((m) => m.slot === filters.slot)
-    : afterVariant;
-
-  const primaryCount = new Map<string, number>();
-  for (const mod of afterSlot) {
-    const p = mod.primary_stat.stat_name;
-    primaryCount.set(p, (primaryCount.get(p) ?? 0) + 1);
-  }
-
-  const afterPrimary = filters.primary
-    ? afterSlot.filter((m) => m.primary_stat.stat_name === filters.primary)
-    : afterSlot;
-
-  const actionCount = new Map<ModAction, number>();
-  for (const mod of afterPrimary) {
-    const v = verdicts.get(mod.mod_id);
-    if (!v) continue;
-    const a = actionOf(mod, v);
-    if (a) actionCount.set(a, (actionCount.get(a) ?? 0) + 1);
-  }
-
-  return {
-    stages: [...stageCount.entries()]
-      .map(([value, count]) => ({ value, count }))
-      .sort(
-        (a, b) =>
-          STAGE_ORDER.indexOf(a.value as (typeof STAGE_ORDER)[number]) -
-          STAGE_ORDER.indexOf(b.value as (typeof STAGE_ORDER)[number])
-      ),
-    variants: [...variantCount.entries()]
-      .map(([id, { name, count }]) => ({ id, name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
-    slots: [...slotCount.entries()]
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => a.value.localeCompare(b.value)),
-    primaries: [...primaryCount.entries()]
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => a.value.localeCompare(b.value)),
-    actionTabs: [...actionCount.entries()]
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => ACTION_ORDER.indexOf(a.value) - ACTION_ORDER.indexOf(b.value)),
-  };
-}
-
 /** Set + slot options for the sell-pile parallel filters. */
 export function getSellPileOptions(
   mods: ParsedMod[],
@@ -278,7 +215,7 @@ export function getSellPileOptions(
   };
 }
 
-/** Distinct character names across the inventory, for the cross-cutting filter. */
+/** Distinct characters that currently have a mod equipped, for the character filter. */
 export function getCharacterOptions(mods: ParsedMod[]): string[] {
   const characters = new Set<string>();
   for (const mod of mods) {

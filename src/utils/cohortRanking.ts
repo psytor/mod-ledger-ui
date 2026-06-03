@@ -6,21 +6,9 @@ import {
   SELL_PERCENTILE_THRESHOLD,
   PUSH_ABSOLUTE_FLOOR,
   SELL_ABSOLUTE_CEILING,
-  OVERALL_PUSH_QUALITY,
-  OVERALL_SELL_QUALITY,
 } from './scoringConstants';
 
 export type ModAction = 'level' | 'slice' | 'maxed' | 'pre-eval' | 'sell';
-
-// Developmental stages, in upgrade order. Used to sort stage pickers/sections.
-export const STAGE_ORDER = [
-  '5d-E', '5d-D', '5d-C', '5d-B', '5d-A',
-  '6d-E', '6d-D', '6d-C', '6d-B', '6d-A',
-] as const;
-
-// Action sub-tab order: most-actionable first so a freshly-entered variant
-// view defaults to something the player can act on.
-export const ACTION_ORDER: ModAction[] = ['level', 'slice', 'maxed', 'pre-eval', 'sell'];
 
 // Stage identifies the developmental peer group: 5d-E ... 6d-A. Returns null
 // for rarity <4 (legacy, auto-sell) and any unexpected shape.
@@ -28,23 +16,6 @@ export function stageOf(mod: ParsedMod): string | null {
   if (mod.rarity < 5) return null;
   if (!mod.tier_name) return null;
   return `${mod.rarity}d-${mod.tier_name}`;
-}
-
-const TIER_LETTER_TO_COLOR: Record<string, string> = {
-  A: 'Gold',
-  B: 'Purple',
-  C: 'Blue',
-  D: 'Green',
-  E: 'Grey',
-};
-
-// Renders an internal stage code ("5d-A") as the player-facing string ("5A Gold").
-// Falls back to the raw code if the shape is unexpected.
-export function formatStage(stage: string): string {
-  const match = /^(\d)d-([A-E])$/.exec(stage);
-  if (!match) return stage;
-  const [, rarity, letter] = match;
-  return `${rarity}${letter} ${TIER_LETTER_TO_COLOR[letter] ?? ''}`.trim();
 }
 
 // Maps verdict + mod state to the action the player is being asked to take.
@@ -61,6 +32,19 @@ export function actionOf(mod: ParsedMod, verdict: VerdictResult): ModAction | nu
     case 'UNCONFIGURED':
       return null;
   }
+}
+
+// The five player-facing inventory dispositions shown in the overview. Folds
+// 'pre-eval' (a mod that must be levelled before it can be judged) into
+// 'level', and maps the UNCONFIGURED verdict (actionOf → null) to
+// 'unconfigured'.
+export type ActionBucket = 'sell' | 'level' | 'slice' | 'maxed' | 'unconfigured';
+
+export function bucketOf(mod: ParsedMod, verdict: VerdictResult): ActionBucket {
+  const action = actionOf(mod, verdict);
+  if (action === null) return 'unconfigured';
+  if (action === 'pre-eval') return 'level';
+  return action;
 }
 
 // Cohort key for relative ranking. Mods sharing a key are direct peers.
@@ -204,18 +188,4 @@ export function deriveActionBand(ranking: ModRanking): ActionBand {
     default:
       return 'none';
   }
-}
-
-/**
- * Absolute-quality band for the "Overall" cross-stage slice list. Unlike
- * deriveActionBand, this ignores cohort percentile and labels a mod purely on
- * its own absolute_quality — so the chip stays consistent with that list's
- * absolute-% ordering, and a strong mod is not demoted to "Keep" merely
- * because better mods happen to share its stage. Level/maxed mods get no band.
- */
-export function deriveAbsoluteBand(ranking: ModRanking): ActionBand {
-  if (ranking.action === 'level' || ranking.action === 'maxed') return 'none';
-  if (ranking.absolute_quality >= OVERALL_PUSH_QUALITY) return 'push';
-  if (ranking.absolute_quality < OVERALL_SELL_QUALITY) return 'consider-selling';
-  return 'keep';
 }
