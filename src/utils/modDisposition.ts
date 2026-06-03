@@ -37,18 +37,21 @@ export function bucketOf(mod: ParsedMod, verdict: VerdictResult): ActionBucket {
 // Per-mod quality band (the slicing advice scale)
 //
 // A slice-candidate mod's advice is decided entirely by its own
-// `absolute_quality` (0-100), split into five equal 20-point bands. There is no
+// `absolute_quality` (0-100), split into five bands. The cuts are NOT
+// equal-width — they are calibrated to the real distribution (see
+// QUALITY_BAND_BOUNDARIES in scoringConstants.ts), because the score is a bell
+// centred near 50, so even splits left the top band empty. There is still no
 // peer group / cohort: a single mod gets a real verdict, the displayed % always
 // matches its band, and filtering never changes a mod's band (only what's shown
 // and in what order). Higher band = better slice bet.
 // ---------------------------------------------------------------------------
 
 export type QualityBand =
-  | 'slice-sure' // 80-100  Gold   "Slice For Sure"
-  | 'consider' //   60-80   Purple "Consider"
-  | 'average' //    40-60   Blue   "Average"
-  | 'consider-sell' // 20-40 Green "Consider Selling"
-  | 'sell'; //      0-20    Grey   "Sell"
+  | 'slice-sure' // 70-100  Gold   "Slice For Sure"
+  | 'consider' //   60-70   Purple "Consider"
+  | 'average' //    50-60   Blue   "Average"
+  | 'consider-sell' // 35-50 Green "Consider Selling"
+  | 'sell'; //      0-35    Grey   "Sell"
 
 // Ascending order so index 0 is the lowest band. The boundaries split the
 // 0-100 range; a quality lands in the first band whose upper bound it is below.
@@ -75,11 +78,11 @@ export interface QualityBandInfo {
 
 // Legend metadata, highest band first (matches how the legend reads top-down).
 export const QUALITY_BAND_INFO: QualityBandInfo[] = [
-  { band: 'slice-sure', label: 'Slice For Sure', range: '80–100%' },
-  { band: 'consider', label: 'Consider', range: '60–80%' },
-  { band: 'average', label: 'Average', range: '40–60%' },
-  { band: 'consider-sell', label: 'Consider Selling', range: '20–40%' },
-  { band: 'sell', label: 'Sell', range: '0–20%' },
+  { band: 'slice-sure', label: 'Slice For Sure', range: '70–100%' },
+  { band: 'consider', label: 'Consider', range: '60–70%' },
+  { band: 'average', label: 'Average', range: '50–60%' },
+  { band: 'consider-sell', label: 'Consider Selling', range: '35–50%' },
+  { band: 'sell', label: 'Sell', range: '0–35%' },
 ];
 
 // Position along the full upgrade journey, used only as a sort tiebreak when two

@@ -4,14 +4,17 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `65e26c8` plus this commit — which consolidated
-the three top-of-page strips (`InventoryOverview` + `ResultsDistribution` +
-`SliceLegend`) into a single interactive `InventoryReadout` console and added a
-`band` quality-band filter alongside `bucket` (see "Top-of-page readout" below).
-The prior uncommitted change replaced the cohort/percentile slicing bands with a
-per-mod 5-band quality scale, renamed `cohortRanking.ts` → `modDisposition.ts`,
-and removed the unused raw `score`. Next session: `git log 65e26c8..HEAD` for
-anything newer.
+**Docs current as of:** commit `65e26c8` plus this commit — which recalibrated
+the quality-band boundaries from equal 20-point splits to the distribution-fitted
+`[35, 50, 60, 70]` (see "Slicing advice" below; the score is a bell centred at
+50, so even splits left the top band empty). The prior uncommitted change
+consolidated the three top-of-page strips (`InventoryOverview` +
+`ResultsDistribution` + `SliceLegend`) into a single interactive
+`InventoryReadout` console and added a `band` quality-band filter alongside
+`bucket` (see "Top-of-page readout"); before that, the cohort/percentile slicing
+bands were replaced with a per-mod 5-band quality scale, `cohortRanking.ts` was
+renamed → `modDisposition.ts`, and the unused raw `score` was removed. Next
+session: `git log 65e26c8..HEAD` for anything newer.
 
 When you make a change that affects documented behaviour, update this line
 to the commit you have brought the docs level with — so the next session
@@ -201,15 +204,23 @@ percentile, so it is no longer returned or stored on `VerdictResult`.
 
 A `slice`-action mod's recommendation is decided **per-mod** from its own
 `absolute_quality`, with **no cross-mod comparison**. `qualityBand` in
-`modDisposition.ts` splits 0-100 into five equal 20-point bands:
+`modDisposition.ts` splits 0-100 into five bands using the boundaries in
+`scoringConstants.ts` (`QUALITY_BAND_BOUNDARIES = [35, 50, 60, 70]`). The cuts
+are **not equal-width**: `absolute_quality` is a bell centred near 50 (an
+average roll scores 50 by `curveScore`'s construction), so even 20-point splits
+piled everything into the middle and left the top band empty even for elite
+inventories. The boundaries are calibrated to the observed distribution across
+real accounts — "Average" sits on the ~50-55 median, and "Slice For Sure" is the
+best ~5-12% of a player's slice mods. It is still a fixed per-mod scale, **not**
+a live cohort percentile.
 
 | % range | Band | Card colour | Legend label |
 |---|---|---|---|
-| 80–100 | `slice-sure` | Gold | Slice For Sure |
-| 60–80 | `consider` | Purple | Consider |
-| 40–60 | `average` | Blue | Average |
-| 20–40 | `consider-sell` | Green | Consider Selling |
-| 0–20 | `sell` | Grey | Sell |
+| 70–100 | `slice-sure` | Gold | Slice For Sure |
+| 60–70 | `consider` | Purple | Consider |
+| 50–60 | `average` | Blue | Average |
+| 35–50 | `consider-sell` | Green | Consider Selling |
+| 0–35 | `sell` | Grey | Sell |
 
 `ModCard` shows the % large and tinted by its band (slice mods only; maxed mods
 get a neutral "Maxed" chip; level/sell rely on the verdict badge).
