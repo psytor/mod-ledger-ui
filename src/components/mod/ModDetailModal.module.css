@@ -218,6 +218,79 @@
   line-height: 1.5;
 }
 
+.evalBreakdown {
+  padding: 12px 16px;
+  background-color: #0f172a;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.evalBreakdownLabel {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.evalSecList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.evalSecRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.evalSecRow:last-child {
+  border-bottom: none;
+}
+
+.evalSecName {
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.evalSecRole {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.secRoleRequired {
+  color: #fde68a;
+  background-color: rgba(202, 138, 4, 0.18);
+}
+
+.secRoleComplementary {
+  color: #93c5fd;
+  background-color: rgba(59, 130, 246, 0.16);
+}
+
+.secRoleNeutral {
+  color: #94a3b8;
+  background-color: rgba(148, 163, 184, 0.12);
+}
+
+.evalWanted {
+  margin-top: 10px;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.evalWantedLabel {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
 .evalWinner {
   display: flex;
   align-items: center;

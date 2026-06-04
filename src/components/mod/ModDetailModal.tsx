@@ -1,7 +1,7 @@
 import { Modal } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
-import type { VerdictResult } from '@/types/evaluation';
+import type { SecondaryRole, VerdictResult } from '@/types/evaluation';
 import { explainVerdict } from '@/utils/verdictExplain';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
@@ -25,6 +25,17 @@ function verdictLabel(v: VerdictResult): string {
   if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
   if (v.verdict === 'PASS_RULES') return 'PASS';
   return v.verdict;
+}
+
+// A secondary's role under the reference rule. Unrevealed slots show "Hidden"
+// regardless of role — the rule can't have judged a stat the game hasn't shown.
+function roleDisplay(s: SecondaryRole): { label: string; cls: string } {
+  if (!s.is_revealed) return { label: 'Hidden', cls: styles.secRoleNeutral };
+  switch (s.role) {
+    case 'required': return { label: 'Required', cls: styles.secRoleRequired };
+    case 'complementary': return { label: 'Complementary', cls: styles.secRoleComplementary };
+    case 'neutral': return { label: 'Not wanted', cls: styles.secRoleNeutral };
+  }
 }
 
 export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalProps) {
@@ -112,6 +123,34 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
               </div>
             )}
 
+            {verdict.match_breakdown && (
+              <div className={styles.evalBreakdown}>
+                <div className={styles.evalBreakdownLabel}>
+                  How rule “{verdict.match_breakdown.variant_name}” reads this mod’s secondaries:
+                </div>
+                <ul className={styles.evalSecList}>
+                  {verdict.match_breakdown.secondaries.map((s, i) => {
+                    const role = roleDisplay(s);
+                    return (
+                      <li key={i} className={styles.evalSecRow}>
+                        <span className={styles.evalSecName}>
+                          {s.stat_name} {s.display_value}
+                        </span>
+                        <span className={`${styles.evalSecRole} ${role.cls}`}>{role.label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className={styles.evalWanted}>
+                  <span className={styles.evalWantedLabel}>Rule wants —</span>{' '}
+                  Required: {verdict.match_breakdown.required_wanted.join(', ') || '—'}
+                  {verdict.match_breakdown.complementary_wanted.length > 0 && (
+                    <> · Complementary: {verdict.match_breakdown.complementary_wanted.join(', ')}</>
+                  )}
+                </div>
+              </div>
+            )}
+
             {verdict.all_results && verdict.all_results.length > 0 && (
               <table className={styles.evalTable}>
                 <thead>
@@ -119,6 +158,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                     <th>Scoring Rule</th>
                     <th>Result</th>
                     <th>Required hits</th>
+                    <th>Comp. hits</th>
                     <th>Reason</th>
                   </tr>
                 </thead>
@@ -138,6 +178,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                           </span>
                         </td>
                         <td>{r.required_count}</td>
+                        <td>{r.complementary_count}</td>
                         <td className={styles.evalReasonCell}>{r.reason ?? '—'}</td>
                       </tr>
                     );

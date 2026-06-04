@@ -2,6 +2,7 @@ import type { ParsedMod } from '@/services/modLedgerApi';
 import type { StatDefinition } from '@/services/gameDataApi';
 import type {
   Evaluation,
+  MatchBreakdown,
   Variant,
   VariantResult,
   VerdictResult,
@@ -241,6 +242,44 @@ function runVariantChain(
   };
 }
 
+// Tags the mod's own secondaries with the role a given variant assigns each,
+// and lists the variant's full Required / Complementary stat names. Presentation
+// data only — the modal renders it so a player can see *which* stats counted.
+function buildMatchBreakdown(
+  mod: ParsedMod,
+  variant: Variant,
+  statDefs: StatDefinition[],
+  statIdLookup: Map<string, number>
+): MatchBreakdown {
+  const nameById = new Map<number, string>();
+  for (const s of statDefs) {
+    nameById.set(s.stat_id, s.is_percentage ? `${s.name} %` : s.name);
+  }
+
+  const secondaries = mod.secondary_stats.map((sec) => {
+    const id = resolveStatId(sec, statIdLookup);
+    const role =
+      id !== undefined ? variant.secondary_classifications[id] ?? 'neutral' : 'neutral';
+    return {
+      stat_name: sec.stat_name,
+      display_value: sec.display_value,
+      role,
+      is_revealed: sec.is_revealed !== false,
+    };
+  });
+
+  const required_wanted: string[] = [];
+  const complementary_wanted: string[] = [];
+  for (const [key, classification] of Object.entries(variant.secondary_classifications)) {
+    const label = nameById.get(Number(key));
+    if (!label) continue;
+    if (classification === 'required') required_wanted.push(label);
+    else if (classification === 'complementary') complementary_wanted.push(label);
+  }
+
+  return { variant_name: variant.name, secondaries, required_wanted, complementary_wanted };
+}
+
 function toVariantResult(r: VariantChainResult): VariantResult {
   return {
     variant_id: r.variant.id,
@@ -294,10 +333,14 @@ export function evaluateMod(
     const sortedFails = [...chains]
       .filter((r): r is Extract<VariantChainResult, { kind: 'fail' }> => r.kind === 'fail')
       .sort((a, b) => b.requiredCount - a.requiredCount);
+    const reference = sortedFails[0]?.variant;
     return {
       verdict: 'SELL',
       reason: sortedFails[0]?.reason ?? 'no variant passed',
       all_results: results,
+      match_breakdown: reference
+        ? buildMatchBreakdown(mod, reference, statDefs, statIdLookup)
+        : undefined,
     };
   }
 
@@ -355,6 +398,7 @@ export function evaluateMod(
       winning_variant_name: winner.chain.variant.name,
       absolute_quality: winner.quality,
       all_results: results,
+      match_breakdown: buildMatchBreakdown(mod, winner.chain.variant, statDefs, statIdLookup),
     };
   }
 
@@ -364,6 +408,7 @@ export function evaluateMod(
     winning_variant_name: winner.chain.variant.name,
     absolute_quality: winner.quality,
     all_results: results,
+    match_breakdown: buildMatchBreakdown(mod, winner.chain.variant, statDefs, statIdLookup),
   };
 }
 

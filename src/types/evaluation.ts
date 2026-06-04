@@ -71,6 +71,25 @@ export type VariantResult = {
   reason?: string;
 };
 
+// One of the mod's own secondaries, tagged with the role the reference rule
+// assigns it. Presentation only — lets the modal show *which* stats counted.
+export type SecondaryRole = {
+  stat_name: string;
+  display_value: string;        // e.g. "+15" / "+2.12%"
+  role: SecondaryClassification; // 'required' | 'complementary' | 'neutral'
+  is_revealed: boolean;
+};
+
+// Per-mod breakdown against the reference rule (the winner on a pass, or the
+// closest-fail rule on a sell — whichever drives the verdict's `reason`).
+// Built at eval time so the modal needn't reach back into the Evaluation.
+export type MatchBreakdown = {
+  variant_name: string;
+  secondaries: SecondaryRole[];       // the mod's secondaries, role-tagged
+  required_wanted: string[];          // stat names the rule marks Required
+  complementary_wanted: string[];     // stat names the rule marks Complementary
+};
+
 export type VerdictResult = {
   verdict: Verdict;
   target_level?: number;          // Set when verdict === 'UPGRADE'
@@ -79,4 +98,5 @@ export type VerdictResult = {
   reason?: string;
   all_results?: VariantResult[];  // Per-variant breakdown for debug / UI
   absolute_quality?: number;      // 0-100, raw_score / theoretical_max under the winning variant
+  match_breakdown?: MatchBreakdown; // Which secondaries the reference rule wanted (UI only)
 };
