@@ -210,6 +210,14 @@
   font-weight: 600;
 }
 
+.evalCaveat {
+  margin: 8px 0 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
 .evalWinner {
   display: flex;
   align-items: center;

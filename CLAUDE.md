@@ -4,10 +4,15 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `65e26c8` plus this commit — which recalibrated
-the quality-band boundaries from equal 20-point splits to the distribution-fitted
-`[35, 50, 60, 70]` (see "Slicing advice" below; the score is a bell centred at
-50, so even splits left the top band empty). The prior uncommitted change
+**Docs current as of:** commit `65e26c8` plus this commit — which added a
+`caveat` field to `verdictExplain` so a `SELL` verdict no longer reads as an
+absolute "sell now": it explains the call is against the current scoring rules
+(the mod may still suit a character wanting those secondaries together, or serve
+as a ship-pilot mod), and softens further for 6-dot mods to acknowledge the
+slicing investment (see "Verdict labels & explanations" below). Before that, the
+quality-band boundaries were recalibrated from equal 20-point splits to the
+distribution-fitted `[35, 50, 60, 70]` (see "Slicing advice" below; the score is
+a bell centred at 50, so even splits left the top band empty). The prior change
 consolidated the three top-of-page strips (`InventoryOverview` +
 `ResultsDistribution` + `SliceLegend`) into a single interactive
 `InventoryReadout` console and added a `band` quality-band filter alongside
@@ -307,18 +312,33 @@ the frontend shape only.
 ### Verdict labels & explanations
 
 The four verdicts above are terse. `src/utils/verdictExplain.ts` turns any
-`VerdictResult` into plain-language prose — `explainVerdict()` returns
-`{ label, meaning, detail, nextStep }`, and `verdictTooltip()` formats that
-for a native `title` tooltip. It is presentation-only: it reads existing
+`VerdictResult` into plain-language prose — `explainVerdict(v, mod?)` returns
+`{ label, meaning, detail, nextStep, caveat? }`, and `verdictTooltip()` formats
+that for a native `title` tooltip. It is presentation-only: it reads existing
 verdict fields (`reason`, `all_results`, `winning_variant_name`,
-`absolute_quality`) and never re-runs the engine.
+`absolute_quality`) and never re-runs the engine. The optional second arg is an
+`ExplainModContext` (`{ rarity }`) — used **only for tone**, never to re-derive
+the verdict.
+
+`caveat` is softening context shown beneath `nextStep`. Today only the **`SELL`**
+verdict sets it: a sell call is a verdict against the *current* scoring rules,
+not the mod itself — the mod may still suit a character that wants those
+secondaries together, and any sell-rated mod makes a fine ship-pilot mod because
+a ship draws power from a mod's **dots + level**, not its secondary stats (a real
+game mechanic; see the EA/gaming-fans references). When `mod.rarity === 6` the
+SELL copy is investment-aware: it leads with "you invested a lot to reach 6 dots,"
+and `nextStep` softens from "Safe to sell for credits." to "Keep it for now, or
+sell …". A 6-dot mod is a fully sliced mod, so the SELL is never about wasted
+levels — the `meaning` line deliberately no longer claims it is "not worth
+leveling further."
 
 It surfaces in two places:
 
-- **`ModCard`** — the verdict badge has a `title` tooltip (`verdictTooltip`).
+- **`ModCard`** — the verdict badge has a `title` tooltip
+  (`verdictTooltip(verdict, { rarity })`); the tooltip appends `caveat`.
 - **`ModDetailModal`** — the Evaluation section shows the badge + `meaning`,
-  an explanation block (`detail` + `Next step`), the winning scoring rule,
-  and a per-rule breakdown table.
+  an explanation block (`detail` + `Next step` + muted italic `caveat`), the
+  winning scoring rule, and a per-rule breakdown table.
 
 The engine only emits a `reason` string on failures; `verdictExplain`
 synthesises the "why it passed" line for passing mods from `required_count`

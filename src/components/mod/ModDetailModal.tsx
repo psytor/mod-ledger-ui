@@ -77,7 +77,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
 
         {/* Evaluation Section — only when an evaluation is active for this mod */}
         {verdict && (() => {
-          const exp = explainVerdict(verdict);
+          const exp = explainVerdict(verdict, { rarity: mod.rarity });
           return (
           <div className={styles['modal-stats-section']}>
             <h3>Evaluation</h3>
@@ -95,6 +95,9 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
               <p className={styles.evalNextStep}>
                 <span className={styles.evalNextStepLabel}>Next step:</span> {exp.nextStep}
               </p>
+              {exp.caveat && (
+                <p className={styles.evalCaveat}>{exp.caveat}</p>
+              )}
             </div>
 
             {verdict.winning_variant_name && (

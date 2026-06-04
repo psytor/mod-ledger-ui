@@ -14,6 +14,19 @@ export interface VerdictExplanation {
   detail: string | null;
   /** Recommended next action. */
   nextStep: string;
+  /**
+   * Softening context shown beneath the next step — e.g. that a sell-rated mod
+   * may still suit another character or a ship pilot. Absent when there's no
+   * caveat to add.
+   */
+  caveat?: string;
+}
+
+// Minimal mod facts verdictExplain needs for tone — not the full ParsedMod, and
+// never used to re-derive the verdict (presentation only).
+export interface ExplainModContext {
+  /** 5 or 6. A 6-dot mod represents heavy player investment (a fully sliced mod). */
+  rarity: number;
 }
 
 // Describes the winning scoring rule and how thoroughly the mod matched it.
@@ -35,7 +48,10 @@ function buildMatchDetail(v: VerdictResult): string | null {
   return parts.join(' — ') + '.';
 }
 
-export function explainVerdict(v: VerdictResult): VerdictExplanation {
+export function explainVerdict(
+  v: VerdictResult,
+  mod?: ExplainModContext,
+): VerdictExplanation {
   switch (v.verdict) {
     case 'UNCONFIGURED':
       return {
@@ -46,14 +62,25 @@ export function explainVerdict(v: VerdictResult): VerdictExplanation {
         nextStep: 'Add a scoring rule for this set in the Rule Builder to evaluate it.',
       };
 
-    case 'SELL':
+    case 'SELL': {
+      // A 6-dot mod is a fully sliced mod — significant materials sunk in — so
+      // we soften the call to action and lead with the investment.
+      const invested = mod?.rarity === 6;
+      const caveat =
+        (invested
+          ? 'You invested a lot to bring this mod to 6 dots, so do not rush to let it go. '
+          : '') +
+        'This is a verdict against your current scoring rules, not the mod itself — it may still suit a character that wants these stats together. If none does, it makes a fine ship-pilot mod either way: a ship gains power from a mod’s dots and level, not its secondary stats.';
       return {
         label: 'Sell',
-        meaning:
-          'This mod does not meet any of your scoring rules and is not worth leveling further.',
+        meaning: 'This mod does not meet any of your current scoring rules.',
         detail: v.reason ?? null,
-        nextStep: 'Safe to sell for credits.',
+        nextStep: invested
+          ? 'Based on your current evaluation, keep it for now — or sell for credits if you have no use for it.'
+          : 'Based on your current evaluation, this mod is safe to sell for credits.',
+        caveat,
       };
+    }
 
     case 'UPGRADE': {
       const preEval = !v.winning_variant_id;
@@ -80,10 +107,11 @@ export function explainVerdict(v: VerdictResult): VerdictExplanation {
 }
 
 // Compact multi-line string for a native `title` tooltip.
-export function verdictTooltip(v: VerdictResult): string {
-  const exp = explainVerdict(v);
+export function verdictTooltip(v: VerdictResult, mod?: ExplainModContext): string {
+  const exp = explainVerdict(v, mod);
   const lines = [exp.label, exp.meaning];
   if (exp.detail) lines.push('', exp.detail);
   lines.push('', `→ ${exp.nextStep}`);
+  if (exp.caveat) lines.push('', exp.caveat);
   return lines.join('\n');
 }

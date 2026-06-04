@@ -110,7 +110,7 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
       {verdict && (
         <div
           className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict)}`}
-          title={verdictTooltip(verdict)}
+          title={verdictTooltip(verdict, { rarity: mod.rarity })}
         >
           {verdictLabel(verdict)}
         </div>
