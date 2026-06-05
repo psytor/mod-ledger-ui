@@ -23,6 +23,20 @@ function verdictLabel(v: VerdictResult): string {
   return v.verdict;
 }
 
+// Average roll efficiency for a secondary — mean of the per-roll efficiencies
+// when present, otherwise the API's pre-averaged fallback (mirrors the detail
+// view's 5-bar logic).
+function avgRollEfficiency(stat: {
+  roll_efficiencies?: number[];
+  roll_efficiency?: number;
+}): number {
+  const effs = stat.roll_efficiencies;
+  if (effs && effs.length > 0) {
+    return effs.reduce((sum, e) => sum + e, 0) / effs.length;
+  }
+  return stat.roll_efficiency ?? 0;
+}
+
 function qualityBandClass(band: QualityBand): string {
   switch (band) {
     case 'slice-sure': return styles.qualitySliceSure;
@@ -189,6 +203,11 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
                       <>
                         <span className={styles.statValue}>{stat.display_value}</span>
                         <span className={styles.statName}>{stat.stat_name}</span>
+                        {stat.rolls ? (
+                          <span className={styles.statRolls}>
+                            ({stat.rolls}) {Math.round(avgRollEfficiency(stat))}%
+                          </span>
+                        ) : null}
                       </>
                     ) : (
                       <span className={styles.emptySlot}>—</span>
