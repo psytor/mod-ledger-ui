@@ -67,6 +67,9 @@ const SecondaryStatColumn: React.FC<SecondaryStatColumnProps> = ({ stat }) => {
             className={`${styles.rollBarFill} ${barColorClass}`}
             style={{ width: `${barWidth}%` }}
           />
+          {hasRoll && (
+            <span className={styles.rollBarLabel}>{rollEff.toFixed(1)}%</span>
+          )}
         </div>
       );
     }
