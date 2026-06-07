@@ -23,11 +23,11 @@ const DISPOSITIONS: { key: ActionBucket; label: string }[] = [
 // the card chip tints (ModCard.module.css) so the whole readout speaks one
 // colour language.
 const bandClass: Record<QualityBand, string> = {
-  'slice-sure': styles.sliceSure,
-  consider: styles.consider,
-  average: styles.average,
-  'consider-sell': styles.considerSell,
-  sell: styles.sell,
+  perfect: styles.perfect,
+  'nearly-perfect': styles.nearlyPerfect,
+  'on-target': styles.onTarget,
+  'under-target': styles.underTarget,
+  bad: styles.bad,
 };
 
 interface InventoryReadoutProps {
@@ -128,7 +128,7 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
               role="group"
               aria-label="Quality distribution — click a band to filter"
             >
-              {QUALITY_BAND_INFO.map(({ band, label }, i) => {
+              {QUALITY_BAND_INFO.map(({ band, label, priority, action }, i) => {
                 const count = bands[band];
                 if (count === 0) return null;
                 const pct = Math.round((count / scored) * 100);
@@ -143,7 +143,7 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
                     style={{ flexGrow: count, ['--i' as string]: i }}
                     aria-pressed={filters.band === band}
                     onClick={() => toggleBand(band)}
-                    title={`${label} — ${count} mod${count === 1 ? '' : 's'} (${pct}%)`}
+                    title={`${label} · ${priority} — ${count} mod${count === 1 ? '' : 's'} (${pct}%). ${action}.`}
                   >
                     <span className={styles.segCount}>{count}</span>
                   </button>
@@ -157,7 +157,7 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
             </div>
 
             <div className={styles.legend}>
-              {QUALITY_BAND_INFO.map(({ band, label, range }) => {
+              {QUALITY_BAND_INFO.map(({ band, label, range, priority, action }) => {
                 const dim = filters.band !== null && filters.band !== band;
                 return (
                   <button
@@ -168,10 +168,12 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
                     } ${dim ? styles.legendDim : ''}`}
                     aria-pressed={filters.band === band}
                     onClick={() => toggleBand(band)}
+                    title={`${priority} — ${action}.`}
                   >
                     <span className={`${styles.swatch} ${bandClass[band]}`} />
                     <span className={styles.legendRange}>{range}</span>
                     <span className={styles.legendLabel}>{label}</span>
+                    <span className={styles.legendPriority}>{priority}</span>
                   </button>
                 );
               })}

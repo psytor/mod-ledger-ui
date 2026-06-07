@@ -3,6 +3,13 @@ import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import type { SecondaryRole, VerdictResult } from '@/types/evaluation';
 import { explainVerdict } from '@/utils/verdictExplain';
+import {
+  actionOf,
+  qualityBand,
+  qualityBandLabel,
+  qualityBandPriority,
+  qualityBandAction,
+} from '@/utils/modDisposition';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
 
@@ -89,6 +96,17 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
         {/* Evaluation Section — only when an evaluation is active for this mod */}
         {verdict && (() => {
           const exp = explainVerdict(verdict, { rarity: mod.rarity });
+          // Slicing advice band — only on slice candidates and maxed (6d-A) mods,
+          // matching the card chip. The quality % is how close the rolls came to
+          // the targets you set (50 = on target); see modDisposition.ts.
+          const sliceAction = actionOf(mod, verdict);
+          const sliceQuality = verdict.absolute_quality;
+          const sliceBand =
+            (sliceAction === 'slice' || sliceAction === 'maxed') &&
+            sliceQuality !== undefined &&
+            Number.isFinite(sliceQuality)
+              ? qualityBand(sliceQuality)
+              : null;
           return (
           <div className={styles['modal-stats-section']}>
             <h3>Evaluation</h3>
@@ -110,6 +128,20 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                 <p className={styles.evalCaveat}>{exp.caveat}</p>
               )}
             </div>
+
+            {sliceBand && (
+              <p className={styles.evalSlice}>
+                <span className={styles.evalSliceLabel}>Slicing advice:</span>{' '}
+                {sliceAction === 'maxed' ? (
+                  <>Fully sliced (6-dot) — {qualityBandLabel(sliceBand)}-quality rolls. No further upgrade.</>
+                ) : (
+                  <>
+                    <strong>{qualityBandPriority(sliceBand)}</strong> (
+                    {qualityBandLabel(sliceBand)}) — {qualityBandAction(sliceBand)}.
+                  </>
+                )}
+              </p>
+            )}
 
             {verdict.winning_variant_name && (
               <div className={styles.evalWinner}>

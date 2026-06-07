@@ -221,6 +221,18 @@
   line-height: 1.5;
 }
 
+.evalSlice {
+  margin: 10px 0 0 0;
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.evalSliceLabel {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
 .evalBreakdown {
   padding: 12px 16px;
   background-color: #0f172a;

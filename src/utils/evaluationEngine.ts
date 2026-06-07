@@ -30,7 +30,7 @@ const FIRST_EVAL_LEVEL: Record<number, number> = {
 };
 
 // Stage 2 quality gate, keyed by the mod's CURRENT level. At L12 all rolls are
-// revealed so the bar is highest (Q=50 ≈ rolls hit slider target on average).
+// revealed so the bar is highest (Q=50 ≈ rolls land on their slider targets).
 // L1 extrapolates the +5 ramp for Gold-L1's "Stage 2 from L1" path.
 export const QUALITY_RAMP: Record<number, number> = {
   1: 30,

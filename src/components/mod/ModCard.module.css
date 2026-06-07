@@ -357,8 +357,8 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.3rem 0.6rem;
-  font-weight: 800;
-  font-size: 1.05rem;
+  font-weight: 500;
+  font-size: 0.8rem;
   line-height: 1;
   letter-spacing: 0.02em;
   border-radius: 6px;
@@ -376,28 +376,28 @@
   border-left: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.qualitySliceSure {
+.qualityPerfect {
   background: rgba(234, 179, 8, 0.96);   /* gold */
   color: #1a1206;
   box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
 }
 
-.qualityConsider {
+.qualityNearlyPerfect {
   background: rgba(147, 51, 234, 0.96);  /* purple */
   box-shadow: 0 0 9px rgba(147, 51, 234, 0.45);
 }
 
-.qualityAverage {
+.qualityOnTarget {
   background: rgba(37, 99, 235, 0.96);   /* blue */
   box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
 }
 
-.qualityConsiderSell {
+.qualityUnderTarget {
   background: rgba(22, 163, 74, 0.96);   /* green */
   box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
 }
 
-.qualitySell {
+.qualityBad {
   background: rgba(107, 114, 128, 0.95); /* grey */
   color: #f3f4f6;
 }
@@ -413,8 +413,8 @@
   font-weight: 700;
 }
 
-.maxedSliceSure    { background: #5c4d1f; color: #f0e2af; }
-.maxedConsider     { background: #3a2c52; color: #ddccf2; }
-.maxedAverage      { background: #243a5c; color: #c2d6f2; }
-.maxedConsiderSell { background: #234a30; color: #c2e4ca; }
-.maxedSell         { background: #33373f; color: #cdd4de; }
+.maxedPerfect       { background: #5c4d1f; color: #f0e2af; }
+.maxedNearlyPerfect { background: #3a2c52; color: #ddccf2; }
+.maxedOnTarget      { background: #243a5c; color: #c2d6f2; }
+.maxedUnderTarget   { background: #234a30; color: #c2e4ca; }
+.maxedBad           { background: #33373f; color: #cdd4de; }

@@ -4,16 +4,32 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `65e26c8` plus this commit — which added a
+**Docs current as of:** commit `65e26c8` plus this commit — which fixed the
+quality-band model so nothing implies "50 = average" anymore AND wired a
+player-facing priority/action vocabulary through every band surface. `curveScore`
+scores a single roll 50 when it lands on the target YOU set, so a mod's
+`absolute_quality` of 50 means "the rolls met your targets — push it forward",
+above 50 means "the rolls beat your targets", below 50 "the rolls fell short". 50
+is the **target**, not an average roll. The five **even** 20-point bands
+(`QUALITY_BAND_BOUNDARIES = [20, 40, 60, 80]`) now carry a **label / priority /
+action** triple in `QUALITY_BAND_INFO`: **Elite·Top Priority / Strong·High
+Priority / On Target·Priority / Weak·Low Priority / Poor·Skip** — the target band
+("On Target", 40-60) is **"Priority"**, a full yes (NOT "medium"); above it stacks
+Top/High Priority, below falls off to Low/Skip. The label is the card chip;
+priority + action surface in the card tooltip, the `InventoryReadout` legend +
+bar tooltips, and a "Slicing advice" line in `ModDetailModal`. Internal band ids +
+CSS classes are `perfect` / `nearly-perfect` / `on-target` / `under-target` /
+`bad`; helpers are `qualityBandLabel` / `qualityBandPriority` / `qualityBandAction`.
+The same commit also **drops the redundant `PASS` badge from the `ModCard`
+top-right corner** — a Pass mod always shows its slice/maxed band chip, so the
+badge added nothing (see "Verdict labels & explanations"). See "Slicing advice"
+below. The prior change added a
 `caveat` field to `verdictExplain` so a `SELL` verdict no longer reads as an
 absolute "sell now": it explains the call is against the current scoring rules
 (the mod may still suit a character wanting those secondaries together, or serve
 as a ship-pilot mod), and softens further for 6-dot mods to acknowledge the
-slicing investment (see "Verdict labels & explanations" below). Before that, the
-quality-band boundaries were recalibrated from equal 20-point splits to the
-distribution-fitted `[35, 50, 60, 70]` (see "Slicing advice" below; the score is
-a bell centred at 50, so even splits left the top band empty). The prior change
-consolidated the three top-of-page strips (`InventoryOverview` +
+slicing investment (see "Verdict labels & explanations" below). The change before
+that consolidated the three top-of-page strips (`InventoryOverview` +
 `ResultsDistribution` + `SliceLegend`) into a single interactive
 `InventoryReadout` console and added a `band` quality-band filter alongside
 `bucket` (see "Top-of-page readout"); before that, the cohort/percentile slicing
@@ -208,31 +224,54 @@ percentile, so it is no longer returned or stored on `VerdictResult`.
 ### Slicing advice (quality bands)
 
 A `slice`-action mod's recommendation is decided **per-mod** from its own
-`absolute_quality`, with **no cross-mod comparison**. `qualityBand` in
-`modDisposition.ts` splits 0-100 into five bands using the boundaries in
-`scoringConstants.ts` (`QUALITY_BAND_BOUNDARIES = [35, 50, 60, 70]`). The cuts
-are **not equal-width**: `absolute_quality` is a bell centred near 50 (an
-average roll scores 50 by `curveScore`'s construction), so even 20-point splits
-piled everything into the middle and left the top band empty even for elite
-inventories. The boundaries are calibrated to the observed distribution across
-real accounts — "Average" sits on the ~50-55 median, and "Slice For Sure" is the
-best ~5-12% of a player's slice mods. It is still a fixed per-mod scale, **not**
-a live cohort percentile.
+`absolute_quality`, with **no cross-mod comparison**. The score answers one
+question: **how close did the mod's rolls get to the targets YOU set?** In
+`curveScore` a single roll scores exactly 50 when it lands on your target (0 at
+nothing, 100 at a perfect max roll), so the mod's overall `absolute_quality`
+reads: **50 = the rolls met your targets** (this mod already does what you want —
+push it forward), **above 50 = the rolls beat your targets** (your best bets),
+**below 50 = the rolls fell short**. **50 is the TARGET, not an average roll** —
+do not reintroduce any "50 = average / bell centred at 50" framing anywhere.
 
-| % range | Band | Card colour | Legend label |
-|---|---|---|---|
-| 70–100 | `slice-sure` | Gold | Slice For Sure |
-| 60–70 | `consider` | Purple | Consider |
-| 50–60 | `average` | Blue | Average |
-| 35–50 | `consider-sell` | Green | Consider Selling |
-| 0–35 | `sell` | Grey | Sell |
+`qualityBand` in `modDisposition.ts` splits 0-100 into five **even 20-point**
+bands (`QUALITY_BAND_BOUNDARIES = [20, 40, 60, 80]` in `scoringConstants.ts`)
+mapped to the game's own quality colours. The band that contains 50 is **On
+Target** — a green light, never "Average". It is a fixed per-mod scale, **not** a
+live cohort percentile.
 
-`ModCard` shows the % large and tinted by its band (slice mods only; maxed mods
-get a neutral "Maxed" chip; level/sell rely on the verdict badge).
-`InventoryReadout` (the framed console at the top of the flat view) renders the
-key — see "Top-of-page readout" below. Because the band is intrinsic to the mod,
-**filtering and sorting never change a mod's band** — they only change what's
-shown and in what order, and a lone mod still gets a real verdict.
+Each band carries three pieces of copy in `QUALITY_BAND_INFO` (`modDisposition.ts`):
+a one-word **label** (the card chip), a **priority**, and a plain-language
+**action**. The target band is **"Priority"** — a full yes, the actual goal —
+**not "medium"**; the bands above stack Top/High Priority on top of it (bonus past
+target), and below it falls off to Low Priority / Skip. Do not demote the target
+band to a middling tier.
+
+| % range | Band id | Colour | Label (card) | Priority | What to do |
+|---|---|---|---|---|---|
+| 80–100 | `perfect` | Gold | Elite | Top Priority | Slice this first |
+| 60–80 | `nearly-perfect` | Purple | Strong | High Priority | Slice soon |
+| 40–60 | `on-target` | Blue | On Target | Priority | Already meets your bar — slice normally |
+| 20–40 | `under-target` | Green | Weak | Low Priority | Slice only if you have spare materials |
+| 0–20 | `bad` | Grey | Poor | Skip | Not worth your materials |
+
+The label/priority/action come from `qualityBandLabel`, `qualityBandPriority`,
+and `qualityBandAction`. Where each surfaces:
+
+- **`ModCard` chip** — the one-word **label**, tinted by colour (slice mods only);
+  the chip's `title` tooltip carries `priority — action`. A maxed (6d-A) mod gets a
+  "Maxed" chip carrying the band word, and a maxed-specific tooltip (no slice
+  instruction — it is already fully sliced). Level/sell mods rely on the verdict
+  badge.
+- **`InventoryReadout`** (the framed console at the top of the flat view) renders
+  the key — each legend item shows colour + range + label + **priority**, with
+  `priority — action` in its tooltip, and the distribution bar segments carry the
+  same in their tooltips. See "Top-of-page readout" below.
+- **`ModDetailModal`** — a "Slicing advice:" line in the Evaluation section shows
+  `Priority (Label) — action` for slice mods (and a fully-sliced note for maxed).
+
+Because the band is intrinsic to the mod, **filtering and sorting never change a
+mod's band** — they only change what's shown and in what order, and a lone mod
+still gets a real verdict.
 
 ### Top-of-page readout
 
@@ -334,8 +373,13 @@ leveling further."
 
 It surfaces in two places:
 
-- **`ModCard`** — the verdict badge has a `title` tooltip
-  (`verdictTooltip(verdict, { rarity })`); the tooltip appends `caveat`.
+- **`ModCard`** — the top-right verdict badge has a `title` tooltip
+  (`verdictTooltip(verdict, { rarity })`); the tooltip appends `caveat`. The badge
+  is shown for **SELL / UPGRADE / UNCONFIGURED only** — `PASS_RULES` is
+  intentionally **not** badged on the card, because a Pass mod always carries a
+  slice/maxed band chip (top-left) that already conveys "keeper", making a "PASS"
+  badge redundant. (`PASS` still appears in `ModDetailModal` and in the per-rule
+  results table.)
 - **`ModDetailModal`** — the Evaluation section shows the badge + `meaning`,
   an explanation block (`detail` + `Next step` + muted italic `caveat`), the
   winning scoring rule, and a per-rule breakdown table.

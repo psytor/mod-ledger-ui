@@ -99,11 +99,11 @@ export function getQualityBandCounts(
   verdicts: Map<string, VerdictResult>
 ): QualityBandCounts {
   const bands: Record<QualityBand, number> = {
-    'slice-sure': 0,
-    consider: 0,
-    average: 0,
-    'consider-sell': 0,
-    sell: 0,
+    perfect: 0,
+    'nearly-perfect': 0,
+    'on-target': 0,
+    'under-target': 0,
+    bad: 0,
   };
   let scored = 0;
   for (const mod of mods) {

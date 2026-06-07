@@ -253,6 +253,18 @@
   color: #e5e7eb;
 }
 
+.legendPriority {
+  margin-left: 0.1rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
 .swatch {
   width: 0.85rem;
   height: 0.85rem;
@@ -261,15 +273,15 @@
 }
 
 /* ── Band tints (shared by segments + swatches) ───────────── */
-.sliceSure {
+.perfect {
   background: rgba(234, 179, 8, 0.96);
   color: #1c1503;
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.25);
 }
-.consider { background: rgba(147, 51, 234, 0.96); }
-.average { background: rgba(37, 99, 235, 0.96); }
-.considerSell { background: rgba(22, 163, 74, 0.96); }
-.sell { background: rgba(107, 114, 128, 0.95); }
+.nearlyPerfect { background: rgba(147, 51, 234, 0.96); }
+.onTarget { background: rgba(37, 99, 235, 0.96); }
+.underTarget { background: rgba(22, 163, 74, 0.96); }
+.bad { background: rgba(107, 114, 128, 0.95); }
 
 @media (max-width: 640px) {
   .panel { padding: 0.9rem 1rem 1rem; }

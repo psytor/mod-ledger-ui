@@ -3,7 +3,14 @@ import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import type { Verdict, VerdictResult } from '@/types/evaluation';
-import { actionOf, qualityBand, type QualityBand } from '@/utils/modDisposition';
+import {
+  actionOf,
+  qualityBand,
+  qualityBandLabel,
+  qualityBandPriority,
+  qualityBandAction,
+  type QualityBand,
+} from '@/utils/modDisposition';
 import { verdictTooltip } from '@/utils/verdictExplain';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
@@ -39,11 +46,11 @@ function avgRollEfficiency(stat: {
 
 function qualityBandClass(band: QualityBand): string {
   switch (band) {
-    case 'slice-sure': return styles.qualitySliceSure;
-    case 'consider': return styles.qualityConsider;
-    case 'average': return styles.qualityAverage;
-    case 'consider-sell': return styles.qualityConsiderSell;
-    case 'sell': return styles.qualitySell;
+    case 'perfect': return styles.qualityPerfect;
+    case 'nearly-perfect': return styles.qualityNearlyPerfect;
+    case 'on-target': return styles.qualityOnTarget;
+    case 'under-target': return styles.qualityUnderTarget;
+    case 'bad': return styles.qualityBad;
   }
 }
 
@@ -51,11 +58,11 @@ function qualityBandClass(band: QualityBand): string {
 // best ones still stand out by colour.
 function maxedBandClass(band: QualityBand): string {
   switch (band) {
-    case 'slice-sure': return styles.maxedSliceSure;
-    case 'consider': return styles.maxedConsider;
-    case 'average': return styles.maxedAverage;
-    case 'consider-sell': return styles.maxedConsiderSell;
-    case 'sell': return styles.maxedSell;
+    case 'perfect': return styles.maxedPerfect;
+    case 'nearly-perfect': return styles.maxedNearlyPerfect;
+    case 'on-target': return styles.maxedOnTarget;
+    case 'under-target': return styles.maxedUnderTarget;
+    case 'bad': return styles.maxedBad;
   }
 }
 
@@ -121,7 +128,10 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
     <div className={styles.cardWrapper}>
       <div className={`${styles.glowBackground} ${glowGradientClass}`}></div>
 
-      {verdict && (
+      {/* Verdict badge (top-right). PASS_RULES is intentionally omitted: a Pass
+          mod always carries a slice/maxed band chip (top-left), so the "PASS"
+          badge is redundant. SELL / UPGRADE / UNCONFIGURED still show here. */}
+      {verdict && verdict.verdict !== 'PASS_RULES' && (
         <div
           className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict)}`}
           title={verdictTooltip(verdict, { rarity: mod.rarity })}
@@ -130,9 +140,12 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
         </div>
       )}
 
-      {action === 'slice' && band && quality !== undefined && (
-        <div className={`${styles.qualityChip} ${qualityBandClass(band)}`}>
-          {Math.round(quality)}%
+      {action === 'slice' && band && (
+        <div
+          className={`${styles.qualityChip} ${qualityBandClass(band)}`}
+          title={`${qualityBandPriority(band)} — ${qualityBandAction(band)}`}
+        >
+          {qualityBandLabel(band)}
         </div>
       )}
 
@@ -141,10 +154,15 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
           className={`${styles.qualityChip} ${styles.qualityMaxed} ${
             band ? maxedBandClass(band) : ''
           }`}
+          title={
+            band
+              ? `Maxed — ${qualityBandLabel(band)}-quality rolls. Fully sliced (6-dot); no further upgrade.`
+              : 'Maxed — fully sliced (6-dot); no further upgrade.'
+          }
         >
           Maxed
-          {quality !== undefined && (
-            <span className={styles.qualityPercent}>{Math.round(quality)}%</span>
+          {band && (
+            <span className={styles.qualityPercent}>{qualityBandLabel(band)}</span>
           )}
         </div>
       )}
