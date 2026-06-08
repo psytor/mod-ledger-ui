@@ -2,7 +2,7 @@ import { Modal } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import type { SecondaryRole, VerdictResult } from '@/types/evaluation';
-import { explainVerdict } from '@/utils/verdictExplain';
+import { explainVerdict, explainQualityScore } from '@/utils/verdictExplain';
 import {
   actionOf,
   qualityBand,
@@ -142,6 +142,23 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                 )}
               </p>
             )}
+
+            {/* What the score actually means — answers "all my required stats
+                are there, so why is it only 40/100?". Shown whenever the engine
+                produced a quality score. */}
+            {verdict.absolute_quality !== undefined &&
+              Number.isFinite(verdict.absolute_quality) && (() => {
+                const qs = explainQualityScore(verdict.absolute_quality);
+                return (
+                  <div className={styles.evalQualityExplain}>
+                    <p className={styles.evalQualityExplainLine}>
+                      <span className={styles.evalQualityExplainLabel}>What the score means:</span>{' '}
+                      {qs.line}
+                    </p>
+                    <p className={styles.evalQualityExplainNote}>{qs.note}</p>
+                  </div>
+                );
+              })()}
 
             {verdict.winning_variant_name && (
               <div className={styles.evalWinner}>

@@ -305,7 +305,11 @@
   letter-spacing: 0.05em;
   border-radius: 4px;
   z-index: 10;
-  pointer-events: none;
+  /* Receive hover so the verdict tooltip fires. Tradeoff: a click landing
+     exactly on the badge no longer opens the modal (the rest of the card
+     still does). cursor: help hints there's an explanation on hover. */
+  pointer-events: auto;
+  cursor: help;
   background: rgba(31, 41, 55, 0.85);
   color: #e8e8e8;
   max-width: calc(100% - 1rem);
@@ -363,7 +367,10 @@
   letter-spacing: 0.02em;
   border-radius: 6px;
   z-index: 10;
-  pointer-events: none;
+  /* Receive hover so the slicing-advice tooltip fires (was dead before).
+     Same click tradeoff as the verdict badge. */
+  pointer-events: auto;
+  cursor: help;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: #fff;

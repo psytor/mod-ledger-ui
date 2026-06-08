@@ -4,7 +4,12 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `65e26c8` plus this commit — which fixed the
+**Docs current as of:** commit `af53571` plus this commit — which (a) revived the
+card tooltips that were silently dead (`pointer-events: none` on the verdict badge
++ quality chip → `auto` + `cursor: help`), and (b) added `explainQualityScore` in
+`verdictExplain.ts` + a "What the score means:" block in `ModDetailModal` that
+spells out what the 0-100 score is and that roll-quality is separate from
+rule-match (see "Verdict labels & explanations"). The prior commit (`af53571`) fixed the
 quality-band model so nothing implies "50 = average" anymore AND wired a
 player-facing priority/action vocabulary through every band surface. `curveScore`
 scores a single roll 50 when it lands on the target YOU set, so a mod's
@@ -371,10 +376,28 @@ sell …". A 6-dot mod is a fully sliced mod, so the SELL is never about wasted
 levels — the `meaning` line deliberately no longer claims it is "not worth
 leveling further."
 
+`verdictExplain.ts` also exports **`explainQualityScore(quality)`** →
+`{ line, note }`: plain-language prose for the 0-100 `absolute_quality` score
+itself (not a verdict). `line` states the score and whether the rolls met / beat
+/ fell short of the targets (boundaries 40 / 60 align with the "On Target" band),
+and reiterates **50 = on target, it scores roll quality not how many stats
+matched**; `note` makes the distinction players trip on — **matching your rule
+and rolling well are two different things** (a mod can hit every Required stat
+and still score low if those rolls were weak). It renders in `ModDetailModal` as
+a "What the score means:" block (purple-bordered, between the slicing-advice line
+and the winning-rule row) whenever the engine produced a finite
+`absolute_quality`. This exists to answer the exact "all 4 required are there, so
+why only 40/100?" confusion.
+
 It surfaces in two places:
 
 - **`ModCard`** — the top-right verdict badge has a `title` tooltip
-  (`verdictTooltip(verdict, { rarity })`); the tooltip appends `caveat`. The badge
+  (`verdictTooltip(verdict, { rarity })`); the tooltip appends `caveat`. **Both
+  the verdict badge and the top-left quality chip set `pointer-events: auto`
+  (+ `cursor: help`)** so their native `title` tooltips actually fire — they were
+  `pointer-events: none` before, which silently killed every card tooltip. The
+  tradeoff: a click landing exactly on a badge no longer opens the modal (the rest
+  of the card still does). The badge
   is shown for **SELL / UPGRADE / UNCONFIGURED only** — `PASS_RULES` is
   intentionally **not** badged on the card, because a Pass mod always carries a
   slice/maxed band chip (top-left) that already conveys "keeper", making a "PASS"

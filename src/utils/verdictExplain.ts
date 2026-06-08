@@ -106,6 +106,35 @@ export function explainVerdict(
   }
 }
 
+// Plain-language explanation of the 0-100 quality score (`absolute_quality`).
+//
+// The score answers ONE question: how close did this mod's rolls land to the
+// targets you set? In curveScore a single roll scores 50 when it hits your
+// target — so 50 = rolls met your targets, above 50 = beat them, below 50 =
+// fell short. It is NOT an average, and NOT a percentage. (See modDisposition.)
+//
+// `note` makes the distinction that trips players up: the score measures roll
+// quality, which is separate from whether the mod matched your rule. A mod can
+// hit every Required stat your rule asks for and still score low here if those
+// rolls came up weak. Boundaries (40 / 60) align with the "On Target" band.
+export function explainQualityScore(quality: number): { line: string; note: string } {
+  const q = Math.round(quality);
+  const rel =
+    q >= 60 ? 'beat the targets you set'
+    : q < 40 ? 'fell short of the targets you set'
+    : 'met the targets you set';
+  return {
+    line:
+      `Roll quality ${q}/100 — your rolls ${rel}. ` +
+      `50 means the rolls hit your targets, above 50 means they beat them, ` +
+      `below 50 means they fell short. It scores how good the rolls are, not ` +
+      `how many stats matched.`,
+    note:
+      'Matching your rule and rolling well are two different things — a mod can ' +
+      'have every Required stat and still score low here if those rolls came up weak.',
+  };
+}
+
 // Compact multi-line string for a native `title` tooltip.
 export function verdictTooltip(v: VerdictResult, mod?: ExplainModContext): string {
   const exp = explainVerdict(v, mod);
