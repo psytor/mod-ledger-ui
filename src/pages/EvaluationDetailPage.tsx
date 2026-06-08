@@ -419,7 +419,14 @@ export default function EvaluationDetailPage() {
               )}
             </Card>
 
-            <Card chamfered chamferSize="sm" padding="none" className={styles.statusCard}>
+            <Card
+              chamfered
+              chamferSize="sm"
+              showDiagonalBorders
+              diagonalBorderColor="var(--color-primary)"
+              padding="none"
+              className={styles.statusCard}
+            >
               <div className={styles.statusHead}>
                 <p className={styles.statusLabel}>Configuration coverage</p>
                 <span className={styles.statusValue}>
