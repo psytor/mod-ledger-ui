@@ -82,6 +82,17 @@
   flex: 1;
 }
 
+/* First-time card (no ally codes yet): stack the button under the input,
+   both full width. Scoped to .inputCard so the "add another" group below
+   keeps its side-by-side layout. */
+.inputCard .inputGroup {
+  flex-direction: column;
+}
+
+.inputCard .inputGroup input {
+  flex: none;
+}
+
 .error {
   color: var(--color-error, #ff4444);
   margin: 1rem 0 0 0;
