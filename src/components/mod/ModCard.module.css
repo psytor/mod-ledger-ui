@@ -2,6 +2,12 @@
 
 .cardWrapper {
   position: relative;
+  /* Let the card fill the grid cell's height. The grid stretches each wrapper
+     to the tallest card in its row; without this the inner Card only takes its
+     content height, so a card whose secondary name wraps to two lines grows
+     while its row-mates stay short — leaving holes. */
+  display: flex;
+  flex-direction: column;
 }
 
 /* External glow background - tier-colored, shows on hover */
@@ -48,6 +54,8 @@
   backdrop-filter: blur(3px);
   border: 1px solid var(--border-color, var(--color-border));
   min-height: 200px;
+  /* Fill the flex-column wrapper so every card in a row is the same height. */
+  flex: 1;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 1;
 }
