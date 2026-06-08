@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { TopBar, Footer, Container, Button, AllyCodeDropdown, useAuth } from 'astrogators-shared-ui';
 import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
+import { useMods } from '@/contexts/ModContext';
+import styles from './Layout.module.css';
 
 // Dispatched on `window` after a successful evaluation migration. Any
 // component that derives state from the eval list (e.g. EvaluationsPage)
@@ -13,7 +15,18 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, isAuthenticated, isLoading: isAuthLoading, logout, authEnabled } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading, logout, authEnabled, selectedAllyCode } = useAuth();
+  const { fetchMods, isLoadingMods } = useMods();
+
+  // Manual inventory refresh — re-pulls the selected ally code's mods. The
+  // fetch lives in ModContext (not shared-ui): refreshing a mod inventory is a
+  // mod-ledger concern, so the button lives here rather than inside the shared
+  // AllyCodeDropdown.
+  const handleRefresh = useCallback(() => {
+    if (selectedAllyCode && !isLoadingMods) {
+      fetchMods(selectedAllyCode);
+    }
+  }, [selectedAllyCode, isLoadingMods, fetchMods]);
 
   // Migration prompt lives at the Layout level (not on EvaluationsPage)
   // so it fires no matter which mod-ledger-ui page the user lands on
@@ -56,6 +69,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <TopBar
+        className={styles.topBar}
         logo={
           <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
             The Astrogator's Table
@@ -67,8 +81,26 @@ export default function Layout({ children }: LayoutProps) {
           </span>
         }
         rightContent={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <AllyCodeDropdown />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+            {/* Refresh hugs the ally-code dropdown (tight gap) and sits just
+                left of it, while the group keeps the normal 1rem gap to the
+                rest of the bar. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {selectedAllyCode && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isLoadingMods}
+                  title="Refresh inventory"
+                  aria-label="Refresh inventory"
+                  className={styles.refreshButton}
+                >
+                  <span className={isLoadingMods ? styles.spin : undefined}>⟳</span>
+                </Button>
+              )}
+              <AllyCodeDropdown />
+            </div>
             {isAuthenticated ? (
               <>
                 <a href="/profile" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>

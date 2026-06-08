@@ -1,0 +1,32 @@
+/* Widen the TopBar's inner content. shared-ui caps it at
+   --container-max-width (1280px) and centres it, which left the bar narrower
+   than the full-width page body below. Target the content div (the header's
+   direct child) and align it to the mod grid's own 1400px max-width so the
+   bar's edges line up with the main content. */
+.topBar > div {
+  max-width: 1400px;
+}
+
+/* Icon-only refresh button — keep the outline button look but make it a tidy
+   circle around the glyph (no text). */
+.refreshButton {
+  border-radius: 50%;
+  aspect-ratio: 1;
+  padding: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Spinning refresh glyph while an inventory fetch is in flight. inline-block so
+   the transform applies, and a tight line so it stays centred in the button. */
+.spin {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
