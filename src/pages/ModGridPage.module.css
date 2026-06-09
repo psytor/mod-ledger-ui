@@ -156,6 +156,14 @@
   padding: 0 1rem;
 }
 
+/* In-place refresh: keep the grid visible but dim/soften it while new mods
+   load. The ⟳ in the TopBar spins to signal activity. */
+.refreshing {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
 .emptyState {
   padding: 4rem 1rem;
   text-align: center;

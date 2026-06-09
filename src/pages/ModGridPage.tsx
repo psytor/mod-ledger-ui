@@ -101,7 +101,10 @@ export default function ModGridPage() {
     setSelectedMod(null);
   };
 
-  if (isLoadingMods) {
+  // Full-page loader only on the *initial* load (nothing to show yet). A manual
+  // refresh keeps the existing grid on screen and dims it (see contentArea
+  // below) while the ⟳ spins in the TopBar — no jarring blank-and-pop.
+  if (isLoadingMods && mods.length === 0) {
     return (
       <Layout>
         <div className={styles.loaderContainer}>
@@ -203,7 +206,12 @@ export default function ModGridPage() {
           </div>
         </div>
 
-        <div className={styles.contentArea}>{renderContent()}</div>
+        <div
+          className={`${styles.contentArea} ${isLoadingMods ? styles.refreshing : ''}`}
+          aria-busy={isLoadingMods}
+        >
+          {renderContent()}
+        </div>
 
         <FilterPanel />
 

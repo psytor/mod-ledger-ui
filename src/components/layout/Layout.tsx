@@ -3,6 +3,7 @@ import { TopBar, Footer, Container, Button, AllyCodeDropdown, useAuth } from 'as
 import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useMods } from '@/contexts/ModContext';
+import { useEvaluation } from '@/contexts/EvaluationContext';
 import styles from './Layout.module.css';
 
 // Dispatched on `window` after a successful evaluation migration. Any
@@ -17,16 +18,25 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, isLoading: isAuthLoading, logout, authEnabled, selectedAllyCode } = useAuth();
   const { fetchMods, isLoadingMods } = useMods();
+  const { clearVerdicts } = useEvaluation();
 
   // Manual inventory refresh — re-pulls the selected ally code's mods. The
   // fetch lives in ModContext (not shared-ui): refreshing a mod inventory is a
   // mod-ledger concern, so the button lives here rather than inside the shared
   // AllyCodeDropdown.
+  //
+  // We clear verdicts first: the new mod data would otherwise be paired with
+  // scoring computed against the *old* data (verdicts aren't recomputed
+  // reactively — only the EvaluationSelector's Run button does that). A mod
+  // that changed would keep a stale band/badge. Clearing drops the top
+  // readout and every per-card band chip together, so the grid shows plain
+  // mods until the user re-runs the evaluation. Mirrors the ally-code switch.
   const handleRefresh = useCallback(() => {
     if (selectedAllyCode && !isLoadingMods) {
+      clearVerdicts();
       fetchMods(selectedAllyCode);
     }
-  }, [selectedAllyCode, isLoadingMods, fetchMods]);
+  }, [selectedAllyCode, isLoadingMods, clearVerdicts, fetchMods]);
 
   // Migration prompt lives at the Layout level (not on EvaluationsPage)
   // so it fires no matter which mod-ledger-ui page the user lands on
