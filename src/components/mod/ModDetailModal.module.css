@@ -221,6 +221,20 @@
   line-height: 1.5;
 }
 
+.pilotNote {
+  margin: 0 0 10px 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pilotError {
+  margin: 8px 0 0 0;
+  color: #f87171;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .evalSlice {
   margin: 10px 0 0 0;
   color: #e2e8f0;

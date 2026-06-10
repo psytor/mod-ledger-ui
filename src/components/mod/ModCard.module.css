@@ -356,6 +356,26 @@
   color: #d1d5db;
 }
 
+/* "FOR PILOT" — a built SELL mod worth keeping for a pilot. Cyan matches the
+   For Pilots disposition chip. A suggestion only: the mod stays in Sell until
+   assigned. */
+.verdictForPilot {
+  background: rgba(8, 145, 178, 0.92);
+  color: white;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+}
+
+/* "PILOT" — committed: the mod is in the pilot pool. Brighter cyan + light ring
+   reads as "locked in", and persists over any verdict so a now-good assigned
+   mod still flags itself for reclaiming. */
+.verdictAssigned {
+  background: rgba(6, 182, 212, 0.95);
+  color: #06141a;
+  font-weight: 800;
+  border: 1px solid rgba(165, 243, 252, 0.9);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.55);
+}
+
 /* ========== QUALITY BAND CHIP (slicing advice) ========== */
 
 /* The % shown big and tinted by its band. Solid fill + large weight keeps it

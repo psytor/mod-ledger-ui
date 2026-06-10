@@ -1,20 +1,23 @@
 import { Card } from 'astrogators-shared-ui';
 import { useFilters } from '@/contexts/FilterContext';
+import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import { getBucketCounts, getQualityBandCounts } from '@/utils/modFilters';
 import {
   QUALITY_BAND_INFO,
-  type ActionBucket,
+  type BucketFilter,
   type QualityBand,
 } from '@/utils/modDisposition';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
 import styles from './InventoryReadout.module.css';
 
-// Disposition lenses (the "what to do" row), in lifecycle order.
-const DISPOSITIONS: { key: ActionBucket; label: string }[] = [
+// Disposition lenses (the "what to do" row), in lifecycle order. 'for-pilot'
+// sits before 'maxed' — it's an assignment overlay, not a verdict bucket.
+const DISPOSITIONS: { key: BucketFilter; label: string }[] = [
   { key: 'sell', label: 'Sell' },
   { key: 'level', label: 'Level Up' },
   { key: 'slice', label: 'Slice' },
+  { key: 'for-pilot', label: 'For Pilots' },
   { key: 'maxed', label: 'Maxed' },
   { key: 'unconfigured', label: 'Unconfigured' },
 ];
@@ -48,13 +51,28 @@ interface InventoryReadoutProps {
  */
 export default function InventoryReadout({ mods, verdicts }: InventoryReadoutProps) {
   const { filters, setFilter } = useFilters();
-  const counts = getBucketCounts(mods, verdicts);
+  const { assignments } = usePilotAssignment();
+  const assignedModIds = new Set(assignments.keys());
+  const counts = getBucketCounts(mods, verdicts, assignedModIds);
   const { scored, bands } = getQualityBandCounts(mods, verdicts);
 
   const hasFilter = filters.bucket !== null || filters.band !== null;
 
-  const toggleBucket = (b: ActionBucket) =>
+  const toggleBucket = (b: BucketFilter) =>
     setFilter('bucket', filters.bucket === b ? null : b);
+
+  // 'for-pilot' maps to the forPilot count field and its own tint class; every
+  // other bucket key matches its count field and style class directly.
+  const countFor = (key: BucketFilter): number =>
+    key === 'for-pilot' ? counts.forPilot : counts[key];
+  const bucketClass: Record<BucketFilter, string> = {
+    sell: styles.sell,
+    level: styles.level,
+    slice: styles.slice,
+    'for-pilot': styles.forPilot,
+    maxed: styles.maxed,
+    unconfigured: styles.unconfigured,
+  };
   const toggleBand = (b: QualityBand) =>
     setFilter('band', filters.band === b ? null : b);
   const clearLenses = () => {
@@ -103,13 +121,13 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
               <button
                 key={key}
                 type="button"
-                className={`${styles.chip} ${styles[key]} ${
+                className={`${styles.chip} ${bucketClass[key]} ${
                   filters.bucket === key ? styles.chipActive : ''
                 }`}
                 aria-pressed={filters.bucket === key}
                 onClick={() => toggleBucket(key)}
               >
-                <span className={styles.count}>{counts[key]}</span>
+                <span className={styles.count}>{countFor(key)}</span>
                 <span className={styles.label}>{label}</span>
               </button>
             ))}

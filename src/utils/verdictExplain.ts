@@ -27,6 +27,12 @@ export interface VerdictExplanation {
 export interface ExplainModContext {
   /** 5 or 6. A 6-dot mod represents heavy player investment (a fully sliced mod). */
   rarity: number;
+  /**
+   * True when this SELL mod passes the "FOR PILOT" relabel gate (built + L15).
+   * Reframes the SELL prose around pilot use. Computed by the caller via
+   * isPilotMod — verdictExplain never derives it.
+   */
+  isPilot?: boolean;
 }
 
 // Describes the winning scoring rule and how thoroughly the mod matched it.
@@ -63,6 +69,20 @@ export function explainVerdict(
       };
 
     case 'SELL': {
+      // A built mod that fails the rules is still a great pilot mod — a ship
+      // draws power from dots + level, not stats. Lead with that framing.
+      if (mod?.isPilot) {
+        return {
+          label: 'For pilot',
+          meaning:
+            'This mod does not meet your current scoring rules, but it is already fully built (L15) — and a ship gains power from a mod’s dots and level, not its stats. That makes it a great pilot mod.',
+          detail: v.reason ?? null,
+          nextStep:
+            'If one of your pilots needs a mod, use this one. Open the mod and “Assign to a pilot” to keep it out of the Sell pile.',
+          caveat:
+            'Until you assign it, it stays in the Sell bucket. Assigning is reversible — you can unassign and put it on a character later.',
+        };
+      }
       // A 6-dot mod is a fully sliced mod — significant materials sunk in — so
       // we soften the call to action and lead with the investment.
       const invested = mod?.rarity === 6;

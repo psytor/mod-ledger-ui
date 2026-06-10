@@ -17,11 +17,16 @@ function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
  * primary plus cross-cutting filters. The facet checks have no verdict
  * dependency, so this works before any evaluation has been run; the optional
  * disposition `bucket` filter only engages when verdicts are supplied.
+ *
+ * `assignedModIds` (the pilot pool) drives the 'for-pilot' overlay bucket and
+ * diverts assigned mods out of the Sell bucket (assigning a SELL mod protects
+ * it). Non-Sell buckets still show assigned mods — overlay semantics.
  */
 export function applyFlatFilters(
   mods: ParsedMod[],
   filters: ModFilters,
-  verdicts?: Map<string, VerdictResult>
+  verdicts?: Map<string, VerdictResult>,
+  assignedModIds?: Set<string>
 ): ParsedMod[] {
   return mods.filter((mod) => {
     if (filters.flatSets.length && !filters.flatSets.includes(mod.set)) return false;
@@ -34,11 +39,16 @@ export function applyFlatFilters(
     ) {
       return false;
     }
-    // Bucket only engages with live verdicts — a stale bucket from a prior
-    // evaluation is ignored (rather than emptying the grid) until one loads.
-    if (filters.bucket && verdicts?.size) {
+    // 'for-pilot' is an assignment overlay — no verdict needed; it lists exactly
+    // the mods in the pilot pool. Every other bucket is verdict-derived and only
+    // engages with live verdicts (a stale bucket is ignored until one loads).
+    if (filters.bucket === 'for-pilot') {
+      if (!assignedModIds?.has(mod.mod_id)) return false;
+    } else if (filters.bucket && verdicts?.size) {
       const verdict = verdicts.get(mod.mod_id);
       if (!verdict || bucketOf(mod, verdict) !== filters.bucket) return false;
+      // Assigned mods are diverted out of Sell (protected from accidental sale).
+      if (filters.bucket === 'sell' && assignedModIds?.has(mod.mod_id)) return false;
     }
     // Quality-band lens — same stale-guard. Mods with no score (UNCONFIGURED /
     // pre-eval) have no band, so a band filter excludes them.
@@ -59,11 +69,13 @@ export interface BucketCounts {
   slice: number;
   maxed: number;
   unconfigured: number;
+  forPilot: number;
 }
 
 export function getBucketCounts(
   mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>
+  verdicts: Map<string, VerdictResult>,
+  assignedModIds?: Set<string>
 ): BucketCounts {
   const counts: BucketCounts = {
     total: mods.length,
@@ -72,11 +84,22 @@ export function getBucketCounts(
     slice: 0,
     maxed: 0,
     unconfigured: 0,
+    forPilot: 0,
   };
   for (const mod of mods) {
+    // For Pilots is an overlay: count every present assigned mod regardless of
+    // verdict (an assignment survives re-evaluation). Phase 1 counts present
+    // mods only; orphans (assigned but unequipped/sold, so absent from the pull)
+    // are surfaced in the Phase 2 orphan view.
+    const assigned = assignedModIds?.has(mod.mod_id) ?? false;
+    if (assigned) counts.forPilot++;
+
     const verdict = verdicts.get(mod.mod_id);
     if (!verdict) continue;
-    counts[bucketOf(mod, verdict)]++;
+    const bucket = bucketOf(mod, verdict);
+    // Assigned mods are diverted out of Sell.
+    if (bucket === 'sell' && assigned) continue;
+    counts[bucket]++;
   }
   return counts;
 }
@@ -232,15 +255,21 @@ export function getFlatOptions(mods: ParsedMod[]): {
   };
 }
 
-/** Sell-pile filter: SELL verdicts only, with flat parallel set/slot filters. */
+/**
+ * Sell-pile filter: SELL verdicts only, with flat parallel set/slot filters.
+ * Assigned (pilot-pool) mods are excluded — assigning a mod protects it from
+ * the sell pile, the same diversion the Sell disposition bucket applies.
+ */
 export function applySellPileFilters(
   mods: ParsedMod[],
   verdicts: Map<string, VerdictResult>,
-  filters: ModFilters
+  filters: ModFilters,
+  assignedModIds?: Set<string>
 ): ParsedMod[] {
   return mods.filter((mod) => {
     const verdict = verdicts.get(mod.mod_id);
     if (!verdict || verdict.verdict !== 'SELL') return false;
+    if (assignedModIds?.has(mod.mod_id)) return false;
     if (filters.sellPileSets.length > 0 && !filters.sellPileSets.includes(mod.set)) {
       return false;
     }

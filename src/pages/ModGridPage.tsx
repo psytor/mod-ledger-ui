@@ -4,6 +4,7 @@ import { useAuth, Button, Loader } from 'astrogators-shared-ui';
 import { useMods } from '@/contexts/ModContext';
 import { useFilters } from '@/contexts/FilterContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
+import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import {
   applyFlatFilters,
   applySellPileFilters,
@@ -80,6 +81,8 @@ export default function ModGridPage() {
   const { mods, isLoadingMods, modsError, fetchMods } = useMods();
   const { filters, openPanel } = useFilters();
   const { verdicts, clearVerdicts, activeEvaluationId } = useEvaluation();
+  const { assignments } = usePilotAssignment();
+  const assignedModIds = new Set(assignments.keys());
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -135,7 +138,7 @@ export default function ModGridPage() {
 
   const renderContent = () => {
     if (filters.mode === 'flat') {
-      const filtered = applyFlatFilters(mods, filters, verdicts);
+      const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds);
       const sorted = sortMods(filtered, filters.sortBy, verdicts);
       const groups = groupMods(sorted, filters.groupBy);
       return (
@@ -159,7 +162,7 @@ export default function ModGridPage() {
     }
 
     if (filters.mode === 'sell-pile') {
-      const sellMods = applySellPileFilters(mods, verdicts, filters);
+      const sellMods = applySellPileFilters(mods, verdicts, filters, assignedModIds);
       return <ModGrid mods={sellMods} onModClick={handleModClick} />;
     }
 

@@ -33,6 +33,25 @@ export function bucketOf(mod: ParsedMod, verdict: VerdictResult): ActionBucket {
   return action;
 }
 
+// The disposition-strip filter axis. Extends the verdict-derived ActionBucket
+// with 'for-pilot' — an OVERLAY membership (the mods the user has assigned to
+// the pilot pool), NOT a verdict. A mod can be in 'for-pilot' and its verdict
+// bucket at once; only a SELL verdict is diverted out of Sell when assigned.
+export type BucketFilter = ActionBucket | 'for-pilot';
+
+// Layer-1 "FOR PILOT" relabel gate (display only, no persistence). A mod the
+// engine flags SELL but that is already fully built is still a fine pilot mod —
+// a ship draws power from a mod's dots + level, not its secondary stats — so we
+// relabel its SELL badge to "FOR PILOT". Gate = already-built and pilot-ready:
+// a 6-dot L15, or a 5-dot Gold (A-tier) L15 (one slice from a 6-dot pilot mod).
+// Lower-investment SELL mods still read SELL — no reason to sink more materials.
+export function isPilotMod(mod: ParsedMod, verdict: VerdictResult): boolean {
+  if (verdict.verdict !== 'SELL') return false;
+  if (mod.level !== 15) return false;
+  if (mod.rarity === 6) return true;
+  return mod.rarity === 5 && mod.tier_name === 'A';
+}
+
 // ---------------------------------------------------------------------------
 // Per-mod quality band (the slicing advice scale)
 //

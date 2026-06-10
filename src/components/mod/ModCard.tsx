@@ -2,9 +2,11 @@ import React from 'react';
 import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
+import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import type { Verdict, VerdictResult } from '@/types/evaluation';
 import {
   actionOf,
+  isPilotMod,
   qualityBand,
   qualityBandLabel,
   qualityBandPriority,
@@ -15,7 +17,11 @@ import { verdictTooltip } from '@/utils/verdictExplain';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
 
-function verdictClassName(verdict: Verdict): string {
+// `isPilot` re-skins a SELL badge as "FOR PILOT": the mod is already built, so
+// it's a fine pilot mod rather than a literal sell. It stays in the Sell bucket
+// until the user assigns it.
+function verdictClassName(verdict: Verdict, isPilot: boolean): string {
+  if (isPilot && verdict === 'SELL') return styles.verdictForPilot;
   switch (verdict) {
     case 'SELL': return styles.verdictSell;
     case 'UPGRADE': return styles.verdictUpgrade;
@@ -24,7 +30,8 @@ function verdictClassName(verdict: Verdict): string {
   }
 }
 
-function verdictLabel(v: VerdictResult): string {
+function verdictLabel(v: VerdictResult, isPilot: boolean): string {
+  if (isPilot && v.verdict === 'SELL') return 'FOR PILOT';
   if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
   if (v.verdict === 'PASS_RULES') return 'PASS';
   return v.verdict;
@@ -81,9 +88,13 @@ const tierBorderColors = {
 
 export default function ModCard({ mod, onClick }: ModCardProps) {
   const { verdicts } = useEvaluation();
+  const { isAssigned } = usePilotAssignment();
   const verdict = verdicts.get(mod.mod_id);
   const action = verdict ? actionOf(mod, verdict) : null;
   const quality = verdict?.absolute_quality;
+  const assigned = isAssigned(mod.mod_id);
+  // Layer-1 relabel gate: a built SELL mod reads "FOR PILOT" instead of "SELL".
+  const pilotMod = verdict ? isPilotMod(mod, verdict) : false;
   // The 5-band quality scale colours both slice candidates (vibrant) and maxed
   // 6d-A mods (same hue, dark-muted). Everything else relies on its verdict
   // badge.
@@ -128,16 +139,29 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
     <div className={styles.cardWrapper}>
       <div className={`${styles.glowBackground} ${glowGradientClass}`}></div>
 
-      {/* Verdict badge (top-right). PASS_RULES is intentionally omitted: a Pass
-          mod always carries a slice/maxed band chip (top-left), so the "PASS"
-          badge is redundant. SELL / UPGRADE / UNCONFIGURED still show here. */}
-      {verdict && verdict.verdict !== 'PASS_RULES' && (
+      {/* Right-side action badge. Assignment wins over the verdict: an assigned
+          mod always shows a persistent "PILOT" badge (the "reclaim me" signal)
+          regardless of how it currently evaluates — even a now-good slice/maxed
+          mod, whose left quality chip still renders. Otherwise the verdict badge
+          shows, with SELL re-skinned to "FOR PILOT" for built mods. PASS_RULES
+          is omitted (the left slice/maxed chip already says "keeper"). */}
+      {assigned ? (
         <div
-          className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict)}`}
-          title={verdictTooltip(verdict, { rarity: mod.rarity })}
+          className={`${styles.verdictBadge} ${styles.verdictAssigned}`}
+          title="Assigned to a pilot — protected from the Sell pile. Open the mod to Unassign it."
         >
-          {verdictLabel(verdict)}
+          PILOT
         </div>
+      ) : (
+        verdict &&
+        verdict.verdict !== 'PASS_RULES' && (
+          <div
+            className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict, pilotMod)}`}
+            title={verdictTooltip(verdict, { rarity: mod.rarity, isPilot: pilotMod })}
+          >
+            {verdictLabel(verdict, pilotMod)}
+          </div>
+        )
       )}
 
       {action === 'slice' && band && (
@@ -178,7 +202,7 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
         className={`${styles.modCard} ${tierClass} ${isSixDot ? styles.sixDot : ''}`}
         style={{ '--border-color': tierBorderColor } as React.CSSProperties}
       >
-        <div className={`${styles.cardContent} ${verdict ? styles.withVerdict : ''}`}>
+        <div className={`${styles.cardContent} ${verdict || assigned ? styles.withVerdict : ''}`}>
           {/* MIDDLE ROW: Mod Shape (left) and Stats (right) */}
           <div className={styles.middleRow}>
             <div className={styles.leftColumn}>

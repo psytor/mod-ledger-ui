@@ -7,6 +7,10 @@ type Props = {
   localCount: number;
   onImport: () => Promise<void>;
   onDiscard: () => void;
+  // The resource being migrated. Defaults keep the original evaluations copy;
+  // the pilot pool passes its own noun/title (same non-dismissable flow).
+  title?: string;
+  itemNoun?: string;
 };
 
 // First-login migration prompt. Non-dismissable: the user must choose
@@ -23,6 +27,8 @@ export default function MigrationPromptDialog({
   localCount,
   onImport,
   onDiscard,
+  title = 'Local evaluations found',
+  itemNoun = 'evaluation',
 }: Props) {
   const [phase, setPhase] = useState<'prompt' | 'importing' | 'confirm-discard'>(
     'prompt'
@@ -51,7 +57,8 @@ export default function MigrationPromptDialog({
   };
 
   // Plural-aware copy.
-  const evalNoun = `evaluation${localCount === 1 ? '' : 's'}`;
+  const evalNoun = `${itemNoun}${localCount === 1 ? '' : 's'}`;
+  const pluralNoun = `${itemNoun}s`;
 
   return (
     <Modal
@@ -59,7 +66,7 @@ export default function MigrationPromptDialog({
       // No-op: this dialog is non-dismissable. The user must pick Import
       // or Discard. See module docstring.
       onClose={() => {}}
-      title="Local evaluations found"
+      title={title}
       size="md"
       closeOnOverlayClick={false}
     >
@@ -115,7 +122,7 @@ export default function MigrationPromptDialog({
                 onClick={() => setPhase('confirm-discard')}
                 disabled={phase === 'importing'}
               >
-                Discard local evaluations
+                Discard local {pluralNoun}
               </Button>
               <Button
                 type="button"

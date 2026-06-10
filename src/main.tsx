@@ -5,6 +5,7 @@ import { AuthProvider } from 'astrogators-shared-ui';
 import { ModProvider } from './contexts/ModContext';
 import { FilterProvider } from './contexts/FilterContext';
 import { EvaluationProvider } from './contexts/EvaluationContext';
+import { PilotAssignmentProvider } from './contexts/PilotAssignmentContext';
 import App from './App';
 import './index.css';
 
@@ -19,7 +20,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ModProvider>
           <FilterProvider>
             <EvaluationProvider>
-              <App />
+              <PilotAssignmentProvider>
+                <App />
+              </PilotAssignmentProvider>
             </EvaluationProvider>
           </FilterProvider>
         </ModProvider>

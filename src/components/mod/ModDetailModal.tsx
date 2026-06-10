@@ -1,10 +1,13 @@
-import { Modal } from 'astrogators-shared-ui';
+import { useState } from 'react';
+import { Modal, Button } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
+import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import type { SecondaryRole, VerdictResult } from '@/types/evaluation';
 import { explainVerdict, explainQualityScore } from '@/utils/verdictExplain';
 import {
   actionOf,
+  isPilotMod,
   qualityBand,
   qualityBandLabel,
   qualityBandPriority,
@@ -47,9 +50,38 @@ function roleDisplay(s: SecondaryRole): { label: string; cls: string } {
 
 export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalProps) {
   const { verdicts } = useEvaluation();
+  const { isAssigned, assign, unassign } = usePilotAssignment();
+  const [pilotBusy, setPilotBusy] = useState(false);
+  const [pilotError, setPilotError] = useState<string | null>(null);
   if (!isOpen || !mod) return null;
 
   const verdict = verdicts.get(mod.mod_id);
+  const assigned = isAssigned(mod.mod_id);
+  const pilotMod = verdict ? isPilotMod(mod, verdict) : false;
+
+  const handleAssign = async () => {
+    setPilotError(null);
+    setPilotBusy(true);
+    try {
+      await assign(mod);
+    } catch (err) {
+      setPilotError(err instanceof Error ? err.message : 'Failed to assign the mod.');
+    } finally {
+      setPilotBusy(false);
+    }
+  };
+
+  const handleUnassign = async () => {
+    setPilotError(null);
+    setPilotBusy(true);
+    try {
+      await unassign(mod.mod_id);
+    } catch (err) {
+      setPilotError(err instanceof Error ? err.message : 'Failed to unassign the mod.');
+    } finally {
+      setPilotBusy(false);
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Mod Details" size="lg">
@@ -95,7 +127,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
 
         {/* Evaluation Section — only when an evaluation is active for this mod */}
         {verdict && (() => {
-          const exp = explainVerdict(verdict, { rarity: mod.rarity });
+          const exp = explainVerdict(verdict, { rarity: mod.rarity, isPilot: pilotMod });
           // Slicing advice band — only on slice candidates and maxed (6d-A) mods,
           // matching the card chip. The quality % is how close the rolls came to
           // the targets you set (50 = on target); see modDisposition.ts.
@@ -238,6 +270,38 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
           </div>
           );
         })()}
+
+        {/* Pilot pool — Assign/Unassign is available on ANY mod, and lives here
+            (not on the card) so it is a deliberate action that never fires on a
+            stray click. Assignment is independent of the verdict: the engine
+            keeps grading the mod; assigning only protects it from the Sell pile. */}
+        <div className={styles['modal-stats-section']}>
+          <h3>Pilot</h3>
+          {assigned ? (
+            <>
+              <p className={styles.pilotNote}>
+                Assigned to your pilot pool — protected from the Sell pile. Unassign
+                it if you’d rather put it on a character.
+              </p>
+              <Button variant="secondary" onClick={handleUnassign} disabled={pilotBusy}>
+                {pilotBusy ? 'Working…' : 'Unassign from pilots'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className={styles.pilotNote}>
+                {pilotMod
+                  ? 'This is a great pilot mod — already built, and a ship draws power from a mod’s dots and level, not its stats. '
+                  : 'Keep this mod for a ship pilot — pilots draw power from a mod’s dots and level, not its stats. '}
+                Assigning protects it from the Sell pile and is reversible.
+              </p>
+              <Button variant="primary" onClick={handleAssign} disabled={pilotBusy}>
+                {pilotBusy ? 'Working…' : 'Assign to a pilot'}
+              </Button>
+            </>
+          )}
+          {pilotError && <p className={styles.pilotError}>{pilotError}</p>}
+        </div>
 
         {/* Calibration Section for 6-rarity mods */}
         {mod.rarity === 6 && mod.calibrations_left !== undefined && (

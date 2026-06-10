@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { TopBar, Footer, Container, Button, AllyCodeDropdown, useAuth } from 'astrogators-shared-ui';
 import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
+import { pilotAssignmentStorage } from '@/services/pilotAssignmentStorage';
 import { useMods } from '@/contexts/ModContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
+import { PILOT_MIGRATED_EVENT } from '@/contexts/PilotAssignmentContext';
 import styles from './Layout.module.css';
 
 // Dispatched on `window` after a successful evaluation migration. Any
@@ -46,6 +48,12 @@ export default function Layout({ children }: LayoutProps) {
   const [localCount, setLocalCount] = useState<number>(
     () => evaluationStorage.listLocal().length
   );
+  // Pilot-pool localStorage leftovers get the same forced Import-or-Discard on
+  // login. Two non-dismissable prompts can't stack, so this one waits until the
+  // evaluations prompt is resolved (localCount === 0); see showPilotPrompt.
+  const [pilotLocalCount, setPilotLocalCount] = useState<number>(
+    () => pilotAssignmentStorage.listLocal().length
+  );
 
   // Re-read localStorage whenever auth state settles or changes. Covers
   // the rare logout→create-local→login dance without forcing a reload.
@@ -53,6 +61,7 @@ export default function Layout({ children }: LayoutProps) {
     if (isAuthLoading) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalCount(evaluationStorage.listLocal().length);
+    setPilotLocalCount(pilotAssignmentStorage.listLocal().length);
   }, [isAuthLoading, isAuthenticated]);
 
   const handleMigrationImport = useCallback(async () => {
@@ -68,8 +77,24 @@ export default function Layout({ children }: LayoutProps) {
     setLocalCount(0);
   }, []);
 
+  const handlePilotMigrationImport = useCallback(async () => {
+    await pilotAssignmentStorage.migrateLocalToBackend();
+    setPilotLocalCount(0);
+    // Notify the PilotAssignmentContext so the in-memory pool refetches.
+    window.dispatchEvent(new CustomEvent(PILOT_MIGRATED_EVENT));
+  }, []);
+
+  const handlePilotMigrationDiscard = useCallback(() => {
+    pilotAssignmentStorage.discardLocal();
+    setPilotLocalCount(0);
+  }, []);
+
   const showMigrationPrompt =
     !isAuthLoading && isAuthenticated && localCount > 0;
+  // Pilot prompt yields to the evaluations prompt — only one non-dismissable
+  // dialog at a time.
+  const showPilotMigrationPrompt =
+    !isAuthLoading && isAuthenticated && localCount === 0 && pilotLocalCount > 0;
 
   const handleLogout = () => {
     logout();
@@ -146,6 +171,14 @@ export default function Layout({ children }: LayoutProps) {
         localCount={localCount}
         onImport={handleMigrationImport}
         onDiscard={handleMigrationDiscard}
+      />
+      <MigrationPromptDialog
+        isOpen={showPilotMigrationPrompt}
+        localCount={pilotLocalCount}
+        onImport={handlePilotMigrationImport}
+        onDiscard={handlePilotMigrationDiscard}
+        title="Local pilot assignments found"
+        itemNoun="pilot assignment"
       />
     </div>
   );

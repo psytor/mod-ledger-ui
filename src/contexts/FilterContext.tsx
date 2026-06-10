@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ActionBucket, QualityBand } from '@/utils/modDisposition';
+import type { BucketFilter, QualityBand } from '@/utils/modDisposition';
 import { defaultFilters } from './defaultFilters';
 
 export type FilterMode = 'flat' | 'sell-pile' | 'unconfigured';
@@ -15,8 +15,9 @@ export interface ModFilters {
   flatTiers: string[];
   flatRarity: number[];
   flatPrimaries: string[];
-  // inventory-overview disposition (null = all dispositions):
-  bucket: ActionBucket | null;
+  // inventory-overview disposition (null = all dispositions). 'for-pilot' is an
+  // assignment overlay rather than a verdict bucket; see BucketFilter.
+  bucket: BucketFilter | null;
   // quality-band lens (null = all bands); independent of `bucket` — both can
   // be active at once to narrow e.g. "slice mods in the gold band":
   band: QualityBand | null;
