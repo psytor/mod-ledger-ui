@@ -19,6 +19,14 @@
   line-height: 1;
 }
 
+/* "Updated X ago" / cooldown readout sitting left of the refresh button.
+   Small, muted, and nowrap so it never wraps the bar. */
+.updatedLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
 /* Spinning refresh glyph while an inventory fetch is in flight. inline-block so
    the transform applies, and a tight line so it stays centred in the button. */
 .spin {

@@ -45,6 +45,13 @@ export interface ModListResponse {
   total_mods: number;
   mods: ParsedMod[];
   cached: boolean;
+  /** When the underlying player data was pulled from Comlink (naive UTC ISO). */
+  cached_at?: string | null;
+  /**
+   * Seconds until a refresh will pull genuinely fresh data (per-ally Comlink
+   * floor). 0 = fresh data available now. Only set by the refresh endpoint.
+   */
+  next_refresh_in_seconds?: number | null;
 }
 
 class ModLedgerApiClient {
@@ -55,7 +62,8 @@ class ModLedgerApiClient {
   }
 
   /**
-   * Fetch all mods for a player by ally code
+   * Fetch all mods for a player by ally code (serves mod-ledger's curated
+   * snapshot; does not force a fresh Comlink pull).
    */
   async fetchPlayerMods(allyCode: string): Promise<ModListResponse> {
     const response = await fetch(`${this.baseUrl}/api/v1/player/${allyCode}`);
@@ -63,6 +71,24 @@ class ModLedgerApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
       throw new Error(error.detail || `Failed to fetch mods: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Force a fresh pull of a player's mods. The backend enforces a per-ally
+   * Comlink floor: if the floor is active it returns the latest data plus a
+   * `next_refresh_in_seconds` countdown instead of hitting Comlink.
+   */
+  async refreshPlayerMods(allyCode: string): Promise<ModListResponse> {
+    const response = await fetch(`${this.baseUrl}/api/v1/player/${allyCode}/refresh`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || `Failed to refresh mods: ${response.statusText}`);
     }
 
     return response.json();

@@ -13,14 +13,56 @@ import styles from './Layout.module.css';
 // can subscribe and refetch.
 export const EVALS_MIGRATED_EVENT = 'mod-ledger:evals-migrated';
 
+// The backend emits naive UTC ISO timestamps (no timezone suffix). new Date()
+// would read those as LOCAL time, so append 'Z' when no offset is present.
+function parseBackendTime(iso: string): Date {
+  const hasTz = /([zZ]|[+-]\d{2}:?\d{2})$/.test(iso);
+  return new Date(hasTz ? iso : `${iso}Z`);
+}
+
+// Compact "updated X ago" relative time.
+function formatAgo(date: Date, nowMs: number): string {
+  const sec = Math.max(0, Math.floor((nowMs - date.getTime()) / 1000));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.floor(hr / 24)}d ago`;
+}
+
+// m:ss countdown for the refresh cooldown.
+function formatCountdown(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, isLoading: isAuthLoading, logout, authEnabled, selectedAllyCode } = useAuth();
-  const { fetchMods, isLoadingMods } = useMods();
+  const { refreshMods, isLoadingMods, cachedAt, refreshAvailableAt } = useMods();
   const { clearVerdicts } = useEvaluation();
+
+  // Tick a 1s clock only while there's a snapshot to age / a cooldown to count
+  // down. This drives the "Updated X ago" label and the cooldown timer — it is
+  // a display clock, NOT data polling (no network calls happen here).
+  const [now, setNow] = useState<number>(() => Date.now());
+  const showClock = Boolean(selectedAllyCode && cachedAt);
+  useEffect(() => {
+    if (!showClock) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [showClock]);
+
+  const cooldownRemaining = refreshAvailableAt
+    ? Math.max(0, Math.ceil((refreshAvailableAt - now) / 1000))
+    : 0;
+  const updatedAgo = cachedAt ? formatAgo(parseBackendTime(cachedAt), now) : null;
+  const refreshDisabled = isLoadingMods || cooldownRemaining > 0;
 
   // Manual inventory refresh — re-pulls the selected ally code's mods. The
   // fetch lives in ModContext (not shared-ui): refreshing a mod inventory is a
@@ -34,11 +76,11 @@ export default function Layout({ children }: LayoutProps) {
   // readout and every per-card band chip together, so the grid shows plain
   // mods until the user re-runs the evaluation. Mirrors the ally-code switch.
   const handleRefresh = useCallback(() => {
-    if (selectedAllyCode && !isLoadingMods) {
+    if (selectedAllyCode && !refreshDisabled) {
       clearVerdicts();
-      fetchMods(selectedAllyCode);
+      refreshMods(selectedAllyCode);
     }
-  }, [selectedAllyCode, isLoadingMods, clearVerdicts, fetchMods]);
+  }, [selectedAllyCode, refreshDisabled, clearVerdicts, refreshMods]);
 
   // Migration prompt lives at the Layout level (not on EvaluationsPage)
   // so it fires no matter which mod-ledger-ui page the user lands on
@@ -121,13 +163,31 @@ export default function Layout({ children }: LayoutProps) {
                 left of it, while the group keeps the normal 1rem gap to the
                 rest of the bar. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {selectedAllyCode && updatedAgo && (
+                <span
+                  className={styles.updatedLabel}
+                  title={
+                    cooldownRemaining > 0
+                      ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
+                      : 'Click refresh to pull the latest from the game'
+                  }
+                >
+                  {cooldownRemaining > 0
+                    ? `Updated ${updatedAgo} · fresh in ${formatCountdown(cooldownRemaining)}`
+                    : `Updated ${updatedAgo}`}
+                </span>
+              )}
               {selectedAllyCode && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleRefresh}
-                  disabled={isLoadingMods}
-                  title="Refresh inventory"
+                  disabled={refreshDisabled}
+                  title={
+                    cooldownRemaining > 0
+                      ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
+                      : 'Refresh inventory'
+                  }
                   aria-label="Refresh inventory"
                   className={styles.refreshButton}
                 >
