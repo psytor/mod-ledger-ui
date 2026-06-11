@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Card, Button } from 'astrogators-shared-ui';
 import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import type { PilotAssignment, ModSnapshot } from '@/types/pilotAssignment';
@@ -26,6 +26,13 @@ const TIER_NUM_BY_LETTER: Record<string, number> = {
 function snapshotTier(s: ModSnapshot): number {
   return TIER_NUM_BY_COLOR[s.tier_color] ?? TIER_NUM_BY_LETTER[s.tier_name] ?? 5;
 }
+
+// The orphan card follows the standard card outline — a solid edge border plus
+// the diagonal corner lines that bridge the chamfer gaps — so it reads as a real
+// card, but in a muted slate instead of a live tier colour: it's a snapshot, not
+// a live mod. Used for both `--border-color` (straight edges) and
+// `diagonalBorderColor` (corner lines) so the whole outline is one colour.
+const ORPHAN_BORDER = '#64748b';
 
 interface OrphanModCardProps {
   assignment: PilotAssignment;
@@ -66,7 +73,15 @@ export default function OrphanModCard({ assignment }: OrphanModCardProps) {
 
   return (
     <div className={styles.cardWrapper}>
-      <Card chamfered chamferSize="asymmetric" padding="none" className={styles.card}>
+      <Card
+        chamfered
+        chamferSize="asymmetric"
+        showDiagonalBorders
+        diagonalBorderColor={ORPHAN_BORDER}
+        padding="none"
+        className={styles.card}
+        style={{ '--border-color': ORPHAN_BORDER } as CSSProperties}
+      >
         <div className={styles.banner} title="Not in your latest inventory pull">
           Not currently equipped
         </div>
@@ -84,7 +99,7 @@ export default function OrphanModCard({ assignment }: OrphanModCardProps) {
                   ))}
                 </div>
                 <div className={styles.spriteContainer}>
-                  <ModSprite shape={s.shape} tier={tier} set={s.set} is6Dot={is6Dot} size={72} />
+                  <ModSprite shape={s.shape} tier={tier} set={s.set} is6Dot={is6Dot} size={80} />
                 </div>
                 <div className={styles.modMeta}>
                   <span className={styles.modLevel}>
