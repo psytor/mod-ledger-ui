@@ -117,20 +117,26 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
               <span className={styles.count}>{counts.total}</span>
               <span className={styles.label}>All</span>
             </button>
-            {DISPOSITIONS.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                className={`${styles.chip} ${bucketClass[key]} ${
-                  filters.bucket === key ? styles.chipActive : ''
-                }`}
-                aria-pressed={filters.bucket === key}
-                onClick={() => toggleBucket(key)}
-              >
-                <span className={styles.count}>{countFor(key)}</span>
-                <span className={styles.label}>{label}</span>
-              </button>
-            ))}
+            {DISPOSITIONS.map(({ key, label }) => {
+              const count = countFor(key);
+              // Hide an empty bucket — unless it's the active filter, so the
+              // chip the user clicked never vanishes out from under them.
+              if (count === 0 && filters.bucket !== key) return null;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`${styles.chip} ${bucketClass[key]} ${
+                    filters.bucket === key ? styles.chipActive : ''
+                  }`}
+                  aria-pressed={filters.bucket === key}
+                  onClick={() => toggleBucket(key)}
+                >
+                  <span className={styles.count}>{count}</span>
+                  <span className={styles.label}>{label}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
 
