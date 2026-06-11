@@ -14,6 +14,7 @@ import {
 } from '@/utils/modFilters';
 import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
+import OrphanModCard from '@/components/mod/OrphanModCard';
 import ModDetailModal from '@/components/mod/ModDetailModal';
 import InventoryReadout from '@/components/mod/InventoryReadout';
 import FilterPanel from '@/components/filter/FilterPanel';
@@ -141,18 +142,50 @@ export default function ModGridPage() {
       const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds);
       const sorted = sortMods(filtered, filters.sortBy, verdicts);
       const groups = groupMods(sorted, filters.groupBy);
+
+      // Orphan pilot mods: assigned but absent from the current pull (unequipped
+      // or sold — Comlink only reports equipped mods, so we can't tell which).
+      // They only belong in the For Pilots bucket; every other lens shows live
+      // inventory. Rendered from their stored snapshot below the present mods.
+      const presentModIds = new Set(mods.map((m) => m.mod_id));
+      const orphans =
+        filters.bucket === 'for-pilot'
+          ? [...assignments.values()].filter((a) => !presentModIds.has(a.modId))
+          : [];
+
       return (
         <>
           {!noEvaluation && <InventoryReadout mods={mods} verdicts={verdicts} />}
-          {groups.map((group) => (
-            <div key={group.key} className={styles.group}>
-              {group.label && <h2 className={styles.groupHeading}>{group.label}</h2>}
+          {/* Suppress the present-mods grid (and its "no mods" empty state) only
+              when there are zero present mods but orphans to show — otherwise the
+              empty state would lie. Every other case renders the groups. */}
+          {(filtered.length > 0 || orphans.length === 0) &&
+            groups.map((group) => (
+              <div key={group.key} className={styles.group}>
+                {group.label && <h2 className={styles.groupHeading}>{group.label}</h2>}
+                <ModGrid
+                  mods={group.mods}
+                  onModClick={handleModClick}
+                />
+              </div>
+            ))}
+          {orphans.length > 0 && (
+            <div className={styles.group}>
+              <h2 className={styles.groupHeading}>Not currently equipped</h2>
+              <p className={styles.orphanNote}>
+                These mods are assigned to your pilot pool but weren&rsquo;t in your
+                latest inventory pull — the game only reports equipped mods. If you
+                unequipped one, leave it assigned. If you sold it, remove it.
+              </p>
               <ModGrid
-                mods={group.mods}
+                mods={[]}
                 onModClick={handleModClick}
+                trailing={orphans.map((a) => (
+                  <OrphanModCard key={a.modId} assignment={a} />
+                ))}
               />
             </div>
-          ))}
+          )}
         </>
       );
     }

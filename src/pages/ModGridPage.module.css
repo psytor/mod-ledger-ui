@@ -200,6 +200,15 @@
   font-family: var(--font-heading);
 }
 
+/* Intro line above the orphan (not-currently-equipped) pilot cards. */
+.orphanNote {
+  margin: -0.25rem 0 0.25rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary, #999);
+  max-width: 70ch;
+}
+
 .unconfiguredHeader {
   display: flex;
   align-items: baseline;

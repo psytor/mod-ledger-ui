@@ -84,21 +84,18 @@ export function getBucketCounts(
     slice: 0,
     maxed: 0,
     unconfigured: 0,
-    forPilot: 0,
+    // For Pilots is an overlay, so it counts the whole pool — every assignment,
+    // whether the mod is present in the pull or an orphan (assigned but
+    // unequipped/sold, so absent). Orphans are surfaced as synthetic cards in
+    // the For Pilots view; counting them here keeps the chip honest.
+    forPilot: assignedModIds?.size ?? 0,
   };
   for (const mod of mods) {
-    // For Pilots is an overlay: count every present assigned mod regardless of
-    // verdict (an assignment survives re-evaluation). Phase 1 counts present
-    // mods only; orphans (assigned but unequipped/sold, so absent from the pull)
-    // are surfaced in the Phase 2 orphan view.
-    const assigned = assignedModIds?.has(mod.mod_id) ?? false;
-    if (assigned) counts.forPilot++;
-
     const verdict = verdicts.get(mod.mod_id);
     if (!verdict) continue;
     const bucket = bucketOf(mod, verdict);
     // Assigned mods are diverted out of Sell.
-    if (bucket === 'sell' && assigned) continue;
+    if (bucket === 'sell' && assignedModIds?.has(mod.mod_id)) continue;
     counts[bucket]++;
   }
   return counts;
