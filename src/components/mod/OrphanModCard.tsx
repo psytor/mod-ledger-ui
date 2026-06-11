@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Card, Button } from 'astrogators-shared-ui';
 import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import type { PilotAssignment, ModSnapshot } from '@/types/pilotAssignment';
@@ -27,12 +27,34 @@ function snapshotTier(s: ModSnapshot): number {
   return TIER_NUM_BY_COLOR[s.tier_color] ?? TIER_NUM_BY_LETTER[s.tier_name] ?? 5;
 }
 
-// The orphan card follows the standard card outline — a solid edge border plus
-// the diagonal corner lines that bridge the chamfer gaps — so it reads as a real
-// card, but in a muted slate instead of a live tier colour: it's a snapshot, not
-// a live mod. Used for both `--border-color` (straight edges) and
-// `diagonalBorderColor` (corner lines) so the whole outline is one colour.
-const ORPHAN_BORDER = '#64748b';
+// A CSS `border` on a chamfered Card is clipped away at the cut corners (the
+// clip-path removes them), so a dashed border survives only on the straight
+// edges. To get an unbroken dashed outline that also traces the diagonal cuts,
+// we draw the chamfer polygon ourselves as an SVG that sits OUTSIDE the Card's
+// clip-path (over the wrapper), so nothing clips it. These must match shared-ui's
+// `chamfered-box-asymmetric`: top/side chamfers 12px, bottom-right cut 24px.
+const CHAMFER = 12;
+const CHAMFER_BR = 24;
+// Half the stroke width — inset the polygon so the dashed line sits fully inside
+// the wrapper instead of being half-clipped at its edge.
+const STROKE_INSET = 1;
+
+// The 8 vertices of the asymmetric chamfer, in px, for a w×h card.
+function chamferPoints(w: number, h: number): string {
+  const i = STROKE_INSET;
+  return [
+    [CHAMFER, i],
+    [w - CHAMFER, i],
+    [w - i, CHAMFER],
+    [w - i, h - CHAMFER_BR],
+    [w - CHAMFER_BR, h - i],
+    [CHAMFER, h - i],
+    [i, h - CHAMFER],
+    [i, CHAMFER],
+  ]
+    .map((p) => p.join(','))
+    .join(' ');
+}
 
 interface OrphanModCardProps {
   assignment: PilotAssignment;
@@ -57,6 +79,20 @@ export default function OrphanModCard({ assignment }: OrphanModCardProps) {
     .fill(null)
     .map((_, i) => s.secondaries[i] ?? null);
 
+  // Measure the wrapper so the SVG outline can trace the chamfer in real px.
+  // ResizeObserver keeps it correct as the grid reflows the card.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setSize({ w: el.clientWidth, h: el.clientHeight });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const handleRemove = async () => {
     setError(null);
     setBusy(true);
@@ -72,16 +108,18 @@ export default function OrphanModCard({ assignment }: OrphanModCardProps) {
   };
 
   return (
-    <div className={styles.cardWrapper}>
-      <Card
-        chamfered
-        chamferSize="asymmetric"
-        showDiagonalBorders
-        diagonalBorderColor={ORPHAN_BORDER}
-        padding="none"
-        className={styles.card}
-        style={{ '--border-color': ORPHAN_BORDER } as CSSProperties}
-      >
+    <div className={styles.cardWrapper} ref={wrapperRef}>
+      {size.w > 0 && size.h > 0 && (
+        <svg
+          className={styles.outline}
+          width={size.w}
+          height={size.h}
+          aria-hidden="true"
+        >
+          <polygon points={chamferPoints(size.w, size.h)} />
+        </svg>
+      )}
+      <Card chamfered chamferSize="asymmetric" padding="none" className={styles.card}>
         <div className={styles.banner} title="Not in your latest inventory pull">
           Not currently equipped
         </div>

@@ -12,12 +12,27 @@
 .card {
   position: relative;
   background: rgba(17, 24, 39, 0.35) !important;
-  /* Solid edge border in the same muted slate as the diagonal corner lines, so
-     the chamfered outline is complete (mirrors ModCard's --border-color edge +
-     showDiagonalBorders corners). --border-color is set on the Card element. */
-  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.55));
+  /* No CSS border here — a border would be clipped away at the chamfered
+     corners. The dashed outline is drawn by the .outline SVG over the wrapper
+     (outside the clip-path) so it traces the diagonal cuts too. */
   min-height: 200px;
   flex: 1;
+}
+
+/* Dashed chamfer outline, in muted slate — reads as "not live", a snapshot
+   rather than a real present mod. Sits above the card; clicks pass through. */
+.outline {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.outline polygon {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.55);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
 }
 
 .banner {
@@ -39,9 +54,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  /* Extra bottom padding clears the asymmetric chamfer's 24px bottom-right cut
-     so the Remove button is never clipped by the card's bottom edge. */
-  padding: 0.75rem 0.75rem 1.5rem;
+  /* The asymmetric chamfer cuts a 24px triangle from the bottom-right corner.
+     1.5rem (exactly 24px) sat right on that threshold and still grazed the
+     button, so pad to 2rem to clear the cut with margin to spare. */
+  padding: 0.75rem 0.75rem 2rem;
   gap: 0.75rem;
 }
 
