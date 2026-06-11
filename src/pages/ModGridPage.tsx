@@ -82,7 +82,7 @@ export default function ModGridPage() {
   const { mods, isLoadingMods, modsError, fetchMods } = useMods();
   const { filters, openPanel } = useFilters();
   const { verdicts, clearVerdicts, activeEvaluationId } = useEvaluation();
-  const { assignments } = usePilotAssignment();
+  const { assignments, syncSnapshots } = usePilotAssignment();
   const assignedModIds = new Set(assignments.keys());
 
   const [selectedMod, setSelectedMod] = useState<ParsedMod | null>(null);
@@ -94,6 +94,15 @@ export default function ModGridPage() {
       fetchMods(selectedAllyCode);
     }
   }, [selectedAllyCode, fetchMods, clearVerdicts]);
+
+  // Whenever a fresh pull lands (or the assignments finish loading, whichever
+  // is later), refresh any assigned mod whose live state has drifted from its
+  // stored snapshot (moved to another character in-game, leveled, sliced) so the
+  // orphan card's "last seen" stays accurate. Re-running is loop-safe: once a
+  // mod is synced it no longer drifts, so the next pass writes nothing.
+  useEffect(() => {
+    if (mods.length > 0) void syncSnapshots(mods);
+  }, [mods, assignments, syncSnapshots]);
 
   const handleModClick = (mod: ParsedMod) => {
     setSelectedMod(mod);

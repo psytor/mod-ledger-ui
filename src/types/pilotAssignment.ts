@@ -40,6 +40,31 @@ export interface PilotAssignment {
   updatedAt: number;
 }
 
+// True when a freshly-built snapshot differs from a stored one in any field —
+// the signal that an assigned mod has changed in-game since it was assigned
+// (moved to another character, leveled, sliced) and its stored snapshot is now
+// stale. Compares structurally (not by JSON string) so key order can't produce
+// a false positive after a backend round-trip.
+export function snapshotDiffers(a: ModSnapshot, b: ModSnapshot): boolean {
+  const statDiffers = (x: ModSnapshotStat, y: ModSnapshotStat) =>
+    x.stat_name !== y.stat_name || x.display_value !== y.display_value;
+  if (
+    a.set !== b.set ||
+    a.slot !== b.slot ||
+    a.shape !== b.shape ||
+    a.level !== b.level ||
+    a.rarity !== b.rarity ||
+    a.tier_name !== b.tier_name ||
+    a.tier_color !== b.tier_color ||
+    a.character !== b.character ||
+    statDiffers(a.primary, b.primary) ||
+    a.secondaries.length !== b.secondaries.length
+  ) {
+    return true;
+  }
+  return a.secondaries.some((s, i) => statDiffers(s, b.secondaries[i]));
+}
+
 // Build a snapshot from a live mod. Kept tiny and self-contained so a stored
 // assignment can be rendered without re-fetching anything.
 export function buildModSnapshot(mod: ParsedMod): ModSnapshot {

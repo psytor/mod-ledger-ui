@@ -4,11 +4,16 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
 } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from 'astrogators-shared-ui';
 import { pilotAssignmentStorage } from '@/services/pilotAssignmentStorage';
-import { buildModSnapshot, type PilotAssignment } from '@/types/pilotAssignment';
+import {
+  buildModSnapshot,
+  snapshotDiffers,
+  type PilotAssignment,
+} from '@/types/pilotAssignment';
 import type { ParsedMod } from '@/services/modLedgerApi';
 
 // Dispatched on `window` after a successful pilot-assignment migration (Layout
@@ -22,6 +27,10 @@ interface PilotAssignmentContextType {
   isAssigned: (modId: string) => boolean;
   assign: (mod: ParsedMod) => Promise<void>;
   unassign: (modId: string) => Promise<void>;
+  // Re-save any assigned mod whose live state has drifted from its stored
+  // snapshot (moved to another character in-game, leveled, sliced). Keeps the
+  // orphan-card "last seen" accurate. Pass the latest inventory pull.
+  syncSnapshots: (mods: ParsedMod[]) => Promise<void>;
   reload: () => Promise<void>;
   isLoading: boolean;
 }
@@ -36,6 +45,14 @@ export function PilotAssignmentProvider({ children }: { children: ReactNode }) {
     new Map()
   );
   const [isLoading, setIsLoading] = useState(true);
+
+  // Latest assignments map, readable from `syncSnapshots` without making that
+  // callback depend on `assignments` (which would re-fire the sync effect on
+  // every assignment change). Kept in sync via the effect below.
+  const assignmentsRef = useRef(assignments);
+  useEffect(() => {
+    assignmentsRef.current = assignments;
+  }, [assignments]);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
@@ -93,9 +110,40 @@ export function PilotAssignmentProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const syncSnapshots = useCallback(async (mods: ParsedMod[]) => {
+    const current = assignmentsRef.current;
+    if (current.size === 0) return;
+    const byModId = new Map(mods.map((m) => [m.mod_id, m]));
+    // Re-build each present assigned mod's snapshot and keep only the drifted.
+    const refreshed = [...current.values()]
+      .map((a) => {
+        const live = byModId.get(a.modId);
+        return live ? { modId: a.modId, snapshot: buildModSnapshot(live), stored: a.snapshot } : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null && snapshotDiffers(x.snapshot, x.stored));
+    if (refreshed.length === 0) return;
+    try {
+      // POST upserts the row; once saved the stored snapshot matches live, so a
+      // later sync finds no drift — no loop. A failure leaves the stale snapshot
+      // in place to retry on the next pull rather than crashing the grid.
+      const saved = await Promise.all(
+        refreshed.map(({ modId, snapshot }) =>
+          pilotAssignmentStorage.assign({ modId, snapshot })
+        )
+      );
+      setAssignments((prev) => {
+        const next = new Map(prev);
+        for (const a of saved) next.set(a.modId, a);
+        return next;
+      });
+    } catch {
+      // Swallow — see above. The next pull retries.
+    }
+  }, []);
+
   return (
     <PilotAssignmentContext.Provider
-      value={{ assignments, isAssigned, assign, unassign, reload, isLoading }}
+      value={{ assignments, isAssigned, assign, unassign, syncSnapshots, reload, isLoading }}
     >
       {children}
     </PilotAssignmentContext.Provider>
