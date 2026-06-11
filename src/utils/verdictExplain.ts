@@ -83,8 +83,36 @@ export function explainVerdict(
             'Until you assign it, it stays in the Sell bucket. Assigning is reversible — you can unassign and put it on a character later.',
         };
       }
-      // A 6-dot mod is a fully sliced mod — significant materials sunk in — so
-      // we soften the call to action and lead with the investment.
+      // Road 2 — quality-gate SELL: the mod DID match a scoring rule, but its
+      // roll quality fell below the bar for its current level (Stage 2 flipped
+      // UPGRADE → SELL), so the engine won't spend more credits leveling it.
+      // Only 5-dot mods below L15 reach this path. Distinguished from a
+      // no-rule-matched SELL (Road 1) by the presence of a winning variant —
+      // without this branch the headline wrongly reads "does not meet any of
+      // your current scoring rules" while the modal shows the matched rule below.
+      if (v.winning_variant_name) {
+        const q =
+          v.absolute_quality !== undefined ? Math.round(v.absolute_quality) : undefined;
+        return {
+          label: 'Sell',
+          meaning:
+            `This mod matches your “${v.winning_variant_name}” rule, but its roll ` +
+            `quality${q !== undefined ? ` (${q}/100)` : ''} is below the bar for its ` +
+            `current level — not worth more credits to keep leveling.`,
+          detail: v.reason ?? null,
+          nextStep:
+            'Based on your current evaluation, stop leveling it — sell it for credits ' +
+            'unless a specific character wants these stats.',
+          caveat:
+            'This is a leveling call against your current targets, not a knock on the ' +
+            'mod itself — it may still suit a character that specifically wants these ' +
+            'stats together.',
+        };
+      }
+
+      // Road 1 — no rule matched. A 6-dot mod is a fully sliced mod (significant
+      // materials sunk in), so we soften the call to action and lead with the
+      // investment.
       const invested = mod?.rarity === 6;
       const caveat =
         (invested
