@@ -22,6 +22,16 @@ const DISPOSITIONS: { key: BucketFilter; label: string }[] = [
   { key: 'unconfigured', label: 'Unconfigured' },
 ];
 
+// mod.tier_name is the letter grade (E…A); show its colour name in the active-
+// filter chip, matching how the filter drawer labels tiers.
+const TIER_COLOR_BY_LETTER: Record<string, string> = {
+  E: 'Grey',
+  D: 'Green',
+  C: 'Blue',
+  B: 'Purple',
+  A: 'Gold',
+};
+
 // Band tint class shared by the bar segments and the legend swatches — mirrors
 // the card chip tints (ModCard.module.css) so the whole readout speaks one
 // colour language.
@@ -50,13 +60,26 @@ interface InventoryReadoutProps {
  * whole inventory (not the filtered view) so the counts are a stable overview.
  */
 export default function InventoryReadout({ mods, verdicts }: InventoryReadoutProps) {
-  const { filters, setFilter } = useFilters();
+  const { filters, setFilter, clearFilters } = useFilters();
   const { assignments } = usePilotAssignment();
   const assignedModIds = new Set(assignments.keys());
   const counts = getBucketCounts(mods, verdicts, assignedModIds);
   const { scored, bands } = getQualityBandCounts(mods, verdicts);
 
-  const hasFilter = filters.bucket !== null || filters.band !== null;
+  // The readout's Clear is the same canonical reset as the filter drawer's
+  // (clearFilters), so there is one Clear, surfaced in two places. It appears
+  // whenever ANY filter is active — not just the lenses — so clearing here never
+  // leaves a facet filter silently narrowing the grid from inside the drawer.
+  const hasFilter =
+    filters.bucket !== null ||
+    filters.band !== null ||
+    filters.flatSets.length > 0 ||
+    filters.flatSlots.length > 0 ||
+    filters.flatTiers.length > 0 ||
+    filters.flatRarity.length > 0 ||
+    filters.flatPrimaries.length > 0 ||
+    filters.characters.length > 0 ||
+    filters.locked !== 'all';
 
   const toggleBucket = (b: BucketFilter) =>
     setFilter('bucket', filters.bucket === b ? null : b);
@@ -75,10 +98,56 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
   };
   const toggleBand = (b: QualityBand) =>
     setFilter('band', filters.band === b ? null : b);
-  const clearLenses = () => {
-    setFilter('bucket', null);
-    setFilter('band', null);
-  };
+
+  // Removable summary of the panel-driven filters (facets + cross-cutting), so
+  // the readout shows WHICH other filters are narrowing the grid — not just that
+  // some are (the Clear button). The bucket/band lenses already surface their own
+  // active state below, so they're intentionally excluded here.
+  const removeString = (
+    key: 'flatSets' | 'flatSlots' | 'flatTiers' | 'flatPrimaries' | 'characters',
+    value: string
+  ) => setFilter(key, filters[key].filter((v) => v !== value));
+
+  interface ActiveChip {
+    id: string;
+    group: string;
+    label: string;
+    remove: () => void;
+  }
+  const activeFilters: ActiveChip[] = [
+    ...filters.flatSets.map((v) => ({
+      id: `set:${v}`, group: 'Set', label: v, remove: () => removeString('flatSets', v),
+    })),
+    ...filters.flatSlots.map((v) => ({
+      id: `slot:${v}`, group: 'Slot', label: v, remove: () => removeString('flatSlots', v),
+    })),
+    ...filters.flatTiers.map((v) => ({
+      id: `tier:${v}`,
+      group: 'Tier',
+      label: TIER_COLOR_BY_LETTER[v] ? `${TIER_COLOR_BY_LETTER[v]} (${v})` : v,
+      remove: () => removeString('flatTiers', v),
+    })),
+    ...filters.flatRarity.map((v) => ({
+      id: `rarity:${v}`,
+      group: 'Rarity',
+      label: `${v} Dots`,
+      remove: () => setFilter('flatRarity', filters.flatRarity.filter((x) => x !== v)),
+    })),
+    ...filters.flatPrimaries.map((v) => ({
+      id: `primary:${v}`, group: 'Primary', label: v, remove: () => removeString('flatPrimaries', v),
+    })),
+    ...filters.characters.map((v) => ({
+      id: `char:${v}`, group: 'Character', label: v, remove: () => removeString('characters', v),
+    })),
+    ...(filters.locked !== 'all'
+      ? [{
+          id: 'locked',
+          group: 'Lock',
+          label: filters.locked === 'locked' ? 'Locked only' : 'Unlocked only',
+          remove: () => setFilter('locked', 'all'),
+        }]
+      : []),
+  ];
 
   return (
     <Card
@@ -94,11 +163,32 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
         <header className={styles.head}>
           <p className={styles.eyebrow}>Inventory Readout</p>
           {hasFilter && (
-            <button type="button" className={styles.clear} onClick={clearLenses}>
-              Clear filter ✕
+            <button type="button" className={styles.clear} onClick={clearFilters}>
+              Clear all filters ✕
             </button>
           )}
         </header>
+
+        {/* Active panel filters — removable chips so the readout shows exactly
+            which set/slot/tier/rarity/primary/character/lock filters are on. */}
+        {activeFilters.length > 0 && (
+          <div className={styles.activeFilters}>
+            <span className={styles.activeLabel}>Filters</span>
+            {activeFilters.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={styles.activeChip}
+                onClick={f.remove}
+                title={`Remove ${f.group} filter: ${f.label}`}
+              >
+                <span className={styles.activeGroup}>{f.group}</span>
+                <span className={styles.activeValue}>{f.label}</span>
+                <span className={styles.activeX} aria-hidden="true">✕</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Disposition lens */}
         <section className={styles.group}>

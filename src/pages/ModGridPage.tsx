@@ -5,13 +5,7 @@ import { useMods } from '@/contexts/ModContext';
 import { useFilters } from '@/contexts/FilterContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
-import {
-  applyFlatFilters,
-  applySellPileFilters,
-  applyUnconfiguredFilters,
-  groupMods,
-  sortMods,
-} from '@/utils/modFilters';
+import { applyFlatFilters, groupMods, sortMods } from '@/utils/modFilters';
 import Layout from '@/components/layout/Layout';
 import ModGrid from '@/components/mod/ModGrid';
 import OrphanModCard from '@/components/mod/OrphanModCard';
@@ -21,12 +15,6 @@ import FilterPanel from '@/components/filter/FilterPanel';
 import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import styles from './ModGridPage.module.css';
-
-const MODE_TITLES: Record<string, string> = {
-  flat: 'All Mods',
-  'sell-pile': 'Sell Pile',
-  unconfigured: 'Unconfigured Mods',
-};
 
 function UnconfiguredView({
   mods,
@@ -147,75 +135,79 @@ export default function ModGridPage() {
   const noEvaluation = !activeEvaluationId || verdicts.size === 0;
 
   const renderContent = () => {
-    if (filters.mode === 'flat') {
+    // Without an evaluation there are no verdicts to band/bucket on, so the
+    // readout and disposition lenses are meaningless — show every mod plainly,
+    // with the facet/cross-cutting filters still applied.
+    if (noEvaluation) {
       const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds);
       const sorted = sortMods(filtered, filters.sortBy, verdicts);
       const groups = groupMods(sorted, filters.groupBy);
+      return groups.map((group) => (
+        <div key={group.key} className={styles.group}>
+          {group.label && <h2 className={styles.groupHeading}>{group.label}</h2>}
+          <ModGrid mods={group.mods} onModClick={handleModClick} />
+        </div>
+      ));
+    }
 
-      // Orphan pilot mods: assigned but absent from the current pull (unequipped
-      // or sold — Comlink only reports equipped mods, so we can't tell which).
-      // They only belong in the For Pilots bucket; every other lens shows live
-      // inventory. Rendered from their stored snapshot below the present mods.
-      const presentModIds = new Set(mods.map((m) => m.mod_id));
-      const orphans =
-        filters.bucket === 'for-pilot'
-          ? [...assignments.values()].filter((a) => !presentModIds.has(a.modId))
-          : [];
+    const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds);
+    const sorted = sortMods(filtered, filters.sortBy, verdicts);
+    const groups = groupMods(sorted, filters.groupBy);
 
-      return (
-        <>
-          {!noEvaluation && <InventoryReadout mods={mods} verdicts={verdicts} />}
-          {/* Suppress the present-mods grid (and its "no mods" empty state) only
-              when there are zero present mods but orphans to show — otherwise the
-              empty state would lie. Every other case renders the groups. */}
-          {(filtered.length > 0 || orphans.length === 0) &&
-            groups.map((group) => (
-              <div key={group.key} className={styles.group}>
-                {group.label && <h2 className={styles.groupHeading}>{group.label}</h2>}
+    // Orphan pilot mods: assigned but absent from the current pull (unequipped
+    // or sold — Comlink only reports equipped mods, so we can't tell which).
+    // They only belong in the For Pilots bucket; every other lens shows live
+    // inventory. Rendered from their stored snapshot below the present mods.
+    const presentModIds = new Set(mods.map((m) => m.mod_id));
+    const orphans =
+      filters.bucket === 'for-pilot'
+        ? [...assignments.values()].filter((a) => !presentModIds.has(a.modId))
+        : [];
+
+    return (
+      <>
+        <InventoryReadout mods={mods} verdicts={verdicts} />
+        {/* The Unconfigured disposition keeps its dedicated grouped-by-set view
+            with per-set "configure rules" links (the former Unconfigured mode);
+            the readout above still lets the player switch back to another lens. */}
+        {filters.bucket === 'unconfigured' ? (
+          <UnconfiguredView
+            mods={filtered}
+            activeEvaluationId={activeEvaluationId}
+            onModClick={handleModClick}
+          />
+        ) : (
+          <>
+            {/* Suppress the present-mods grid (and its "no mods" empty state) only
+                when there are zero present mods but orphans to show — otherwise the
+                empty state would lie. Every other case renders the groups. */}
+            {(filtered.length > 0 || orphans.length === 0) &&
+              groups.map((group) => (
+                <div key={group.key} className={styles.group}>
+                  {group.label && <h2 className={styles.groupHeading}>{group.label}</h2>}
+                  <ModGrid mods={group.mods} onModClick={handleModClick} />
+                </div>
+              ))}
+            {orphans.length > 0 && (
+              <div className={styles.group}>
+                <h2 className={styles.groupHeading}>Not currently equipped</h2>
+                <p className={styles.orphanNote}>
+                  These mods are assigned to your pilot pool but weren&rsquo;t in your
+                  latest inventory pull — the game only reports equipped mods. If you
+                  unequipped one, leave it assigned. If you sold it, remove it.
+                </p>
                 <ModGrid
-                  mods={group.mods}
+                  mods={[]}
                   onModClick={handleModClick}
+                  trailing={orphans.map((a) => (
+                    <OrphanModCard key={a.modId} assignment={a} />
+                  ))}
                 />
               </div>
-            ))}
-          {orphans.length > 0 && (
-            <div className={styles.group}>
-              <h2 className={styles.groupHeading}>Not currently equipped</h2>
-              <p className={styles.orphanNote}>
-                These mods are assigned to your pilot pool but weren&rsquo;t in your
-                latest inventory pull — the game only reports equipped mods. If you
-                unequipped one, leave it assigned. If you sold it, remove it.
-              </p>
-              <ModGrid
-                mods={[]}
-                onModClick={handleModClick}
-                trailing={orphans.map((a) => (
-                  <OrphanModCard key={a.modId} assignment={a} />
-                ))}
-              />
-            </div>
-          )}
-        </>
-      );
-    }
-
-    if (noEvaluation) {
-      return <ModGrid mods={mods} onModClick={handleModClick} />;
-    }
-
-    if (filters.mode === 'sell-pile') {
-      const sellMods = applySellPileFilters(mods, verdicts, filters, assignedModIds);
-      return <ModGrid mods={sellMods} onModClick={handleModClick} />;
-    }
-
-    // unconfigured
-    const unconfigured = applyUnconfiguredFilters(mods, verdicts);
-    return (
-      <UnconfiguredView
-        mods={unconfigured}
-        activeEvaluationId={activeEvaluationId}
-        onModClick={handleModClick}
-      />
+            )}
+          </>
+        )}
+      </>
     );
   };
 
@@ -226,17 +218,9 @@ export default function ModGridPage() {
 
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <h1>
-              {filters.mode === 'flat'
-                ? 'All Mods'
-                : noEvaluation
-                  ? 'Mods'
-                  : MODE_TITLES[filters.mode] ?? 'Mods'}
-            </h1>
+            <h1>All Mods</h1>
             <p className={styles.modCount}>
-              {filters.mode === 'flat'
-                ? `Showing ${applyFlatFilters(mods, filters, verdicts).length} of ${mods.length} mods`
-                : `${mods.length} mods loaded`}
+              {`Showing ${applyFlatFilters(mods, filters, verdicts).length} of ${mods.length} mods`}
             </p>
           </div>
 

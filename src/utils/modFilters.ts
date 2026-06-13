@@ -252,58 +252,6 @@ export function getFlatOptions(mods: ParsedMod[]): {
   };
 }
 
-/**
- * Sell-pile filter: SELL verdicts only, with flat parallel set/slot filters.
- * Assigned (pilot-pool) mods are excluded — assigning a mod protects it from
- * the sell pile, the same diversion the Sell disposition bucket applies.
- */
-export function applySellPileFilters(
-  mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>,
-  filters: ModFilters,
-  assignedModIds?: Set<string>
-): ParsedMod[] {
-  return mods.filter((mod) => {
-    const verdict = verdicts.get(mod.mod_id);
-    if (!verdict || verdict.verdict !== 'SELL') return false;
-    if (assignedModIds?.has(mod.mod_id)) return false;
-    if (filters.sellPileSets.length > 0 && !filters.sellPileSets.includes(mod.set)) {
-      return false;
-    }
-    if (filters.sellPileSlots.length > 0 && !filters.sellPileSlots.includes(mod.slot)) {
-      return false;
-    }
-    if (!matchesCrossCutting(mod, filters)) return false;
-    return true;
-  });
-}
-
-/** Unconfigured filter: mods whose set has no variants in the active evaluation. */
-export function applyUnconfiguredFilters(
-  mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>
-): ParsedMod[] {
-  return mods.filter((mod) => verdicts.get(mod.mod_id)?.verdict === 'UNCONFIGURED');
-}
-
-/** Set + slot options for the sell-pile parallel filters. */
-export function getSellPileOptions(
-  mods: ParsedMod[],
-  verdicts: Map<string, VerdictResult>
-): { sets: string[]; slots: string[] } {
-  const sets = new Set<string>();
-  const slots = new Set<string>();
-  for (const mod of mods) {
-    if (verdicts.get(mod.mod_id)?.verdict !== 'SELL') continue;
-    sets.add(mod.set);
-    slots.add(mod.slot);
-  }
-  return {
-    sets: [...sets].sort(),
-    slots: [...slots].sort(),
-  };
-}
-
 /** Distinct characters that currently have a mod equipped, for the character filter. */
 export function getCharacterOptions(mods: ParsedMod[]): string[] {
   const characters = new Set<string>();

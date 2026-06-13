@@ -3,32 +3,28 @@ import type { ReactNode } from 'react';
 import type { BucketFilter, QualityBand } from '@/utils/modDisposition';
 import { defaultFilters } from './defaultFilters';
 
-export type FilterMode = 'flat' | 'sell-pile' | 'unconfigured';
 export type GroupBy = 'none' | 'shape' | 'tier' | 'set' | 'primary';
 export type SortBy = 'none' | 'score-desc' | 'score-asc';
 
 export interface ModFilters {
-  mode: FilterMode;
-  // flat view filters:
+  // facet filters:
   flatSets: string[];
   flatSlots: string[];
   flatTiers: string[];
   flatRarity: number[];
   flatPrimaries: string[];
-  // inventory-overview disposition (null = all dispositions). 'for-pilot' is an
-  // assignment overlay rather than a verdict bucket; see BucketFilter.
+  // disposition lens (null = all dispositions). 'for-pilot' is an assignment
+  // overlay rather than a verdict bucket; see BucketFilter. The Sell and
+  // Unconfigured buckets replace the former Sell-Pile / Unconfigured view modes.
   bucket: BucketFilter | null;
   // quality-band lens (null = all bands); independent of `bucket` — both can
   // be active at once to narrow e.g. "slice mods in the gold band":
   band: QualityBand | null;
-  // how the flat result grid is grouped (none = one flat list):
+  // how the result grid is grouped (none = one flat list):
   groupBy: GroupBy;
-  // how the flat result grid is ordered (none = inventory order):
+  // how the result grid is ordered (none = inventory order):
   sortBy: SortBy;
-  // sell-pile parallel filters:
-  sellPileSets: string[];
-  sellPileSlots: string[];
-  // cross-cutting (all modes):
+  // cross-cutting:
   locked: 'all' | 'locked' | 'unlocked';
   characters: string[];
 }
@@ -57,8 +53,16 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  // The single canonical reset, surfaced both in the filter drawer and the
+  // inventory readout. Resets every filter (facets, lenses, cross-cutting) but
+  // preserves the display preferences (group/sort) — those order what's shown,
+  // they don't filter it.
   const clearFilters = () => {
-    setFilters(defaultFilters);
+    setFilters((prev) => ({
+      ...defaultFilters,
+      groupBy: prev.groupBy,
+      sortBy: prev.sortBy,
+    }));
   };
 
   return (

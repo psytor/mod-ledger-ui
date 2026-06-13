@@ -51,6 +51,69 @@
   color: #fff;
 }
 
+/* ── Active panel filters (removable chips) ───────────────── */
+.activeFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.activeLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-right: 0.15rem;
+}
+
+.activeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(99, 179, 237, 0.4);
+  border-radius: 999px;
+  background: rgba(56, 130, 246, 0.12);
+  color: #dbeafe;
+  font-size: 0.74rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.activeChip:hover {
+  background: rgba(56, 130, 246, 0.22);
+  border-color: rgba(99, 179, 237, 0.7);
+}
+
+.activeGroup {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.activeValue {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.activeX {
+  font-size: 0.7rem;
+  color: #93c5fd;
+}
+
+.activeChip:hover .activeX {
+  color: #fff;
+}
+
 /* ── Lens group ───────────────────────────────────────────── */
 .group {
   display: flex;
