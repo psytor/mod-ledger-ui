@@ -4,12 +4,31 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `af53571` plus this commit — which (a) revived the
+**Docs current as of:** commit `a1bbad5` plus earlier work. The latest commit
+(`a1bbad5`) **consolidated the mod filters into one system** (see "Filters" and
+"Top-of-page readout" below): the former Sell-Pile / Unconfigured **view modes**
+— and their `FilterMode` switch plus the duplicate `sellPileSets` /
+`sellPileSlots` facet state — were **removed**, because they were duplicates of
+the **Sell** and **Unconfigured** disposition chips that already lived in
+`InventoryReadout`. There is now a single `ModFilters` state with one shared set
+of facets; `FilterPanel` always shows them (no mode tabs); `ModGridPage` always
+renders the flat grid, and the **Unconfigured disposition keeps its dedicated
+grouped-by-set "configure rules" view** (rendered when
+`filters.bucket === 'unconfigured'`, with the readout still above it). The two
+Clear buttons were **unified** — the readout's Clear and the panel's both call the
+canonical `clearFilters`, which now appears whenever ANY filter is active and
+**preserves Sort/Group** (display prefs, not filters). `InventoryReadout` gained a
+removable **"Active filters"** chip row so the panel-driven
+set/slot/tier/rarity/primary/character/lock filters are visible — and individually
+removable — in one place. Deleted helpers: `applySellPileFilters` /
+`getSellPileOptions` / `applyUnconfiguredFilters`.
+
+Earlier work, commit `af53571` plus the commit after it: the latter (a) revived the
 card tooltips that were silently dead (`pointer-events: none` on the verdict badge
 + quality chip → `auto` + `cursor: help`), and (b) added `explainQualityScore` in
 `verdictExplain.ts` + a "What the score means:" block in `ModDetailModal` that
 spells out what the 0-100 score is and that roll-quality is separate from
-rule-match (see "Verdict labels & explanations"). The prior commit (`af53571`) fixed the
+rule-match (see "Verdict labels & explanations"). `af53571` itself fixed the
 quality-band model so nothing implies "50 = average" anymore AND wired a
 player-facing priority/action vocabulary through every band surface. `curveScore`
 scores a single roll 50 when it lands on the target YOU set, so a mod's
@@ -40,7 +59,7 @@ that consolidated the three top-of-page strips (`InventoryOverview` +
 `bucket` (see "Top-of-page readout"); before that, the cohort/percentile slicing
 bands were replaced with a per-mod 5-band quality scale, `cohortRanking.ts` was
 renamed → `modDisposition.ts`, and the unused raw `score` was removed. Next
-session: `git log 65e26c8..HEAD` for anything newer.
+session: `git log a1bbad5..HEAD` for anything newer.
 
 When you make a change that affects documented behaviour, update this line
 to the commit you have brought the docs level with — so the next session
@@ -286,18 +305,32 @@ strips (`InventoryOverview` + `ResultsDistribution` + `SliceLegend`, all now
 removed) into two interactive lenses, both computed from the **whole inventory**
 (not the filtered view) so the counts stay a stable overview:
 
-- **Disposition** — a count chip per `ActionBucket` (Sell / Level Up / Slice /
-  Maxed / Unconfigured) plus an "All" chip. Clicking sets `filters.bucket`
-  (`getBucketCounts`).
+- **Disposition** — a count chip per `BucketFilter` (Sell / Level Up / Slice /
+  For Pilots / Maxed / Unconfigured) plus an "All" chip. Clicking sets
+  `filters.bucket` (`getBucketCounts`). These chips are also the view
+  navigation that the removed Sell-Pile / Unconfigured *modes* used to be —
+  picking **Unconfigured** swaps the grid for the grouped-by-set "configure
+  rules" view (handled in `ModGridPage`).
 - **Quality** — a segmented distribution bar over every *scored* mod
   (`getQualityBandCounts`; a finite `absolute_quality`), highest band on the
   left, plus an interactive legend doubling as the colour key. Clicking a
   segment or legend item sets `filters.band`.
+- **Active filters** — a removable chip row (shown only when at least one
+  panel-driven filter is on) summarising every set/slot/tier/rarity/primary/
+  character/lock filter. Each chip removes just that one value; `bucket`/`band`
+  are intentionally excluded (the two lenses already show their own active
+  state). This makes the readout the single honest picture of everything
+  narrowing the grid.
 
 `bucket` and `band` are **independent** filters that stack (e.g. slice mods in
-the gold band); a "Clear filter" pill resets both. The band filter lives in
-`ModFilters` and is applied in `applyFlatFilters` (stale-guarded by
-`verdicts?.size`, same as `bucket`).
+the gold band). The band filter lives in `ModFilters` and is applied in
+`applyFlatFilters` (stale-guarded by `verdicts?.size`, same as `bucket`).
+
+There is **one** Clear: a "Clear all filters" button (in the readout header and
+the filter drawer) that calls the canonical `clearFilters`. It appears whenever
+ANY filter is active and resets every filter (facets, lenses, cross-cutting)
+while **preserving `groupBy` / `sortBy`** — those order what's shown, they don't
+filter it.
 
 `sortMods` orders by `absolute_quality`, breaking ties toward the
 **more-advanced** mod via `advancementRank` (`rarity*10 + tier`: a 6-dot beats
@@ -308,6 +341,37 @@ any 5-dot, then higher tier wins) — the better slice bet.
 > removed because the deciding number was never shown, the peers were hidden by
 > the active filter, and a single-mod cohort silently defaulted to "Keep" — so a
 > perfect lone mod could never be flagged to slice.
+
+### Filters (one system — no view modes)
+
+All mod-inventory filtering is **one** `ModFilters` state (`FilterContext.tsx` +
+`defaultFilters.ts`); there is no longer a `mode` / `FilterMode` view switch.
+The fields:
+
+- **Facets** (the filter drawer, `FilterPanel`): `flatSets`, `flatSlots`,
+  `flatTiers`, `flatRarity`, `flatPrimaries`.
+- **Lenses** (the readout, `InventoryReadout`): `bucket` (a `BucketFilter` — the
+  five `ActionBucket`s plus the `for-pilot` overlay) and `band` (a `QualityBand`).
+  Independent; both stack.
+- **Display** (the drawer): `groupBy`, `sortBy` — these order what's shown, they
+  are **not** filters, so `clearFilters` preserves them.
+- **Cross-cutting** (the drawer): `locked`, `characters`.
+
+`applyFlatFilters` (`modFilters.ts`) is the single apply path for the grid. The
+`bucket` / `band` checks are **stale-guarded by `verdicts?.size`** — they only
+engage once an evaluation has produced verdicts; the facet/cross-cutting checks
+need no verdicts. `bucket === 'sell'` diverts assigned (pilot-pool) mods out, and
+`bucket === 'for-pilot'` is an assignment overlay (no verdict needed). When
+`bucket === 'unconfigured'`, `ModGridPage` renders the dedicated grouped-by-set
+"configure rules" view instead of the normal grid.
+
+> **History:** "Sell Pile" and "Unconfigured" were once separate *view modes*
+> selected by mode tabs in the drawer, each with parallel filter state
+> (`sellPileSets` / `sellPileSlots` duplicated the flat set/slot facets). They
+> were folded into the **Sell** and **Unconfigured** disposition chips — which
+> already did the same routing — so the duplication and the second navigation
+> model are gone. Don't reintroduce a `mode` axis: a new "view" is a new
+> `BucketFilter`/disposition, not a mode.
 
 ### Storage
 
