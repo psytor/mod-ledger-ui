@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { TopBar, Footer, Container, Button, AllyCodeDropdown, useAuth } from 'astrogators-shared-ui';
+import { useLocation, Link } from 'react-router-dom';
+import { NavBar, Footer, Container, Button, useAuth } from 'astrogators-shared-ui';
 import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { pilotAssignmentStorage } from '@/services/pilotAssignmentStorage';
@@ -43,9 +44,10 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, isAuthenticated, isLoading: isAuthLoading, logout, authEnabled, selectedAllyCode } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, selectedAllyCode } = useAuth();
   const { refreshMods, isLoadingMods, cachedAt, refreshAvailableAt } = useMods();
   const { clearVerdicts } = useEvaluation();
+  const location = useLocation();
 
   // Tick a 1s clock only while there's a snapshot to age / a cooldown to count
   // down. This drives the "Updated X ago" label and the cooldown timer — it is
@@ -138,89 +140,70 @@ export default function Layout({ children }: LayoutProps) {
   const showPilotMigrationPrompt =
     !isAuthLoading && isAuthenticated && localCount === 0 && pilotLocalCount > 0;
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = '/';
-  };
+  const navItems = [
+    {
+      label: 'Grid',
+      href: '/',
+      active: location.pathname === '/',
+      render: (p: { className: string; children: ReactNode }) => <Link to="/" {...p} />,
+    },
+    {
+      label: 'Evaluations',
+      href: '/evaluations',
+      active: location.pathname.startsWith('/evaluations'),
+      render: (p: { className: string; children: ReactNode }) => <Link to="/evaluations" {...p} />,
+    },
+  ];
+
+  // App-specific controls for the NavBar's right cluster: the "Updated X ago"
+  // readout + the manual inventory refresh button. NavBar renders these just
+  // left of the ally-code dropdown, preserving the tight refresh-hugs-ally group.
+  const rightExtras = (
+    <>
+      {selectedAllyCode && updatedAgo && (
+        <span
+          className={styles.updatedLabel}
+          title={
+            cooldownRemaining > 0
+              ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
+              : 'Click refresh to pull the latest from the game'
+          }
+        >
+          {cooldownRemaining > 0
+            ? `Updated ${updatedAgo} · fresh in ${formatCountdown(cooldownRemaining)}`
+            : `Updated ${updatedAgo}`}
+        </span>
+      )}
+      {selectedAllyCode && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshDisabled}
+          title={
+            cooldownRemaining > 0
+              ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
+              : 'Refresh inventory'
+          }
+          aria-label="Refresh inventory"
+          className={styles.refreshButton}
+        >
+          <span className={isLoadingMods ? styles.spin : undefined}>⟳</span>
+        </Button>
+      )}
+    </>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <TopBar
+      <NavBar
         className={styles.topBar}
-        logo={
-          <a href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-            The Astrogator's Table
-          </a>
-        }
-        leftContent={
-          <span style={{ color: 'var(--color-text-secondary)', marginLeft: '1rem' }}>
-            / Mod Ledger
-          </span>
-        }
-        rightContent={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-            {/* Refresh hugs the ally-code dropdown (tight gap) and sits just
-                left of it, while the group keeps the normal 1rem gap to the
-                rest of the bar. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              {selectedAllyCode && updatedAgo && (
-                <span
-                  className={styles.updatedLabel}
-                  title={
-                    cooldownRemaining > 0
-                      ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
-                      : 'Click refresh to pull the latest from the game'
-                  }
-                >
-                  {cooldownRemaining > 0
-                    ? `Updated ${updatedAgo} · fresh in ${formatCountdown(cooldownRemaining)}`
-                    : `Updated ${updatedAgo}`}
-                </span>
-              )}
-              {selectedAllyCode && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={refreshDisabled}
-                  title={
-                    cooldownRemaining > 0
-                      ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
-                      : 'Refresh inventory'
-                  }
-                  aria-label="Refresh inventory"
-                  className={styles.refreshButton}
-                >
-                  <span className={isLoadingMods ? styles.spin : undefined}>⟳</span>
-                </Button>
-              )}
-              <AllyCodeDropdown />
-            </div>
-            {isAuthenticated ? (
-              <>
-                <a href="/profile" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
-                  {user?.username}
-                </a>
-                <Button variant="ghost" size="sm" onClick={handleLogout}>
-                  Logout
-                </Button>
-              </>
-            ) : authEnabled ? (
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <a href="/login">
-                  <Button variant="ghost" size="sm">
-                    Login
-                  </Button>
-                </a>
-                <a href="/register">
-                  <Button variant="primary" size="sm">
-                    Sign Up
-                  </Button>
-                </a>
-              </div>
-            ) : null}
-          </div>
-        }
+        hubUrl="/"
+        appName="Mod Ledger"
+        appHref="/mod-ledger/"
+        navItems={navItems}
+        showAllyCode
+        rightExtras={rightExtras}
       />
       <Container maxWidth="full" style={{ flex: 1, paddingTop: '2rem', paddingBottom: '2rem' }}>
         {children}
