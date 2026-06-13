@@ -83,13 +83,16 @@ function checkPrimary(
   // Defensive: unknown stat id → pass rather than wrongly sell.
   if (primaryStatId === undefined) return true;
 
+  // The primary gate is a pure blacklist: only a Not_Wanted primary rejects.
+  // Wanted and Neutral (or unlisted) both pass — a Neutral primary is "not
+  // ideal but acceptable", so the secondary gate (checkSecondary) decides the
+  // mod's fate. The Wanted-vs-Neutral difference is NOT expressed here: an ideal
+  // primary that is also a Required secondary already eases the secondary
+  // threshold via the reachable-pool relief in checkSecondary, so an off-primary
+  // (Neutral) mod simply has to clear the stricter secondary bar. Primaries are
+  // never scored (fixed value at L15).
   const classification = variant.primary_classifications[primaryStatId] ?? 'neutral';
-  if (classification === 'not_wanted') return false;
-
-  const anyWanted = Object.values(variant.primary_classifications).includes('wanted');
-  if (!anyWanted) return true; // All-Neutral primary list → pass.
-
-  return classification === 'wanted';
+  return classification !== 'not_wanted';
 }
 
 type SecondaryCheck = {
@@ -219,7 +222,7 @@ function runVariantChain(
       variant,
       requiredCount: 0,
       complementaryCount: 0,
-      reason: 'Primary stat mismatch',
+      reason: 'Primary stat is Not Wanted',
     };
   }
 
