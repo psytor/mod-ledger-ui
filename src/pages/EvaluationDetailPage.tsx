@@ -16,13 +16,9 @@ import CopyEvaluationDialog from '@/components/evaluation/CopyEvaluationDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { useMods } from '@/contexts/ModContext';
+import { canModerate } from '@/utils/permissions';
 import type { Evaluation, EvaluationVisibility } from '@/types/evaluation';
 import styles from './EvaluationDetailPage.module.css';
-
-// shared-ui's User type omits `role` (it's optional in the shared package
-// today), but astrogators-table's /users/me does return it at runtime.
-// Local widening here lets us read role without a shared-ui bump.
-type UserWithRole = User & { role?: string };
 
 // Ownership predicate.
 // - Logged out: localStorage records have ownerUserId === null → owner.
@@ -34,10 +30,6 @@ function isOwner(ev: Evaluation, user: User | null): boolean {
   if (ev.visibility === 'protocol') return false;
   if (user == null) return ev.ownerUserId === null;
   return ev.ownerUserId === Number(user.id);
-}
-
-function isAdmin(user: User | null): boolean {
-  return (user as UserWithRole | null)?.role === 'admin';
 }
 
 function slugifyForFilename(name: string): string {
@@ -136,14 +128,14 @@ export default function EvaluationDetailPage() {
 
   const { evaluation } = state;
   const owner = isOwner(evaluation, user);
-  const admin = isAdmin(user);
+  const moderator = canModerate(user);
   const badge = visibilityBadge(evaluation.visibility);
-  const canPublish = admin && evaluation.visibility === 'manifest';
+  const canPublish = moderator && evaluation.visibility === 'manifest';
   const canStopSharing = owner && evaluation.visibility === 'manifest';
-  // Protocols are admin-collective: any admin can edit/delete them even
-  // though nobody owns one. Edit/Delete show for the owner OR an admin
-  // looking at a Protocol.
-  const canManageProtocol = admin && evaluation.visibility === 'protocol';
+  // Protocols are admin-collective: any admin or mod can edit/delete them
+  // even though nobody owns one. Edit/Delete show for the owner OR a
+  // moderator looking at a Protocol.
+  const canManageProtocol = moderator && evaluation.visibility === 'protocol';
   const canEdit = owner || canManageProtocol;
   const canDelete = owner || canManageProtocol;
   // Copy an eval you can see but don't own (a Protocol, or a Manifest link)

@@ -5,6 +5,7 @@ import ModGridPage from './pages/ModGridPage';
 import EvaluationsPage from './pages/EvaluationsPage';
 import EvaluationDetailPage from './pages/EvaluationDetailPage';
 import RuleBuilderPage from './pages/RuleBuilderPage';
+import ModerationPage from './pages/ModerationPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Route path="/evaluations/new" element={<RuleBuilderPage />} />
       <Route path="/evaluations/:id" element={<EvaluationDetailPage />} />
       <Route path="/evaluations/:id/edit" element={<RuleBuilderPage />} />
+      <Route path="/moderation" element={<ModerationPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

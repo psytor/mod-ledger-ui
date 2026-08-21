@@ -155,6 +155,13 @@ class EvaluationsApiClient {
     return rows.map(fromWire);
   }
 
+  // Admin/mod-only: every Manifest (link-only share) across every owner, so
+  // a moderator can find good ones to publish without already having the link.
+  async listAllManifests(): Promise<Evaluation[]> {
+    const rows = await this.request<EvaluationWire[]>('/admin/manifests');
+    return rows.map(fromWire);
+  }
+
   async get(id: string): Promise<Evaluation | null> {
     try {
       const row = await this.request<EvaluationWire>(`/${id}`, {

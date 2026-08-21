@@ -7,6 +7,7 @@ import { pilotAssignmentStorage } from '@/services/pilotAssignmentStorage';
 import { useMods } from '@/contexts/ModContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { PILOT_MIGRATED_EVENT } from '@/contexts/PilotAssignmentContext';
+import { canModerate } from '@/utils/permissions';
 import styles from './Layout.module.css';
 
 // Dispatched on `window` after a successful evaluation migration. Any
@@ -44,7 +45,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { isAuthenticated, isLoading: isAuthLoading, selectedAllyCode } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading, selectedAllyCode } = useAuth();
   const { refreshMods, isLoadingMods, cachedAt, refreshAvailableAt } = useMods();
   const { clearVerdicts } = useEvaluation();
   const location = useLocation();
@@ -153,6 +154,18 @@ export default function Layout({ children }: LayoutProps) {
       active: location.pathname.startsWith('/evaluations'),
       render: (p: { className: string; children: ReactNode }) => <Link to="/evaluations" {...p} />,
     },
+    ...(canModerate(user)
+      ? [
+          {
+            label: 'Moderation',
+            href: '/moderation',
+            active: location.pathname === '/moderation',
+            render: (p: { className: string; children: ReactNode }) => (
+              <Link to="/moderation" {...p} />
+            ),
+          },
+        ]
+      : []),
   ];
 
   // App-specific controls for the NavBar's right cluster: the "Updated X ago"

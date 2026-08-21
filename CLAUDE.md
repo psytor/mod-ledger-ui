@@ -406,6 +406,35 @@ the frontend type uses camelCase epoch ms (`ownerUserId`, `authoredBy`,
 (`fromWire` / `toWriteWire`); the rest of the app sees Evaluations in
 the frontend shape only.
 
+### Moderation (admin/mod)
+
+`src/utils/permissions.ts` is the single source of truth for the
+admin/mod check — `isAdmin`, `isMod`, `canModerate` (admin OR mod), all
+plain functions taking `user: User | null` (not hooks; `EvaluationDetailPage`
+and `RuleBuilderPage` already have `user` in scope from their own
+`useAuth()` call). `role` is a required field on shared-ui's `User` type
+as of 0.10.4 — do not reintroduce a local `UserWithRole` widening cast.
+
+`canModerate` gates: the Publish button and Protocol edit/delete on
+`EvaluationDetailPage`, opening a Protocol in `RuleBuilderPage`, and the
+whole `/moderation` page (`ModerationPage.tsx`) — a browse view over every
+Manifest across every owner (`GET /evaluations/admin/manifests`, mirrors
+`listProtocols()`'s pattern in `evaluationsApi.ts`), with a Publish action
+per card. Mods get full parity with admins here — mod-ledger has no
+broader "delete any evaluation" admin power to withhold (see the backend's
+`_can_modify` in `mod-ledger/src/api/v1/endpoints/evaluations.py`).
+
+Manifest owner usernames render via shared-ui's `fetchUsernames` (batched
+once per page load over the distinct `ownerUserId`s, not per-card) —
+**this requires `astrogators-shared-ui` >= 0.11.0**, which has been built
+and version-bumped in that submodule but not yet `npm publish`ed (that step
+needs the user's interactive npm login). Until it's published and this
+app's `astrogators-shared-ui` dependency is bumped + reinstalled,
+`ModerationPage.tsx`'s `fetchUsernames` import will fail type-check
+(`tsc -p tsconfig.app.json` — the batched `npm run type-check` via project
+references has been seen to stale-cache and miss this; verify with the
+direct `-p` form if in doubt).
+
 ### When extending the engine
 
 - A new gate type goes in `evaluationEngine.ts` and runs either inline
