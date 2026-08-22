@@ -36,36 +36,17 @@
   overflow: hidden;
 }
 
-/* Blend-tint variant, for set icons with a second baked-in opaque color
-   (Critical Chance's "2x" / Critical Damage's "!", painted solid black
-   rather than cut as a transparent hole) that the filter-based tint above
-   would flatten away. Two stacked children instead of the filter classes:
-   a base layer showing the icon as-is, and a tint layer painted the tier
-   color with mix-blend-mode: multiply, masked to the icon's own alpha.
-   Multiply means white areas become the tier color while black areas stay
-   black (black × anything = black) — the glyph survives recoloring.
-   `isolation: isolate` keeps the blend contained to these two children
-   instead of bleeding into the shape frame layers underneath. */
-.modShapeSetIconBlendWrapper {
-  position: absolute;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.modShapeSetIconBlendBase {
-  position: absolute;
-  inset: 0;
-  background-repeat: no-repeat;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: auto;
-}
-
-.modShapeSetIconBlendTint {
-  position: absolute;
-  inset: 0;
-  mix-blend-mode: multiply;
-  mask-repeat: no-repeat;
-  -webkit-mask-repeat: no-repeat;
+/* Crisp/nearest-neighbor variant for set icons with fine thin detail (the
+   Critical Chance "2x" / Critical Damage "!" glyph) that smooth scaling
+   blurs into a grey haze when downscaled ~4x from their 120px source.
+   Deliberately NOT the default — smooth scaling looks better on icons with
+   actual curved edges (Defense's shield, Tenacity's fist), which pixelate
+   visibly under nearest-neighbor. Only apply this to icons that need it. */
+.modShapeSetIconContainerCrisp {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 
 /* Tier color CSS filters - convert white sprites to target colors */
