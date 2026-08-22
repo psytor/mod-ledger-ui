@@ -511,13 +511,41 @@ actually establishes — do not invent mod-lifecycle semantics.
 
 ## Mod sprite rendering
 
-`ModSprite.tsx` composites a mod's icon from two shared atlas PNGs in
+`ModSprite.tsx` composites a mod's icon from shared atlas PNGs in
 `public/assets/sprites/` via CSS `background-position`-cropped `<div>`s —
 no per-mod images, no `<img>` tags. Three stacked layers: **Main** (the
 shape frame, untinted), **Inner** (tier-color-tinted via the
 `.tintGrey/Green/Blue/Purple/Gold` CSS filters in `ModSprite.module.css`),
 **set icon** (the mod-set bonus icon, also tinted, positioned per shape via
 `SET_ICON_LAYOUT_CONFIG`).
+
+**Set icons deliberately pull from two different atlases, per set — see
+`SET_ICON_ATLASES`/`MOD_SET_SPRITES` in `modSpriteConfig.ts` for the exact
+reasoning, summarized here because it's easy to "simplify" this back to one
+atlas and regress it:**
+- Health/Offense/Defense/Speed/Tenacity come from
+  `battleui_view_rgba_atlas.png`'s real 32×32 mipmaps — actual small
+  exports from the game's own asset pipeline, not this code downscaling a
+  120px source. A 32px→~30px resize is nearly 1:1; a 120px→~30px resize
+  (the old approach) is a ~4x downscale that visibly destroys fine detail
+  (confirmed worst on Speed's motion lines — even the game's own 32px
+  export can't make those fully crisp, but it's meaningfully better than
+  downscaling the 120px version).
+- Critical Chance/Critical Damage deliberately **stay** on the 120px
+  `misc_atlas.png` source despite `battleui_view_rgba_atlas` having 32px
+  versions of both. The battleui versions draw the "2x"/"!" glyph as solid
+  opaque **black** on the white starburst; `misc_atlas`'s draws it as a
+  **transparent cutout**. The tint filter chain starts with `brightness(0)`,
+  which crushes every opaque pixel to the same color regardless of its
+  original shade — so the battleui version would tint to a plain starburst
+  with the glyph erased (Crit Chance and Crit Damage would render
+  identically). The transparent-cutout version survives tinting correctly.
+  **Before switching any set icon's source atlas, check the sprite's raw
+  pixel values for a second opaque color, not just how it looks — a
+  same-looking icon can be encoded incompatibly with this tinting
+  technique.**
+- Potency has no smaller/alternate source in any available atlas — stays on
+  `icon_stat_potency`, a 50×52 UI icon in `misc_atlas.png`.
 
 **Render the set icon at its final pixel size in one step — never
 upscale-then-transform-scale-down.** `renderSetIcon()` used to render the

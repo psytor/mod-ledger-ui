@@ -3,6 +3,7 @@ import {
   MOD_SHAPE_SPRITES_1TO5DOT,
   MOD_SHAPE_SPRITES_6DOT,
   MOD_SET_SPRITES,
+  SET_ICON_ATLASES,
   SET_ICON_LAYOUT_CONFIG,
   type ModShape,
   type ModSet,
@@ -69,6 +70,7 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
       return null;
     }
 
+    const atlas = SET_ICON_ATLASES[setCoords.atlas];
     const targetSize = layoutConfig.size;
     const scaleX = targetSize / setCoords.w;
     const scaleY = targetSize / setCoords.h;
@@ -81,9 +83,9 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
           height: targetSize,
           left: layoutConfig.offsetX,
           top: layoutConfig.offsetY,
-          backgroundImage: `url(/mod-ledger/assets/sprites/misc_atlas.png)`,
+          backgroundImage: `url(${atlas.url})`,
           backgroundPosition: `-${setCoords.x * scaleX}px -${setCoords.y * scaleY}px`,
-          backgroundSize: `${2048 * scaleX}px ${2048 * scaleY}px`
+          backgroundSize: `${atlas.width * scaleX}px ${atlas.height * scaleY}px`
         }}
       />
     );

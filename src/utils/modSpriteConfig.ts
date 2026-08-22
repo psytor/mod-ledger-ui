@@ -16,6 +16,26 @@ export interface SpriteCoords {
   h: number;
 }
 
+// Set icons are pulled from whichever atlas actually holds up at small
+// size for that specific icon — see SET_ICON_ATLASES and MOD_SET_SPRITES
+// below for the per-set reasoning.
+export type SpriteAtlasName = 'misc' | 'battleui';
+
+export interface SetSpriteCoords extends SpriteCoords {
+  atlas: SpriteAtlasName;
+}
+
+export interface SpriteAtlasInfo {
+  url: string;
+  width: number;
+  height: number;
+}
+
+export const SET_ICON_ATLASES: Record<SpriteAtlasName, SpriteAtlasInfo> = {
+  misc: { url: '/mod-ledger/assets/sprites/misc_atlas.png', width: 2048, height: 2048 },
+  battleui: { url: '/mod-ledger/assets/sprites/battleui_view_rgba_atlas.png', width: 2048, height: 1024 }
+};
+
 // Shape sprite data interface
 export interface ShapeSpriteData {
   Main: SpriteCoords;
@@ -49,16 +69,39 @@ export const MOD_SHAPE_SPRITES_6DOT: Record<ModShape, ShapeSpriteData> = {
   Cross: { Main: { x: 776, y: 275, w: 76, h: 78 }, Inner: { x: 696, y: 352, w: 78, h: 80 } }
 };
 
-// Sprite data for Mod Set Icons
-export const MOD_SET_SPRITES: Record<ModSet, SpriteCoords> = {
-  "Critical Chance": { x: 1265, y: 358, w: 120, h: 120 },
-  "Critical Damage": { x: 1195, y: 992, w: 120, h: 120 },
-  Defense: { x: 1250, y: 1255, w: 120, h: 120 },
-  Health: { x: 1278, y: 1128, w: 120, h: 120 },
-  Offense: { x: 1408, y: 1126, w: 120, h: 120 },
-  Potency: { x: 1143, y: 1117, w: 120, h: 120 },
-  Speed: { x: 1107, y: 747, w: 120, h: 120 },
-  Tenacity: { x: 1288, y: 1385, w: 120, h: 120 }
+// Sprite data for Mod Set Icons.
+//
+// Health/Offense/Defense/Speed/Tenacity come from battleui_view_rgba_atlas's
+// real 32x32 mipmaps — actual small exports from the game's own asset
+// pipeline, not this code downscaling the 120px versions. Going from a 32px
+// source to a ~30px display size is a tiny resize instead of a ~4x one, so
+// the detail (especially Speed's motion lines) actually survives. Verified
+// these five are single-tone (pure white opaque + transparent, no baked-in
+// second color) so the CSS tint filter recolors them correctly.
+//
+// Critical Chance/Critical Damage deliberately STAY on the 120px misc_atlas
+// source, even though battleui_view_rgba_atlas has 32px versions of both.
+// Checked pixel data: battleui's "2x"/"!" glyph is drawn as solid opaque
+// BLACK on the white starburst, while misc_atlas's is a transparent cutout.
+// Our tint filter chain starts with brightness(0), which crushes every
+// opaque pixel to the same color regardless of its original shade — so the
+// battleui version would tint to a plain starburst with the glyph erased
+// (Crit Chance and Crit Damage would render identically). misc_atlas's
+// cutout-based glyph survives tinting correctly, and the shape is bold
+// enough that downscaling from 120px doesn't blur it. Do not swap these two
+// to battleui without re-checking the glyph encoding first.
+//
+// Potency has no smaller/higher-quality alternative in any available atlas
+// — stays on the small icon_stat_potency UI icon, misc_atlas 50x52.
+export const MOD_SET_SPRITES: Record<ModSet, SetSpriteCoords> = {
+  "Critical Chance": { atlas: 'misc', x: 1265, y: 358, w: 120, h: 120 },
+  "Critical Damage": { atlas: 'misc', x: 1195, y: 992, w: 120, h: 120 },
+  Defense: { atlas: 'battleui', x: 1519, y: 348, w: 32, h: 32 },
+  Health: { atlas: 'battleui', x: 1496, y: 856, w: 32, h: 32 },
+  Offense: { atlas: 'battleui', x: 1424, y: 730, w: 32, h: 32 },
+  Potency: { atlas: 'misc', x: 1143, y: 1117, w: 120, h: 120 },
+  Speed: { atlas: 'battleui', x: 1371, y: 206, w: 32, h: 32 },
+  Tenacity: { atlas: 'battleui', x: 1637, y: 584, w: 32, h: 32 }
 };
 
 // Set Icon positioning for each shape
