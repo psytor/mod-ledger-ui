@@ -519,42 +519,48 @@ shape frame, untinted), **Inner** (tier-color-tinted via the
 **set icon** (the mod-set bonus icon, also tinted, positioned per shape via
 `SET_ICON_LAYOUT_CONFIG`).
 
-**Set icons deliberately pull from two different atlases, per set — see
+**Set icons pull from two different atlases, per set — see
 `SET_ICON_ATLASES`/`MOD_SET_SPRITES` in `modSpriteConfig.ts` for the exact
 reasoning, summarized here because it's easy to "simplify" this back to one
 atlas and regress it:**
-- Health/Offense/Defense/Speed/Tenacity come from
-  `battleui_view_rgba_atlas.png`'s real 32×32 mipmaps — actual small
-  exports from the game's own asset pipeline, not this code downscaling a
-  120px source. A 32px→~30px resize is nearly 1:1; a 120px→~30px resize
-  (the old approach) is a ~4x downscale that visibly destroys fine detail
-  (confirmed worst on Speed's motion lines — even the game's own 32px
-  export can't make those fully crisp, but it's meaningfully better than
-  downscaling the 120px version).
-- Critical Chance/Critical Damage deliberately **stay** on the 120px
-  `misc_atlas.png` source despite `battleui_view_rgba_atlas` having 32px
-  versions of both. The battleui versions draw the "2x"/"!" glyph as solid
-  opaque **black** on the white starburst; `misc_atlas`'s draws it as a
-  **transparent cutout**. The tint filter chain starts with `brightness(0)`,
-  which crushes every opaque pixel to the same color regardless of its
-  original shade — so the battleui version would tint to a plain starburst
-  with the glyph erased (Crit Chance and Crit Damage would render
-  identically). The transparent-cutout version survives tinting correctly.
-  **Before switching any set icon's source atlas, check the sprite's raw
-  pixel values for a second opaque color, not just how it looks — a
-  same-looking icon can be encoded incompatibly with this tinting
-  technique.** Separately, even on the correct cutout-encoded source, the
-  same ~4x downscale that hurt Speed also blurs the thin "2x"/"!" cutout
-  into a grey haze instead of a clean gap under smooth scaling — fixed by
-  giving these two `crisp: true` in `MOD_SET_SPRITES`, which switches them
-  to nearest-neighbor scaling (`.modShapeSetIconContainerCrisp` in
-  `ModSprite.module.css`) instead of the smooth default. This is NOT
-  applied to the other set icons on purpose — nearest-neighbor visibly
-  pixelates actual curved edges (Defense's shield, Tenacity's fist), so
-  only flag `crisp: true` for icons with thin linear/glyph detail, not
-  broadly.
+- All 7 of Health/Offense/Defense/Speed/Tenacity/Critical Chance/Critical
+  Damage come from `battleui_view_rgba_atlas.png`'s real 32×32 mipmaps —
+  actual small exports from the game's own asset pipeline, not this code
+  downscaling a 120px source. A 32px→~30px resize is nearly 1:1; a
+  120px→~30px resize (the old approach, still used for Potency) is a ~4x
+  downscale that visibly destroys fine detail (confirmed worst on Speed's
+  motion lines — even the game's own 32px export can't make those fully
+  crisp, but it's meaningfully better than downscaling the 120px version).
 - Potency has no smaller/alternate source in any available atlas — stays on
   `icon_stat_potency`, a 50×52 UI icon in `misc_atlas.png`.
+
+**Critical Chance/Critical Damage need `blendTint: true` on top of the atlas
+switch, because their "2x"/"!" glyph is baked in as solid opaque BLACK on
+the white starburst** (checked raw pixel values — `(0,0,0,255)` at the
+glyph, `(255,255,255,255)` on the burst; confirmed with a full pixel map,
+not just a couple of sample points, after an earlier check on the wrong
+spot gave a false negative once). The normal filter-based tint below starts
+with `brightness(0)`, which crushes every opaque pixel to the same value
+regardless of its original shade — applied here, it would erase the glyph
+entirely and render Crit Chance and Crit Damage as the identical plain
+starburst. **Before flagging any other set icon `blendTint: true` (or
+skipping it), check its raw pixel values the same way — don't judge by how
+the sprite looks in isolation.**
+
+`blendTint` icons render via a completely different technique in
+`ModSprite.tsx`'s `renderSetIcon()` — not a `filter`, since a filter can't
+distinguish "this pixel was black" from "this pixel was white" (both are
+just "opaque" to it). Instead: two stacked children inside a wrapper with
+`isolation: isolate`. The first is the icon's own pixels, unmodified. The
+second is a solid rectangle painted the exact tier hex color (`MOD_TIER_COLORS`),
+set to `mix-blend-mode: multiply` and clipped to the icon's own alpha via
+`mask-image`/`-webkit-mask-image` (same atlas image, same
+position/size math as the background layer). Multiply blending means white
+× tier-color = tier-color, but black × anything = black — so the burst
+recolors correctly while the glyph stays black and legible in every tier.
+`isolation: isolate` keeps the blend contained to just these two children,
+not the Main/Inner frame layers stacked underneath in the same
+`.modSpriteContainer`.
 
 **Render the set icon at its final pixel size in one step — never
 upscale-then-transform-scale-down.** `renderSetIcon()` used to render the

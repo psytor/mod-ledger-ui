@@ -3,6 +3,7 @@ import {
   MOD_SHAPE_SPRITES_1TO5DOT,
   MOD_SHAPE_SPRITES_6DOT,
   MOD_SET_SPRITES,
+  MOD_TIER_COLORS,
   SET_ICON_ATLASES,
   SET_ICON_LAYOUT_CONFIG,
   type ModShape,
@@ -60,8 +61,6 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
   // with a CSS transform: a second lossy resize stacked on the first,
   // which softened the edges. A single background-size computed directly
   // at the target pixel size lets the browser downsample once, sharper.
-  // (Deliberately NOT touching MOD_SET_SPRITES/SET_ICON_LAYOUT_CONFIG or
-  // the atlas files here — this is only the render math.)
   const renderSetIcon = () => {
     const setCoords = MOD_SET_SPRITES[set as ModSet];
     const layoutConfig = SET_ICON_LAYOUT_CONFIG[shape as ModShape]?.[set as ModSet];
@@ -74,19 +73,52 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
     const targetSize = layoutConfig.size;
     const scaleX = targetSize / setCoords.w;
     const scaleY = targetSize / setCoords.h;
-    const crispClass = setCoords.crisp ? styles.modShapeSetIconContainerCrisp : '';
+    const bgPosition = `-${setCoords.x * scaleX}px -${setCoords.y * scaleY}px`;
+    const bgSize = `${atlas.width * scaleX}px ${atlas.height * scaleY}px`;
+
+    if (setCoords.blendTint) {
+      // Icon has a second baked-in opaque color (a glyph painted solid
+      // black) that the filter-based tint below would erase. Two layers
+      // instead: the icon as-is, plus a tier-color layer blended with
+      // multiply and masked to the icon's own shape — white becomes the
+      // tier color, black stays black. See modSpriteConfig.ts for the
+      // pixel-level reasoning.
+      return (
+        <div
+          className={styles.modShapeSetIconBlendWrapper}
+          style={{ width: targetSize, height: targetSize, left: layoutConfig.offsetX, top: layoutConfig.offsetY }}
+        >
+          <div
+            className={styles.modShapeSetIconBlendBase}
+            style={{ backgroundImage: `url(${atlas.url})`, backgroundPosition: bgPosition, backgroundSize: bgSize }}
+          />
+          <div
+            className={styles.modShapeSetIconBlendTint}
+            style={{
+              backgroundColor: MOD_TIER_COLORS[tierColor],
+              WebkitMaskImage: `url(${atlas.url})`,
+              WebkitMaskPosition: bgPosition,
+              WebkitMaskSize: bgSize,
+              maskImage: `url(${atlas.url})`,
+              maskPosition: bgPosition,
+              maskSize: bgSize
+            }}
+          />
+        </div>
+      );
+    }
 
     return (
       <div
-        className={`${styles.modShapeSetIconContainer} ${crispClass} ${styles[`tint${tierColor}`]}`}
+        className={`${styles.modShapeSetIconContainer} ${styles[`tint${tierColor}`]}`}
         style={{
           width: targetSize,
           height: targetSize,
           left: layoutConfig.offsetX,
           top: layoutConfig.offsetY,
           backgroundImage: `url(${atlas.url})`,
-          backgroundPosition: `-${setCoords.x * scaleX}px -${setCoords.y * scaleY}px`,
-          backgroundSize: `${atlas.width * scaleX}px ${atlas.height * scaleY}px`
+          backgroundPosition: bgPosition,
+          backgroundSize: bgSize
         }}
       />
     );

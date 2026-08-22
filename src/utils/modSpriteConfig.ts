@@ -23,10 +23,17 @@ export type SpriteAtlasName = 'misc' | 'battleui';
 
 export interface SetSpriteCoords extends SpriteCoords {
   atlas: SpriteAtlasName;
-  // Nearest-neighbor instead of smooth scaling. Only set true where the
-  // icon has fine thin detail (a glyph, motion lines) that smooth scaling
-  // blurs away — see MOD_SET_SPRITES below for which sets need it and why.
-  crisp?: boolean;
+  // True when this icon has a second baked-in opaque color (e.g. a glyph
+  // painted in solid black rather than cut as a transparent hole) that the
+  // normal filter-based tint (below) would flatten into the surrounding
+  // shape — that filter chain starts with brightness(0), which crushes
+  // every opaque pixel to the same value regardless of its original shade,
+  // erasing any second color. Rendered instead via a mix-blend-mode:
+  // multiply overlay masked to the icon's own alpha: white areas take the
+  // tier color, but black areas stay black (black × anything = black in
+  // multiply blending), so the glyph survives. See MOD_SET_SPRITES below
+  // for which sets need it and why.
+  blendTint?: boolean;
 }
 
 export interface SpriteAtlasInfo {
@@ -75,41 +82,33 @@ export const MOD_SHAPE_SPRITES_6DOT: Record<ModShape, ShapeSpriteData> = {
 
 // Sprite data for Mod Set Icons.
 //
-// Health/Offense/Defense/Speed/Tenacity come from battleui_view_rgba_atlas's
-// real 32x32 mipmaps — actual small exports from the game's own asset
-// pipeline, not this code downscaling the 120px versions. Going from a 32px
-// source to a ~30px display size is a tiny resize instead of a ~4x one, so
-// the detail (especially Speed's motion lines) actually survives. Verified
-// these five are single-tone (pure white opaque + transparent, no baked-in
-// second color) so the CSS tint filter recolors them correctly.
+// Health/Offense/Defense/Speed/Tenacity/Critical Chance/Critical Damage all
+// come from battleui_view_rgba_atlas's real 32x32 mipmaps — actual small
+// exports from the game's own asset pipeline, not this code downscaling the
+// old 120px misc_atlas versions. Going from a 32px source to a ~30px display
+// size is a tiny resize instead of a ~4x one, so fine detail (Speed's motion
+// lines, the "2x"/"!" glyph) actually survives.
 //
-// Critical Chance/Critical Damage deliberately STAY on the 120px misc_atlas
-// source, even though battleui_view_rgba_atlas has 32px versions of both.
-// Checked pixel data: battleui's "2x"/"!" glyph is drawn as solid opaque
-// BLACK on the white starburst, while misc_atlas's is a transparent cutout.
-// Our tint filter chain starts with brightness(0), which crushes every
-// opaque pixel to the same color regardless of its original shade — so the
-// battleui version would tint to a plain starburst with the glyph erased
-// (Crit Chance and Crit Damage would render identically). misc_atlas's
-// cutout-based glyph survives tinting correctly, and the shape is bold
-// enough that downscaling from 120px doesn't blur it. Do not swap these two
-// to battleui without re-checking the glyph encoding first.
+// Critical Chance/Critical Damage need `blendTint: true` on top of that:
+// their "2x"/"!" glyph is baked in as solid opaque BLACK on the white
+// starburst (checked the raw pixel values — (0,0,0,255) at the glyph,
+// vs (255,255,255,255) on the burst), not a transparent cutout like the
+// other icons. The normal filter-based tint (brightness(0) first, which
+// crushes every opaque pixel to the same value) would erase that glyph
+// entirely — Crit Chance and Crit Damage would render as the identical
+// plain starburst. blendTint switches these two to a mix-blend-mode:
+// multiply overlay instead (see ModSprite.tsx) — white areas take the tier
+// color, black areas stay black, so the glyph survives. Do not flip
+// blendTint off for these two, and do not set it on an icon without first
+// checking its raw pixel values the same way — a same-looking icon can
+// still be single-tone (no benefit, added complexity for nothing) or
+// encoded a third way this technique doesn't handle.
 //
 // Potency has no smaller/higher-quality alternative in any available atlas
 // — stays on the small icon_stat_potency UI icon, misc_atlas 50x52.
-//
-// Critical Chance/Critical Damage additionally need `crisp: true`: even on
-// the correct (cutout-encoded) source, smoothly downscaling ~4x from their
-// 120px source blurs the "2x"/"!" glyph into a grey haze instead of a clean
-// gap — the same thin-detail problem Speed had, just manifesting as a
-// blurred hole instead of a blurred line. Nearest-neighbor scaling keeps it
-// crisp. The other icons stay on smooth scaling on purpose — nearest-
-// neighbor visibly pixelates actual curved edges (Defense's shield,
-// Tenacity's fist), and Speed no longer needs it now that it's sourced from
-// a near-native-size 32px mipmap instead of a 120px source.
 export const MOD_SET_SPRITES: Record<ModSet, SetSpriteCoords> = {
-  "Critical Chance": { atlas: 'misc', x: 1265, y: 358, w: 120, h: 120, crisp: true },
-  "Critical Damage": { atlas: 'misc', x: 1195, y: 992, w: 120, h: 120, crisp: true },
+  "Critical Chance": { atlas: 'battleui', x: 1365, y: 466, w: 32, h: 32, blendTint: true },
+  "Critical Damage": { atlas: 'battleui', x: 1615, y: 924, w: 32, h: 32, blendTint: true },
   Defense: { atlas: 'battleui', x: 1519, y: 348, w: 32, h: 32 },
   Health: { atlas: 'battleui', x: 1496, y: 856, w: 32, h: 32 },
   Offense: { atlas: 'battleui', x: 1424, y: 730, w: 32, h: 32 },
