@@ -53,7 +53,14 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
   const innerLeftOffset = (size - shapeCoords.Inner.w) / 2;
   const innerTopOffset = (size - shapeCoords.Inner.h) / 2;
 
-  // Render set icon with 3x upscaling
+  // Render the set icon at its real final size in one step — no
+  // upscale-then-transform-down pass. The old version rasterized the
+  // background at 3x via background-size, then shrank that raster again
+  // with a CSS transform: a second lossy resize stacked on the first,
+  // which softened the edges. A single background-size computed directly
+  // at the target pixel size lets the browser downsample once, sharper.
+  // (Deliberately NOT touching MOD_SET_SPRITES/SET_ICON_LAYOUT_CONFIG or
+  // the atlas files here — this is only the render math.)
   const renderSetIcon = () => {
     const setCoords = MOD_SET_SPRITES[set as ModSet];
     const layoutConfig = SET_ICON_LAYOUT_CONFIG[shape as ModShape]?.[set as ModSet];
@@ -62,25 +69,21 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
       return null;
     }
 
-    const upscaleFactor = 3;
     const targetSize = layoutConfig.size;
-    const containerSizeScaled = targetSize * upscaleFactor;
-    const scaleX = (targetSize * upscaleFactor) / setCoords.w;
-    const scaleY = (targetSize * upscaleFactor) / setCoords.h;
+    const scaleX = targetSize / setCoords.w;
+    const scaleY = targetSize / setCoords.h;
 
     return (
       <div
         className={`${styles.modShapeSetIconContainer} ${styles[`tint${tierColor}`]}`}
         style={{
-          width: containerSizeScaled,
-          height: containerSizeScaled,
+          width: targetSize,
+          height: targetSize,
           left: layoutConfig.offsetX,
           top: layoutConfig.offsetY,
           backgroundImage: `url(/mod-ledger/assets/sprites/misc_atlas.png)`,
           backgroundPosition: `-${setCoords.x * scaleX}px -${setCoords.y * scaleY}px`,
-          backgroundSize: `${2048 * scaleX}px ${2048 * scaleY}px`,
-          transform: `scale(${1 / upscaleFactor})`,
-          transformOrigin: '0 0'
+          backgroundSize: `${2048 * scaleX}px ${2048 * scaleY}px`
         }}
       />
     );
