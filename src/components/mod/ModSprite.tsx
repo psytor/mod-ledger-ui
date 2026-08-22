@@ -53,18 +53,7 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
   const innerLeftOffset = (size - shapeCoords.Inner.w) / 2;
   const innerTopOffset = (size - shapeCoords.Inner.h) / 2;
 
-  // Render the set icon at its real final size in one step — no
-  // upscale-then-transform-down pass (that used to blur it: rasterizing at
-  // an intermediate size via background-size, then shrinking that raster
-  // again with a CSS transform, is a second lossy resize on top of the
-  // first). A single background-size computed directly at the target pixel
-  // size lets the browser downsample once, which is sharper.
-  //
-  // `layoutConfig.size` is a bounding-box max dimension, not an assumed
-  // square — the real icon art isn't square for every set (e.g. Defense's
-  // shield, Tenacity's fist), so we scale by the icon's longer edge and let
-  // the shorter edge come out proportionally smaller, rather than
-  // stretching it to fill a square.
+  // Render set icon with 3x upscaling
   const renderSetIcon = () => {
     const setCoords = MOD_SET_SPRITES[set as ModSet];
     const layoutConfig = SET_ICON_LAYOUT_CONFIG[shape as ModShape]?.[set as ModSet];
@@ -73,25 +62,25 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
       return null;
     }
 
-    const scale = layoutConfig.size / Math.max(setCoords.w, setCoords.h);
-    const iconWidth = setCoords.w * scale;
-    const iconHeight = setCoords.h * scale;
-    // Center the (possibly non-square) icon within the old square-slot
-    // offset, so existing per-shape/per-set placements still line up.
-    const centeredOffsetX = layoutConfig.offsetX + (layoutConfig.size - iconWidth) / 2;
-    const centeredOffsetY = layoutConfig.offsetY + (layoutConfig.size - iconHeight) / 2;
+    const upscaleFactor = 3;
+    const targetSize = layoutConfig.size;
+    const containerSizeScaled = targetSize * upscaleFactor;
+    const scaleX = (targetSize * upscaleFactor) / setCoords.w;
+    const scaleY = (targetSize * upscaleFactor) / setCoords.h;
 
     return (
       <div
         className={`${styles.modShapeSetIconContainer} ${styles[`tint${tierColor}`]}`}
         style={{
-          width: iconWidth,
-          height: iconHeight,
-          left: centeredOffsetX,
-          top: centeredOffsetY,
+          width: containerSizeScaled,
+          height: containerSizeScaled,
+          left: layoutConfig.offsetX,
+          top: layoutConfig.offsetY,
           backgroundImage: `url(/mod-ledger/assets/sprites/misc_atlas.png)`,
-          backgroundPosition: `-${setCoords.x * scale}px -${setCoords.y * scale}px`,
-          backgroundSize: `${2048 * scale}px ${2048 * scale}px`
+          backgroundPosition: `-${setCoords.x * scaleX}px -${setCoords.y * scaleY}px`,
+          backgroundSize: `${2048 * scaleX}px ${2048 * scaleY}px`,
+          transform: `scale(${1 / upscaleFactor})`,
+          transformOrigin: '0 0'
         }}
       />
     );
