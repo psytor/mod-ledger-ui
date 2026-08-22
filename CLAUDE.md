@@ -509,6 +509,38 @@ actually establishes — do not invent mod-lifecycle semantics.
 > The `Variant` type name is kept internally; only visible text uses
 > "scoring rule".
 
+## Mod sprite rendering
+
+`ModSprite.tsx` composites a mod's icon from two shared atlas PNGs in
+`public/assets/sprites/` via CSS `background-position`-cropped `<div>`s —
+no per-mod images, no `<img>` tags. Three stacked layers: **Main** (the
+shape frame, untinted), **Inner** (tier-color-tinted via the
+`.tintGrey/Green/Blue/Purple/Gold` CSS filters in `ModSprite.module.css`),
+**set icon** (the mod-set bonus icon, also tinted, positioned per shape via
+`SET_ICON_LAYOUT_CONFIG`).
+
+**Render the set icon at its final pixel size in one step — never
+upscale-then-transform-scale-down.** `renderSetIcon()` used to render the
+icon oversized via `background-size` and then shrink the whole thing again
+with a CSS `transform: scale()` — two lossy resizes stacked, which softens
+the edges. Fixed by computing `background-size`/`background-position`
+directly at the real target size, no transform. The artifact is subtle at
+1x display density and clearly visible at ~2-3x (verified with a real
+before/after pixel comparison at both) — don't judge a change here by a 1x
+screenshot alone.
+
+**Do not swap `MOD_SHAPE_SPRITES_*`'s `Inner` layer to a different atlas
+source without checking it fits as tightly as the current one.** This was
+tried once (rebuilding the coordinates from a newer atlas export) and
+reverted: the newer atlas's equivalent "selected" sprite is a
+selection-*glow* asset, deliberately sized to bloom past the chip's edge as
+a UI highlight effect, not a tight border trace. Composited the same way as
+the current tight-fitting `Inner` sprite, the tinted ring bled outside the
+frame onto the background — wrong at a glance in the running app, but easy
+to miss in a cropped/zoomed screenshot that happens to frame out the
+overflow. If revisiting this, verify against an *uncropped* card render,
+not just a magnified interior crop.
+
 ## Critical rules
 
 **Vite build-time env var inlining.** Any value used in the bundle must come
