@@ -1,6 +1,19 @@
 /**
- * Sprite coordinate data for mod shapes and set icons
- * Adapted from SWGOH game assets
+ * Sprite coordinate data for mod shapes and set icons.
+ *
+ * Sourced from the game's own exported sprite-atlas metadata (named regions
+ * with exact X/Y/Width/Height — see the atlas .json files this was
+ * generated from), not hand-measured. Each shape's atlas region is named
+ * `modchip_{shape}_base` (1-5 dot frame), `modchip_{shape}_6dot` (6-dot
+ * frame), and `modchip_{shape}_selected` (the tintable ring used as the
+ * "Inner" layer — it's the shape's selection-highlight outline, reused here
+ * as a tier-color-tinted accent, not a literal fill of the shape's
+ * interior). Set icons are the same art used for in-combat buff icons
+ * (`icon_buff_*`), which are meaningfully higher-resolution than the old
+ * `icon_stat_*` UI icons — except Potency and Tenacity, where no
+ * `icon_buff_*` variant exists in the atlas (Tenacity falls back to the
+ * mid-res `icon_tenacity`; Potency has no larger alternative at all, so it
+ * stays on `icon_stat_potency`).
  */
 
 // Type definitions
@@ -29,39 +42,45 @@ export interface SetIconLayout {
   offsetY: number;
 }
 
-// Sprite data for 1-5 Dot Mod Shapes (Main and Inner layers)
+// Sprite data for 1-5 Dot Mod Shapes (Main = modchip_{shape}_base, Inner = modchip_{shape}_selected)
 export const MOD_SHAPE_SPRITES_1TO5DOT: Record<ModShape, ShapeSpriteData> = {
-  Square: { Main: { x: 696, y: 117, w: 79, h: 77 }, Inner: { x: 647, y: 31, w: 80, h: 80 } },
-  Arrow: { Main: { x: 696, y: 195, w: 79, h: 77 }, Inner: { x: 566, y: 31, w: 80, h: 80 } },
-  Diamond: { Main: { x: 696, y: 433, w: 79, h: 79 }, Inner: { x: 161, y: 31, w: 80, h: 80 } },
-  Triangle: { Main: { x: 854, y: 212, w: 78, h: 64 }, Inner: { x: 851, y: 130, w: 81, h: 67 } },
-  Circle: { Main: { x: 775, y: 354, w: 79, h: 78 }, Inner: { x: 404, y: 31, w: 80, h: 80 } },
-  Cross: { Main: { x: 729, y: 37, w: 76, h: 79 }, Inner: { x: 696, y: 352, w: 78, h: 80 } }
+  Square: { Main: { x: 696, y: 117, w: 79, h: 77 }, Inner: { x: 0, y: 31, w: 80, h: 80 } },
+  Arrow: { Main: { x: 696, y: 195, w: 79, h: 77 }, Inner: { x: 486, y: 31, w: 80, h: 80 } },
+  Diamond: { Main: { x: 696, y: 433, w: 79, h: 79 }, Inner: { x: 81, y: 31, w: 80, h: 80 } },
+  Triangle: { Main: { x: 854, y: 212, w: 78, h: 65 }, Inner: { x: 806, y: 52, w: 80, h: 69 } },
+  Circle: { Main: { x: 775, y: 354, w: 79, h: 78 }, Inner: { x: 324, y: 31, w: 80, h: 80 } },
+  Cross: { Main: { x: 729, y: 37, w: 76, h: 79 }, Inner: { x: 243, y: 31, w: 80, h: 80 } }
 };
 
-// Sprite data for 6-Dot Mod Shapes (6 Dots frame and Inner layer)
+// Sprite data for 6-Dot Mod Shapes (Main = modchip_{shape}_6dot, Inner is the
+// same selection-ring region — there's no separate 6-dot "selected" sprite).
 export const MOD_SHAPE_SPRITES_6DOT: Record<ModShape, ShapeSpriteData> = {
-  Square: { Main: { x: 852, y: 279, w: 78, h: 75 }, Inner: { x: 647, y: 31, w: 80, h: 80 } },
-  Arrow: { Main: { x: 776, y: 198, w: 77, h: 76 }, Inner: { x: 566, y: 31, w: 80, h: 80 } },
-  Diamond: { Main: { x: 777, y: 434, w: 77, h: 78 }, Inner: { x: 161, y: 31, w: 80, h: 80 } },
-  Triangle: { Main: { x: 887, y: 66, w: 76, h: 63 }, Inner: { x: 851, y: 130, w: 81, h: 67 } },
-  Circle: { Main: { x: 696, y: 273, w: 78, h: 78 }, Inner: { x: 404, y: 31, w: 80, h: 80 } },
-  Cross: { Main: { x: 776, y: 275, w: 76, h: 78 }, Inner: { x: 696, y: 352, w: 78, h: 80 } }
+  Square: { Main: { x: 853, y: 278, w: 77, h: 75 }, Inner: { x: 0, y: 31, w: 80, h: 80 } },
+  Arrow: { Main: { x: 776, y: 198, w: 77, h: 76 }, Inner: { x: 486, y: 31, w: 80, h: 80 } },
+  Diamond: { Main: { x: 776, y: 434, w: 78, h: 78 }, Inner: { x: 81, y: 31, w: 80, h: 80 } },
+  Triangle: { Main: { x: 887, y: 66, w: 76, h: 63 }, Inner: { x: 806, y: 52, w: 80, h: 69 } },
+  Circle: { Main: { x: 696, y: 273, w: 79, h: 78 }, Inner: { x: 324, y: 31, w: 80, h: 80 } },
+  Cross: { Main: { x: 776, y: 275, w: 76, h: 78 }, Inner: { x: 243, y: 31, w: 80, h: 80 } }
 };
 
-// Sprite data for Mod Set Icons
+// Sprite data for Mod Set Icons — the in-combat buff-icon art (icon_buff_*),
+// not the small icon_stat_* UI icons the old config approximated. Real
+// per-icon aspect ratios (not all square) — ModSprite.tsx fits each into its
+// layout slot preserving aspect ratio.
 export const MOD_SET_SPRITES: Record<ModSet, SpriteCoords> = {
-  "Critical Chance": { x: 1265, y: 358, w: 120, h: 120 },
-  "Critical Damage": { x: 1195, y: 992, w: 120, h: 120 },
-  Defense: { x: 1250, y: 1255, w: 120, h: 120 },
-  Health: { x: 1278, y: 1128, w: 120, h: 120 },
-  Offense: { x: 1408, y: 1126, w: 120, h: 120 },
-  Potency: { x: 1143, y: 1117, w: 120, h: 120 },
-  Speed: { x: 1107, y: 747, w: 120, h: 120 },
-  Tenacity: { x: 1288, y: 1385, w: 120, h: 120 }
+  "Critical Chance": { x: 1210, y: 1682, w: 120, h: 120 },
+  "Critical Damage": { x: 1231, y: 1225, w: 120, h: 120 },
+  Defense: { x: 1812, y: 1948, w: 88, h: 100 },
+  Health: { x: 1332, y: 1686, w: 112, h: 116 },
+  Offense: { x: 1236, y: 1428, w: 120, h: 120 },
+  Potency: { x: 1716, y: 1068, w: 50, h: 52 },
+  Speed: { x: 1393, y: 990, w: 123, h: 113 },
+  Tenacity: { x: 1676, y: 1433, w: 84, h: 112 }
 };
 
-// Set Icon positioning for each shape
+// Set Icon positioning for each shape — visual placement tuning, unaffected
+// by the coordinate-precision fix above (kept as-is; not what was reported
+// as low quality).
 export const SET_ICON_LAYOUT_CONFIG: Record<ModShape, Record<ModSet, SetIconLayout>> = {
   Square: {
     "Critical Chance": { size: 31, offsetX: 34, offsetY: 16 },

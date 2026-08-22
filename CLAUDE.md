@@ -509,7 +509,64 @@ actually establishes — do not invent mod-lifecycle semantics.
 > The `Variant` type name is kept internally; only visible text uses
 > "scoring rule".
 
-## Critical rules
+## Mod sprite rendering
+
+`ModSprite.tsx` composites a mod's icon from two shared atlas PNGs in
+`public/assets/sprites/` (`charactermods_datacard_atlas.png` for the shape
+frame, `misc_atlas.png` for the set-bonus icon) — no per-mod image files, no
+`<img>` tags, just CSS `background-position`-cropped `<div>`s stacked with
+`position: absolute`. Three layers, in order:
+
+1. **Main** — the shape's outer frame (`modchip_{shape}_base` for 1-5 dot,
+   `modchip_{shape}_6dot` for 6-dot), untinted.
+2. **Inner** — `modchip_{shape}_selected`, CSS-filter-tinted to the tier
+   color (`.tintGrey/.tintGreen/.tintBlue/.tintPurple/.tintGold` in
+   `ModSprite.module.css`, a `brightness/saturate/invert/sepia/hue-rotate`
+   chain that recolors one source sprite to any of the 5 tier colors — no
+   pre-colored art needed). Despite the "Inner" name this is NOT a fill of
+   the shape's interior — it's the shape's selection-highlight outline
+   sprite, repurposed as a tinted accent ring. That's intentional (verified
+   against the atlas's own named sprites), not a bug to "fix" into an actual
+   fill.
+3. **Set icon** — the mod-set bonus icon (Speed/Offense/etc), tinted the
+   same tier color, positioned per shape via `SET_ICON_LAYOUT_CONFIG`
+   (hand-tuned `size`/`offsetX`/`offsetY` per shape×set combination — this
+   is real placement design, not derivable from atlas metadata, so it's
+   preserved as literal hand-authored numbers).
+
+**`modSpriteConfig.ts`'s coordinates come from the atlas's own exported
+sprite metadata** (named regions with exact X/Y/Width/Height — see
+`tmp/charactermods_datacard_atlas/*.json` and `tmp/misc_atlas/*.json` if
+re-deriving), not eyeballed. If the atlas PNGs are ever regenerated/repacked,
+regenerate `modSpriteConfig.ts` from the new JSON's named sprites the same
+way — do not hand-guess pixel rectangles.
+
+**Set icons use `icon_buff_*` sprites, not `icon_stat_*`.** Both exist in
+`misc_atlas` — `icon_stat_*` are small (~40-50px) UI icons used elsewhere in
+the game (character sheet stat lists); `icon_buff_*` are the much larger
+(~112-123px) combat buff-icon art, and are what actually gets used here for
+sharper source resolution. Two sets have no `icon_buff_*` equivalent:
+**Tenacity** falls back to the mid-res `icon_tenacity` (84×112); **Potency**
+has no larger alternative at all and stays on `icon_stat_potency` (50×52) —
+it will always be the softest-looking set icon of the 8 for that reason, not
+a bug.
+
+**Render the set icon at its final pixel size in one step — never
+upscale-then-transform-scale-down.** An earlier version rendered the set
+icon into an oversized box via `background-size` (some multiple of the
+final size) and then shrank the whole thing back down with a CSS
+`transform: scale()`. That's two lossy resizes stacked (the browser
+rasterizes the background at the intermediate size, then resamples that
+already-rasterized bitmap again for the transform) and produces visibly
+soft/haloed edges — confirmed by rendering both versions at a high device
+pixel ratio (2-3x) and comparing pixel-for-pixel; the artifact is subtle at
+1x DPI but clearly visible at the pixel-density most real screens use. Fixed
+by computing `background-size`/`background-position` directly at the target
+size (`layoutConfig.size` scaled against the icon's real width/height,
+preserving aspect ratio via `Math.max(w, h)` since not every set icon is
+square) with no `transform` at all — a single browser-native downscale.
+If you ever add zoom/scale behavior to `ModSprite` again, resist doing it
+by rendering big and transforming down; resize the source crop instead.
 
 **Vite build-time env var inlining.** Any value used in the bundle must come
 through an `import.meta.env.VITE_*` variable. Changing `.env` requires a
