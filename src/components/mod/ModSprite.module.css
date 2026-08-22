@@ -36,6 +36,19 @@
   overflow: hidden;
 }
 
+/* Crisp/nearest-neighbor variant for set icons with fine thin detail (the
+   Critical Chance "2x" / Critical Damage "!" glyph) that smooth scaling
+   blurs into a grey haze when downscaled ~4x from their 120px source.
+   Deliberately NOT the default — smooth scaling looks better on icons with
+   actual curved edges (Defense's shield, Tenacity's fist), which pixelate
+   visibly under nearest-neighbor. Only apply this to icons that need it. */
+.modShapeSetIconContainerCrisp {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
 /* Tier color CSS filters - convert white sprites to target colors */
 .tintGrey {
   filter: brightness(0) saturate(100%) invert(85%) sepia(10%) saturate(1300%) hue-rotate(170deg) brightness(110%) contrast(90%);

@@ -23,6 +23,10 @@ export type SpriteAtlasName = 'misc' | 'battleui';
 
 export interface SetSpriteCoords extends SpriteCoords {
   atlas: SpriteAtlasName;
+  // Nearest-neighbor instead of smooth scaling. Only set true where the
+  // icon has fine thin detail (a glyph, motion lines) that smooth scaling
+  // blurs away — see MOD_SET_SPRITES below for which sets need it and why.
+  crisp?: boolean;
 }
 
 export interface SpriteAtlasInfo {
@@ -93,9 +97,19 @@ export const MOD_SHAPE_SPRITES_6DOT: Record<ModShape, ShapeSpriteData> = {
 //
 // Potency has no smaller/higher-quality alternative in any available atlas
 // — stays on the small icon_stat_potency UI icon, misc_atlas 50x52.
+//
+// Critical Chance/Critical Damage additionally need `crisp: true`: even on
+// the correct (cutout-encoded) source, smoothly downscaling ~4x from their
+// 120px source blurs the "2x"/"!" glyph into a grey haze instead of a clean
+// gap — the same thin-detail problem Speed had, just manifesting as a
+// blurred hole instead of a blurred line. Nearest-neighbor scaling keeps it
+// crisp. The other icons stay on smooth scaling on purpose — nearest-
+// neighbor visibly pixelates actual curved edges (Defense's shield,
+// Tenacity's fist), and Speed no longer needs it now that it's sourced from
+// a near-native-size 32px mipmap instead of a 120px source.
 export const MOD_SET_SPRITES: Record<ModSet, SetSpriteCoords> = {
-  "Critical Chance": { atlas: 'misc', x: 1265, y: 358, w: 120, h: 120 },
-  "Critical Damage": { atlas: 'misc', x: 1195, y: 992, w: 120, h: 120 },
+  "Critical Chance": { atlas: 'misc', x: 1265, y: 358, w: 120, h: 120, crisp: true },
+  "Critical Damage": { atlas: 'misc', x: 1195, y: 992, w: 120, h: 120, crisp: true },
   Defense: { atlas: 'battleui', x: 1519, y: 348, w: 32, h: 32 },
   Health: { atlas: 'battleui', x: 1496, y: 856, w: 32, h: 32 },
   Offense: { atlas: 'battleui', x: 1424, y: 730, w: 32, h: 32 },

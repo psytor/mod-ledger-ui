@@ -543,7 +543,16 @@ atlas and regress it:**
   **Before switching any set icon's source atlas, check the sprite's raw
   pixel values for a second opaque color, not just how it looks — a
   same-looking icon can be encoded incompatibly with this tinting
-  technique.**
+  technique.** Separately, even on the correct cutout-encoded source, the
+  same ~4x downscale that hurt Speed also blurs the thin "2x"/"!" cutout
+  into a grey haze instead of a clean gap under smooth scaling — fixed by
+  giving these two `crisp: true` in `MOD_SET_SPRITES`, which switches them
+  to nearest-neighbor scaling (`.modShapeSetIconContainerCrisp` in
+  `ModSprite.module.css`) instead of the smooth default. This is NOT
+  applied to the other set icons on purpose — nearest-neighbor visibly
+  pixelates actual curved edges (Defense's shield, Tenacity's fist), so
+  only flag `crisp: true` for icons with thin linear/glyph detail, not
+  broadly.
 - Potency has no smaller/alternate source in any available atlas — stays on
   `icon_stat_potency`, a 50×52 UI icon in `misc_atlas.png`.
 

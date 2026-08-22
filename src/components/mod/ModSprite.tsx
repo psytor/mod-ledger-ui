@@ -74,10 +74,11 @@ export default function ModSprite({ shape, tier, set, is6Dot, size = 80 }: ModSp
     const targetSize = layoutConfig.size;
     const scaleX = targetSize / setCoords.w;
     const scaleY = targetSize / setCoords.h;
+    const crispClass = setCoords.crisp ? styles.modShapeSetIconContainerCrisp : '';
 
     return (
       <div
-        className={`${styles.modShapeSetIconContainer} ${styles[`tint${tierColor}`]}`}
+        className={`${styles.modShapeSetIconContainer} ${crispClass} ${styles[`tint${tierColor}`]}`}
         style={{
           width: targetSize,
           height: targetSize,
