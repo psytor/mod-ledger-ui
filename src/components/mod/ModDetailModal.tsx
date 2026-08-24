@@ -108,6 +108,27 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
           </div>
         </div>
 
+        {/* Calibration Section for 6-rarity mods */}
+        {mod.rarity === 6 && mod.calibrations_left !== undefined && (
+          <div className={styles['modal-stats-section']}>
+            <h3>Calibration Status</h3>
+            <div className={styles['calibration-details']}>
+              <div className={styles['mod-info-item']}>
+                <span className={styles['info-label']}>Calibrations Left:</span>
+                <span className={styles['info-value']}>{mod.calibrations_left} / {mod.calibration_limit}</span>
+              </div>
+              {mod.calibrations_left > 0 && calibrationCosts.length > 0 && (
+                <div className={styles['mod-info-item']}>
+                  <span className={styles['info-label']}>Next Reroll Cost:</span>
+                  <span className={styles['info-value']}>
+                    {calibrationCosts.find(c => c.attempt_number === (mod.reroll_count || 0) + 1)?.cost ?? 'Maxed'} Micro Attenuators
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Primary Stat Section */}
         <div className={styles['modal-stats-section']}>
           <h3>Primary Stat: {mod.primary_stat.display_value} {mod.primary_stat.stat_name}</h3>
@@ -306,27 +327,6 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
           )}
           {pilotError && <p className={styles.pilotError}>{pilotError}</p>}
         </div>
-
-        {/* Calibration Section for 6-rarity mods */}
-        {mod.rarity === 6 && mod.calibrations_left !== undefined && (
-          <div className={styles['modal-stats-section']}>
-            <h3>Calibration Status</h3>
-            <div className={styles['calibration-details']}>
-              <div className={styles['mod-info-item']}>
-                <span className={styles['info-label']}>Calibrations Left:</span>
-                <span className={styles['info-value']}>{mod.calibrations_left} / {mod.calibration_limit}</span>
-              </div>
-              {mod.calibrations_left > 0 && calibrationCosts.length > 0 && (
-                <div className={styles['mod-info-item']}>
-                  <span className={styles['info-label']}>Next Reroll Cost:</span>
-                  <span className={styles['info-value']}>
-                    {calibrationCosts.find(c => c.attempt_number === (mod.reroll_count || 0) + 1)?.cost ?? 'Maxed'} Micro Attenuators
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </Modal>
   );
