@@ -1,5 +1,6 @@
 import { Button, Card } from 'astrogators-shared-ui';
 import type { StatDefinition } from '@/services/gameDataApi';
+import type { ModShape } from '@/utils/modSpriteConfig';
 import type {
   PrimaryClassification,
   SecondaryClassification,
@@ -7,6 +8,7 @@ import type {
 } from '@/types/evaluation';
 import {
   countClassifications,
+  filterPrimaryStatsForShapes,
   groupPrimaryClassified,
   groupSecondaryClassified,
   PRIMARY_CYCLE,
@@ -17,6 +19,7 @@ import ChipSection from './ChipSection';
 import ClassificationsList from './ClassificationsList';
 import RollTargetsGrid from './RollTargetsGrid';
 import RollTargetsList from './RollTargetsList';
+import ShapeScopeToggle from './ShapeScopeToggle';
 import styles from './ScoringRuleCard.module.css';
 
 interface ViewProps {
@@ -35,6 +38,7 @@ interface EditProps {
   primaryStats: StatDefinition[];
   secondaryStats: StatDefinition[];
   tierView: TierView;
+  shapePrimaryMap: Map<ModShape, Set<number>>;
   onRename: (name: string) => void;
   onDelete: () => void;
   onMove: (dir: -1 | 1) => void;
@@ -42,6 +46,7 @@ interface EditProps {
   onSetSecondary: (statId: number, c: SecondaryClassification) => void;
   onSetTarget: (statId: number, sliderValue: number) => void;
   onToggleMaster: (checked: boolean) => void;
+  onSetShapes: (shapes: ModShape[]) => void;
 }
 
 export type ScoringRuleCardProps = ViewProps | EditProps;
@@ -60,12 +65,19 @@ function ViewModeCard({
   const primaryGroups = groupPrimaryClassified(variant, primaryStats);
   const secondaryGroups = groupSecondaryClassified(variant, secondaryStats);
   const following = variant.uses_master_targets;
+  const scopedShapes = variant.applicable_shapes ?? [];
 
   return (
     <Card chamfered chamferSize="sm" padding="none" className={styles.card}>
       <div className={styles.header}>
         <h4 className={styles.nameStatic}>{variant.name}</h4>
       </div>
+
+      {scopedShapes.length > 0 && (
+        <p className={styles.shapeScopeLine}>
+          Applies to: {scopedShapes.join(', ')}
+        </p>
+      )}
 
       <hr className={styles.divider} />
 
@@ -129,6 +141,7 @@ function EditModeCard({
   primaryStats,
   secondaryStats,
   tierView,
+  shapePrimaryMap,
   onRename,
   onDelete,
   onMove,
@@ -136,9 +149,15 @@ function EditModeCard({
   onSetSecondary,
   onSetTarget,
   onToggleMaster,
+  onSetShapes,
 }: EditProps) {
   const counts = countClassifications(variant);
   const following = variant.uses_master_targets;
+  const scopedPrimaryStats = filterPrimaryStatsForShapes(
+    primaryStats,
+    variant.applicable_shapes,
+    shapePrimaryMap
+  );
 
   return (
     <Card chamfered chamferSize="sm" padding="none" className={styles.card}>
@@ -177,9 +196,13 @@ function EditModeCard({
 
       <hr className={styles.divider} />
 
+      <ShapeScopeToggle shapes={variant.applicable_shapes} onChange={onSetShapes} />
+
+      <hr className={styles.divider} />
+
       <ChipSection
         title="Primary stats"
-        stats={primaryStats}
+        stats={scopedPrimaryStats}
         cycle={PRIMARY_CYCLE}
         getClass={(sid) => variant.primary_classifications[sid] ?? 'neutral'}
         setClass={(sid, c) => onSetPrimary(sid, c as PrimaryClassification)}

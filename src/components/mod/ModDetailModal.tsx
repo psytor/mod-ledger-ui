@@ -44,7 +44,7 @@ function roleDisplay(s: SecondaryRole): { label: string; cls: string } {
   switch (s.role) {
     case 'required': return { label: 'Required', cls: styles.secRoleRequired };
     case 'complementary': return { label: 'Complementary', cls: styles.secRoleComplementary };
-    case 'neutral': return { label: 'Not wanted', cls: styles.secRoleNeutral };
+    case 'neutral': return { label: 'Neutral', cls: styles.secRoleNeutral };
   }
 }
 
@@ -240,6 +240,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                     <th>Result</th>
                     <th>Required hits</th>
                     <th>Comp. hits</th>
+                    <th>Quality</th>
                     <th>Reason</th>
                   </tr>
                 </thead>
@@ -252,14 +253,15 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                         <td>
                           <span
                             className={`${styles.evalBadgeSmall} ${
-                              r.verdict === 'PASS_RULES' ? styles.evalBadgePass : styles.evalBadgeSell
+                              r.verdict === 'PASS' ? styles.evalBadgePass : styles.evalBadgeSell
                             }`}
                           >
-                            {r.verdict === 'PASS_RULES' ? 'PASS' : 'SELL'}
+                            {r.verdict}
                           </span>
                         </td>
                         <td>{r.required_count}</td>
                         <td>{r.complementary_count}</td>
+                        <td>{r.quality !== undefined ? Math.round(r.quality) : '—'}</td>
                         <td className={styles.evalReasonCell}>{r.reason ?? '—'}</td>
                       </tr>
                     );

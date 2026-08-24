@@ -1,3 +1,5 @@
+import type { ModShape } from '@/utils/modSpriteConfig';
+
 // Verdicts emitted by the variant engine.
 // Slicing pipeline (downstream) splits PASS_RULES into KEEP/SLICE.
 export type Verdict = 'SELL' | 'UPGRADE' | 'PASS_RULES' | 'UNCONFIGURED';
@@ -22,6 +24,11 @@ export type Variant = {
   // this variant's secondary_targets on every master change. Purely an editor
   // convenience — modScorer always reads secondary_targets directly.
   uses_master_targets: boolean;
+  // Shapes this rule applies to. Empty/absent = all shapes (default — matches
+  // every evaluation stored before this field existed). Checked before
+  // anything else in the variant chain: a mod of an excluded shape never
+  // reaches the primary/secondary gates at all.
+  applicable_shapes?: ModShape[];
 };
 
 export type ModSetConfig = {
@@ -62,13 +69,22 @@ export type Evaluation = {
   updatedAt: number;
 };
 
+// A single rule's own outcome for a mod — distinct from the overall Verdict:
+// "FAIL" here means "this one rule didn't match", not "sell this mod" (the
+// mod may still pass a different rule in the same set).
+export type PerRuleVerdict = 'PASS' | 'FAIL';
+
 export type VariantResult = {
   variant_id: string;
   variant_name: string;
-  verdict: Extract<Verdict, 'SELL' | 'PASS_RULES'>;
+  verdict: PerRuleVerdict;
   required_count: number;
   complementary_count: number;
   reason?: string;
+  // absolute_quality under this rule specifically, only computed for a rule
+  // this mod actually passed — lets the UI show why one passing rule beat
+  // another instead of only exposing the eventual winner's score.
+  quality?: number;
 };
 
 // One of the mod's own secondaries, tagged with the role the reference rule

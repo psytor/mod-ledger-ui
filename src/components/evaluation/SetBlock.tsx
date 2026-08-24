@@ -1,5 +1,6 @@
 import { Button, Card } from 'astrogators-shared-ui';
 import type { ModSetDefinition, StatDefinition } from '@/services/gameDataApi';
+import type { ModShape } from '@/utils/modSpriteConfig';
 import type {
   PrimaryClassification,
   SecondaryClassification,
@@ -25,6 +26,7 @@ interface EditProps {
   primaryStats: StatDefinition[];
   secondaryStats: StatDefinition[];
   tierView: TierView;
+  shapePrimaryMap: Map<ModShape, Set<number>>;
   onAddVariant: () => void;
   onRenameVariant: (variantId: string, name: string) => void;
   onDeleteVariant: (variantId: string) => void;
@@ -37,6 +39,7 @@ interface EditProps {
   ) => void;
   onSetTarget: (variantId: string, statId: number, sliderValue: number) => void;
   onToggleMaster: (variantId: string, checked: boolean) => void;
+  onSetShapes: (variantId: string, shapes: ModShape[]) => void;
 }
 
 export type SetBlockProps = ViewProps | EditProps;
@@ -81,6 +84,7 @@ function EditBody({
   primaryStats,
   secondaryStats,
   tierView,
+  shapePrimaryMap,
   onRenameVariant,
   onDeleteVariant,
   onMoveVariant,
@@ -88,6 +92,7 @@ function EditBody({
   onSetSecondary,
   onSetTarget,
   onToggleMaster,
+  onSetShapes,
 }: EditProps) {
   if (variants.length === 0) {
     return (
@@ -108,6 +113,7 @@ function EditBody({
           primaryStats={primaryStats}
           secondaryStats={secondaryStats}
           tierView={tierView}
+          shapePrimaryMap={shapePrimaryMap}
           onRename={(n) => onRenameVariant(v.id, n)}
           onDelete={() => onDeleteVariant(v.id)}
           onMove={(dir) => onMoveVariant(v.id, dir)}
@@ -115,6 +121,7 @@ function EditBody({
           onSetSecondary={(sid, c) => onSetSecondary(v.id, sid, c)}
           onSetTarget={(sid, val) => onSetTarget(v.id, sid, val)}
           onToggleMaster={(checked) => onToggleMaster(v.id, checked)}
+          onSetShapes={(shapes) => onSetShapes(v.id, shapes)}
         />
       ))}
     </div>

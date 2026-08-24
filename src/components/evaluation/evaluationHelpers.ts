@@ -1,4 +1,5 @@
 import type { StatDefinition } from '@/services/gameDataApi';
+import type { ModShape } from '@/utils/modSpriteConfig';
 import type {
   PrimaryClassification,
   SecondaryClassification,
@@ -60,6 +61,23 @@ export const SECONDARY_CYCLE: ChipState[] = [
   { value: 'required', label: 'Required', swatchColor: 'var(--color-secondary)' },
   { value: 'complementary', label: 'Complementary', swatchColor: 'var(--color-info)' },
 ];
+
+// Narrows the primary-stat picker to what the rule's selected shapes can
+// actually roll. No shapes selected (all shapes) → no filtering, same list
+// as today. Multiple shapes selected → union of what any of them allows, so
+// the picker never hides a stat that's legal on at least one in-scope shape.
+export function filterPrimaryStatsForShapes(
+  stats: StatDefinition[],
+  shapes: ModShape[] | undefined,
+  shapePrimaryMap: Map<ModShape, Set<number>>
+): StatDefinition[] {
+  if (!shapes || shapes.length === 0) return stats;
+  const allowed = new Set<number>();
+  for (const shape of shapes) {
+    for (const id of shapePrimaryMap.get(shape) ?? []) allowed.add(id);
+  }
+  return stats.filter((s) => allowed.has(s.stat_id));
+}
 
 // View-mode helpers: bucket classified stats by classification.
 export function groupPrimaryClassified(

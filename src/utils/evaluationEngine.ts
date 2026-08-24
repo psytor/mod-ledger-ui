@@ -1,5 +1,6 @@
 import type { ParsedMod } from '@/services/modLedgerApi';
-import type { StatDefinition } from '@/services/gameDataApi';
+import type { ModSlotDefinition, StatDefinition } from '@/services/gameDataApi';
+import type { ModShape } from '@/utils/modSpriteConfig';
 import type {
   Evaluation,
   MatchBreakdown,
@@ -9,8 +10,24 @@ import type {
 } from '@/types/evaluation';
 import { scoreModForVariant } from '@/utils/modScorer';
 
-const SHAPES_FIXED_PRIMARY = new Set(['Square', 'Diamond', 'Circle']);
 const MILESTONES = [1, 3, 6, 9, 12, 15] as const;
+
+// Which primary stats are game-legal on each shape, derived from the
+// `allowed_primary_stats` game data (see ModContext). Used by checkPrimary to
+// tell a real per-shape exclusion apart from one that would ban a whole shape
+// (see the comment there).
+export function buildShapePrimaryMap(
+  modSlots: ModSlotDefinition[]
+): Map<ModShape, Set<number>> {
+  const map = new Map<ModShape, Set<number>>();
+  for (const slot of modSlots) {
+    const shape = slot.shape as ModShape;
+    const ids = map.get(shape) ?? new Set<number>();
+    for (const s of slot.allowed_primary_stats) ids.add(s.stat_id);
+    map.set(shape, ids);
+  }
+  return map;
+}
 
 // Stage 2 quality-gate relaxation when the primary stat is itself a Required
 // stat. Game rule: a primary stat cannot also roll as a secondary on the same
@@ -72,27 +89,47 @@ function isInScoringZone(rarity: number, tier: number, level: number): boolean {
   return level >= (FIRST_EVAL_LEVEL[tier] ?? 6);
 }
 
+// Hard pre-filter, checked before anything else: a mod whose shape isn't in
+// the rule's scope never reaches the primary/secondary gates at all. Empty/
+// absent `applicable_shapes` means "all shapes" — every evaluation stored
+// before this field existed behaves exactly as it did before.
+function checkShape(mod: ParsedMod, variant: Variant): boolean {
+  if (!variant.applicable_shapes || variant.applicable_shapes.length === 0) {
+    return true;
+  }
+  return variant.applicable_shapes.includes(mod.shape as ModShape);
+}
+
 function checkPrimary(
   mod: ParsedMod,
   variant: Variant,
-  primaryStatId: number | undefined
+  primaryStatId: number | undefined,
+  shapePrimaryMap: Map<ModShape, Set<number>>
 ): boolean {
-  // Square / Diamond / Circle: primary check skipped (Wanted AND Not_Wanted).
-  if (SHAPES_FIXED_PRIMARY.has(mod.shape)) return true;
-
   // Defensive: unknown stat id → pass rather than wrongly sell.
   if (primaryStatId === undefined) return true;
 
-  // The primary gate is a pure blacklist: only a Not_Wanted primary rejects.
-  // Wanted and Neutral (or unlisted) both pass — a Neutral primary is "not
-  // ideal but acceptable", so the secondary gate (checkSecondary) decides the
-  // mod's fate. The Wanted-vs-Neutral difference is NOT expressed here: an ideal
-  // primary that is also a Required secondary already eases the secondary
-  // threshold via the reachable-pool relief in checkSecondary, so an off-primary
-  // (Neutral) mod simply has to clear the stricter secondary bar. Primaries are
-  // never scored (fixed value at L15).
+  // Not_Wanted rejects; Wanted and Neutral (or unlisted) both pass the gate —
+  // a Neutral primary is "not ideal but acceptable", so the secondary gate
+  // (checkSecondary) and the Wanted scoring bonus (see modScorer.ts) decide
+  // the rest. Not_Wanted is the only classification checked here.
   const classification = variant.primary_classifications[primaryStatId] ?? 'neutral';
-  return classification !== 'not_wanted';
+  if (classification !== 'not_wanted') return true;
+
+  // A Not_Wanted primary only rejects the mod if the shape has at least one
+  // OTHER legal primary that isn't also Not_Wanted. Some shapes (Square,
+  // Diamond) have exactly one legal primary, and some rules mark every legal
+  // primary of a multi-option shape (e.g. Circle's Health%/Protection%)
+  // Not_Wanted without meaning to ban the shape outright. If nothing survives,
+  // there's no real preference expressed for this shape — treat it as
+  // unconfigured and let it through, rather than silently banning every mod
+  // of that shape from ever passing this rule.
+  const legalPrimaries = shapePrimaryMap.get(mod.shape as ModShape);
+  if (!legalPrimaries || legalPrimaries.size === 0) return true;
+  const hasSurvivor = [...legalPrimaries].some(
+    (id) => (variant.primary_classifications[id] ?? 'neutral') !== 'not_wanted'
+  );
+  return !hasSurvivor;
 }
 
 type SecondaryCheck = {
@@ -143,7 +180,9 @@ function checkSecondary(
   // Threshold = how many Required secondaries the mod must hit. The bar scales
   // with the *reachable* Required pool, not just the presence of the primary:
   //
-  //   bar = max(1, min(visibleCount - 1, reachableRequiredSize - 1))
+  //   bar = reachableRequiredSize <= 2
+  //       ? reachableRequiredSize
+  //       : max(1, min(visibleCount - 1, reachableRequiredSize - 1))
   //
   // - `reachableRequiredSize` is the Required list minus the primary when the
   //   primary is itself a Required stat (the game blocks the primary stat from
@@ -153,10 +192,16 @@ function checkSecondary(
   // - `reachableRequiredSize - 1` is "allowed to miss one Required too". This
   //   only bites when the reachable pool is tight: a big pool (e.g. Defensive's
   //   7 Required, 6 reachable) stays capped at 3, while a tight pool (Offensive's
-  //   4 Required, 3 reachable once the primary takes one) eases to 2.
-  // - The floor of 1 covers the short-list case: 2 Required with the primary on
-  //   one leaves only 1 reachable, so the bar can't exceed 1 — never impossible,
-  //   never auto-pass at 0.
+  //   4 Required, 3 reachable once the primary takes one) eases to 2 — this is
+  //   correct and intentional, confirmed against real data: a 4-Required rule
+  //   whose primary occupies one Required slot only needs 2 of the remaining 3.
+  // - Below reachableRequiredSize 3, that same "-1" leniency degenerates into
+  //   "hit any 1 of 2" or "hit the 1 of 1" — silently turning a rule authored
+  //   as "these 2 stats must BOTH show up" (e.g. Required = {Speed, Potency})
+  //   into an OR. So the "-1" allowance only applies once the reachable pool is
+  //   3 or more; at 1 or 2, every reachable Required stat is demanded, no miss
+  //   allowed. This never changes any rule with 3+ reachable Required stats —
+  //   confirmed against every live rule at the time of this fix.
   const primaryInRequired =
     primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
   const reachableRequiredSize = primaryInRequired
@@ -180,10 +225,10 @@ function checkSecondary(
     };
   }
 
-  const threshold = Math.max(
-    1,
-    Math.min(visibleCount - 1, reachableRequiredSize - 1)
-  );
+  const threshold =
+    reachableRequiredSize <= 2
+      ? reachableRequiredSize
+      : Math.max(1, Math.min(visibleCount - 1, reachableRequiredSize - 1));
 
   return {
     pass: requiredCount >= threshold,
@@ -209,14 +254,19 @@ type VariantChainResult =
       reason: string;
     };
 
+// Caller (evaluateMod) has already filtered to shape-eligible variants via
+// checkShape — a rule that doesn't apply to this mod's shape never generates
+// a chain result at all, so it can't show up as a confusing "SELL" row in the
+// per-rule table for a rule that never actually looked at the mod.
 function runVariantChain(
   mod: ParsedMod,
   variant: Variant,
-  statIdLookup: Map<string, number>
+  statIdLookup: Map<string, number>,
+  shapePrimaryMap: Map<ModShape, Set<number>>
 ): VariantChainResult {
   const primaryStatId = resolveStatId(mod.primary_stat, statIdLookup);
 
-  if (!checkPrimary(mod, variant, primaryStatId)) {
+  if (!checkPrimary(mod, variant, primaryStatId, shapePrimaryMap)) {
     return {
       kind: 'fail',
       variant,
@@ -233,7 +283,7 @@ function runVariantChain(
       variant,
       requiredCount: sec.requiredCount,
       complementaryCount: sec.complementaryCount,
-      reason: `${mod.tier_color} L${mod.level} gate: ${sec.requiredCount} of ${sec.visibleCount} visible are Required (need ≥${sec.threshold})`,
+      reason: `Matched ${sec.requiredCount} of ${sec.visibleCount} secondaries as Required — this rule needs at least ${sec.threshold}.`,
     };
   }
 
@@ -283,21 +333,23 @@ function buildMatchBreakdown(
   return { variant_name: variant.name, secondaries, required_wanted, complementary_wanted };
 }
 
-function toVariantResult(r: VariantChainResult): VariantResult {
+function toVariantResult(r: VariantChainResult, quality: number | undefined): VariantResult {
   return {
     variant_id: r.variant.id,
     variant_name: r.variant.name,
-    verdict: r.kind === 'pass' ? 'PASS_RULES' : 'SELL',
+    verdict: r.kind === 'pass' ? 'PASS' : 'FAIL',
     required_count: r.requiredCount,
     complementary_count: r.complementaryCount,
     reason: r.kind === 'fail' ? r.reason : undefined,
+    quality,
   };
 }
 
 export function evaluateMod(
   mod: ParsedMod,
   evaluation: Evaluation,
-  statDefs: StatDefinition[]
+  statDefs: StatDefinition[],
+  shapePrimaryMap: Map<ModShape, Set<number>>
 ): VerdictResult {
   // 1-4 dot mods: no longer farmable, sell on sight.
   if (mod.rarity < 5) {
@@ -326,10 +378,21 @@ export function evaluateMod(
   }
 
   const statIdLookup = buildStatIdLookup(statDefs);
-  const chains = config.variants.map((v) => runVariantChain(mod, v, statIdLookup));
-  const results = chains.map(toVariantResult);
+  // A rule that doesn't apply to this mod's shape never runs at all — it's not
+  // a checked-and-rejected result, so it shouldn't appear as one in the table.
+  const eligibleVariants = config.variants.filter((v) => checkShape(mod, v));
+  const chains = eligibleVariants.map((v) => runVariantChain(mod, v, statIdLookup, shapePrimaryMap));
 
   const passing = chains.filter((r): r is Extract<VariantChainResult, { kind: 'pass' }> => r.kind === 'pass');
+
+  // Quality is computed once per passing variant here (not just for the
+  // eventual winner) so the per-rule table can show every candidate's score —
+  // making it clear why one rule beat another when several passed.
+  const qualityByVariantId = new Map<string, number>();
+  for (const p of passing) {
+    qualityByVariantId.set(p.variant.id, scoreModForVariant(mod, p.variant, statDefs));
+  }
+  const results = chains.map((r) => toVariantResult(r, qualityByVariantId.get(r.variant.id)));
 
   if (passing.length === 0) {
     // Pick the most-informative failure: highest required_count → closest to passing.
@@ -368,7 +431,7 @@ export function evaluateMod(
 
   const scored = passing.map((p) => ({
     chain: p,
-    quality: scoreModForVariant(mod, p.variant, statDefs),
+    quality: qualityByVariantId.get(p.variant.id) ?? 0,
   }));
 
   scored.sort((a, b) => {
@@ -418,11 +481,13 @@ export function evaluateMod(
 export function evaluateAll(
   mods: ParsedMod[],
   evaluation: Evaluation,
-  statDefs: StatDefinition[]
+  statDefs: StatDefinition[],
+  modSlots: ModSlotDefinition[]
 ): Map<string, VerdictResult> {
+  const shapePrimaryMap = buildShapePrimaryMap(modSlots);
   const verdicts = new Map<string, VerdictResult>();
   for (const mod of mods) {
-    verdicts.set(mod.mod_id, evaluateMod(mod, evaluation, statDefs));
+    verdicts.set(mod.mod_id, evaluateMod(mod, evaluation, statDefs, shapePrimaryMap));
   }
   return verdicts;
 }

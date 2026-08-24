@@ -19,7 +19,7 @@ interface EvaluationContextType {
 const EvaluationContext = createContext<EvaluationContextType | undefined>(undefined);
 
 export function EvaluationProvider({ children }: { children: ReactNode }) {
-  const { primaryStats, secondaryStats } = useMods();
+  const { primaryStats, secondaryStats, modSlots } = useMods();
   const [activeEvaluationId, setActiveEvaluationIdState] = useState<string | null>(
     () => localStorage.getItem(ACTIVE_ID_KEY)
   );
@@ -60,10 +60,10 @@ export function EvaluationProvider({ children }: { children: ReactNode }) {
       }
       // Union of primary + secondary stat lists; the engine dedupes by (name, is_percent).
       const statDefs = [...primaryStats, ...secondaryStats];
-      const verdictMap = evaluateAll(mods, evaluation, statDefs);
+      const verdictMap = evaluateAll(mods, evaluation, statDefs, modSlots);
       setVerdicts(applyQualityGates(mods, verdictMap, evaluation, statDefs));
     },
-    [activeEvaluationId, cachedEval, primaryStats, secondaryStats]
+    [activeEvaluationId, cachedEval, primaryStats, secondaryStats, modSlots]
   );
 
   const clearVerdicts = useCallback(() => {

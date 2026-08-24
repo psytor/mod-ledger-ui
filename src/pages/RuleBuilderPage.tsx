@@ -7,7 +7,9 @@ import { useMods } from '@/contexts/ModContext';
 import RollTargetsGrid from '@/components/evaluation/RollTargetsGrid';
 import SetBlock from '@/components/evaluation/SetBlock';
 import { canModerate } from '@/utils/permissions';
-import type { TierView } from '@/components/evaluation/evaluationHelpers';
+import { buildShapePrimaryMap } from '@/utils/evaluationEngine';
+import { type TierView } from '@/components/evaluation/evaluationHelpers';
+import type { ModShape } from '@/utils/modSpriteConfig';
 import type {
   Evaluation,
   ModSetConfig,
@@ -54,7 +56,7 @@ function emptyVariant(masterTargets: Record<number, number> = {}): Variant {
 export default function RuleBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { modSets, primaryStats, secondaryStats } = useMods();
+  const { modSets, modSlots, primaryStats, secondaryStats } = useMods();
   const { user, isLoading: isAuthLoading } = useAuth();
   const isEditMode = Boolean(id);
 
@@ -140,6 +142,8 @@ export default function RuleBuilderPage() {
   const orderedSecondaryStats = useMemo(() => {
     return [...secondaryStats].sort((a, b) => a.name.localeCompare(b.name));
   }, [secondaryStats]);
+
+  const shapePrimaryMap = useMemo(() => buildShapePrimaryMap(modSlots), [modSlots]);
 
   if (state.kind === 'loading') {
     return (
@@ -235,6 +239,18 @@ export default function RuleBuilderPage() {
         else next[statId] = classification;
         return { ...v, secondary_classifications: next };
       })
+    );
+  };
+
+  const setApplicableShapes = (
+    setId: number,
+    variantId: string,
+    shapes: ModShape[]
+  ) => {
+    updateVariants(setId, (vs) =>
+      vs.map((v) =>
+        v.id === variantId ? { ...v, applicable_shapes: shapes } : v
+      )
     );
   };
 
@@ -518,6 +534,7 @@ export default function RuleBuilderPage() {
                         primaryStats={orderedPrimaryStats}
                         secondaryStats={orderedSecondaryStats}
                         tierView={tierView}
+                        shapePrimaryMap={shapePrimaryMap}
                         onAddVariant={() => addVariant(set.set_id)}
                         onRenameVariant={(vid, n) => renameVariant(set.set_id, vid, n)}
                         onDeleteVariant={(vid) => deleteVariant(set.set_id, vid)}
@@ -533,6 +550,9 @@ export default function RuleBuilderPage() {
                         }
                         onToggleMaster={(vid, checked) =>
                           toggleVariantMaster(set.set_id, vid, checked)
+                        }
+                        onSetShapes={(vid, shapes) =>
+                          setApplicableShapes(set.set_id, vid, shapes)
                         }
                       />
                     );

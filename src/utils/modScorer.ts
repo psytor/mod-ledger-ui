@@ -13,6 +13,27 @@ const TIER_MULTIPLIERS: Record<SecondaryClassification | 'neutral', number> = {
   neutral: 0.1,
 };
 
+// Boosted Complementary weight used only when the rule's primary stat is
+// itself marked Required (the same signal that eases the Stage 1 threshold
+// in evaluationEngine.ts's checkSecondary/applyQualityGates — the game
+// blocks a primary from also rolling as a secondary, so that Required slot
+// is structurally unreachable and the bar is loosened to compensate). A mod
+// clearing that eased bar is leaning on its Complementary hits to do work a
+// missing Required hit would have done, so they're worth more than the
+// default 0.4 here — but deliberately still short of Required's 1.0, so a
+// mod stacked with Complementary alone can't outscore one that actually met
+// the Required bar.
+const COMPLEMENTARY_WEIGHT_WHEN_EASED = 0.7;
+
+// A Wanted primary contributes to the score at the same weight as a Required
+// secondary that rolled perfectly. Unlike a secondary, a primary has no roll
+// variance to score against — it's a fixed, maxed value the instant the mod
+// exists — so this is a flat, always-100%-efficiency contribution rather than
+// a curveScore lookup. Neutral/unlisted primaries add nothing here (score is
+// driven entirely by secondaries, same as before); Not_Wanted never reaches
+// this function at all (rejected earlier by evaluationEngine's checkPrimary).
+const PRIMARY_WANTED_WEIGHT = 1.0;
+
 const DEFAULT_TARGET = 0.5;
 
 // Piecewise linear with kink at (T, 50). Endpoints (0,0) and (1,100). UI clamps
@@ -62,8 +83,22 @@ export function scoreModForVariant(
   const statIdLookup = buildStatIdLookup(statDefs);
   const targets = variant.secondary_targets;
 
+  const primaryStatId = resolveStatId(mod.primary_stat, statIdLookup);
+  const primaryInRequired =
+    primaryStatId !== undefined &&
+    variant.secondary_classifications[primaryStatId] === 'required';
+  const primaryIsWanted =
+    primaryStatId !== undefined &&
+    variant.primary_classifications[primaryStatId] === 'wanted';
+
   let total = 0;
   let theoreticalMax = 0;
+
+  if (primaryIsWanted) {
+    total += 100 * PRIMARY_WANTED_WEIGHT;
+    theoreticalMax += 100 * PRIMARY_WANTED_WEIGHT;
+  }
+
   for (const stat of mod.secondary_stats) {
     if (stat.is_revealed === false) continue;
     const efficiencies = stat.roll_efficiencies ?? [];
@@ -74,7 +109,10 @@ export function scoreModForVariant(
     const target = targets[statId] ?? DEFAULT_TARGET;
     const classification: SecondaryClassification | 'neutral' =
       variant.secondary_classifications[statId] ?? 'neutral';
-    const multiplier = TIER_MULTIPLIERS[classification];
+    const multiplier =
+      classification === 'complementary' && primaryInRequired
+        ? COMPLEMENTARY_WEIGHT_WHEN_EASED
+        : TIER_MULTIPLIERS[classification];
 
     // Backend roll efficiencies are 0-100 percentages (see mod-ledger
     // schemas/mod.py); curveScore expects a 0-1 scale to match targets.
