@@ -151,10 +151,15 @@
 
 /* Overlaps the sprite's bottom-left corner — matches the game's own
    inventory screen, where the character avatar sits right on the mod icon
-   next to the level/tier text, not in a separate row below it. */
+   next to the level/tier text, not in a separate row below it.
+   align-items: flex-end (not center) so the avatar's own bottom edge lines
+   up with the level text's bottom edge — the avatar is taller than the
+   text, so bottom-aligning them is what lets the avatar rise up and
+   overlap the shape from above instead of just centering on the overlap
+   point. */
 .modMeta {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
   margin-top: -14px;
   padding-left: 2px;
@@ -162,8 +167,8 @@
 }
 
 .characterAvatar {
-  width: 22px;
-  height: 22px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
   object-fit: cover;
