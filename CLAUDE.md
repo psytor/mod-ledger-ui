@@ -4,8 +4,47 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `a1bbad5` plus earlier work. The latest commit
-(`a1bbad5`) **consolidated the mod filters into one system** (see "Filters" and
+**Docs current as of:** commit `d902815` plus earlier work. That commit added
+a **per-rule shape scope**: a `Variant` can now carry `applicable_shapes`
+(`ModShape[]`), edited via the new `ShapeScopeToggle` chip row in
+`ScoringRuleCard`'s edit mode. Empty/absent means "all shapes" — every
+evaluation stored before this field existed behaves exactly as it did before.
+`checkShape` in `evaluationEngine.ts` is a hard pre-filter, checked before
+`checkPrimary`/`checkSecondary`: a mod whose shape isn't in a rule's scope
+never reaches those gates and never appears as a checked-and-rejected row in
+`ModDetailModal`'s per-rule table — `evaluateMod` filters `config.variants` to
+shape-eligible ones before building chains at all. When a rule scopes to one
+or more shapes, `ScoringRuleCard`'s primary-stat picker also narrows to the
+union of what those shapes can actually roll
+(`filterPrimaryStatsForShapes`).
+
+The same commit fixed two edge cases in the gates the shape-scope work
+surfaced, and added a per-rule quality score to the breakdown table:
+
+- **`checkPrimary`** no longer bans an entire shape when a rule marks every
+  one of that shape's legal primaries Not_Wanted with nothing surviving (e.g.
+  marking both of Circle's Health%/Protection% Not_Wanted). That case reads as
+  "no real preference expressed for this shape", not "reject every mod of
+  this shape" — treated as unconfigured and let through instead.
+- **`checkSecondary`**'s threshold formula (see "Two-stage gate" below) now
+  only applies its "-1 leniency" once the reachable Required pool is 3 or
+  more. Below that, at a reachable pool of 1 or 2, the "-1" was silently
+  turning a rule authored as "these 2 stats must BOTH show up" into an OR —
+  fixed by demanding the full reachable pool at 2 or fewer, unchanged at 3+.
+- **`VariantResult`** gained an optional `quality` (the mod's score under
+  that specific rule, computed for every *passing* rule, not just the
+  eventual winner) and switched its own `verdict` field from the overloaded
+  `Extract<Verdict, 'SELL' | 'PASS_RULES'>` to a dedicated `PerRuleVerdict`
+  (`'PASS' | 'FAIL'`) — a per-rule "FAIL" means "this rule didn't match", not
+  "sell the mod" (a different rule in the same set may still pass). This is
+  independent of the top-level `VerdictResult.verdict` (`SELL` / `UPGRADE` /
+  `PASS_RULES` / `UNCONFIGURED`), which is unchanged. `ModDetailModal`'s
+  per-rule table shows both the new Quality column and the renamed
+  PASS/FAIL badge.
+
+Next session: `git log d902815..HEAD` for anything newer.
+
+Earlier work, commit `a1bbad5`: **consolidated the mod filters into one system** (see "Filters" and
 "Top-of-page readout" below): the former Sell-Pile / Unconfigured **view modes**
 — and their `FilterMode` switch plus the duplicate `sellPileSets` /
 `sellPileSlots` facet state — were **removed**, because they were duplicates of
@@ -201,10 +240,13 @@ A mod runs through two passes in sequence:
    capping the relief at 20%), where coverage is how much of the reachable
    pool the mod actually hit. The same reachable-pool logic shapes the
    Stage 1 `threshold` in `checkSecondary`: the bar is
-   `max(1, min(visibleCount - 1, reachableRequiredSize - 1))` — the `- 1` on
-   the reachable pool only bites when the pool is tight (a 7-Required Defensive
-   set stays capped at 3; a 4-Required Offensive set with the primary on a
-   Required stat eases to 2). When `reachableRequiredSize` is **0** (the sole
+   `reachableRequiredSize <= 2 ? reachableRequiredSize : max(1, min(visibleCount - 1, reachableRequiredSize - 1))`
+   — the `- 1` leniency on the reachable pool only bites once the pool is 3 or
+   more (a 7-Required Defensive set stays capped at 3; a 4-Required Offensive
+   set with the primary on a Required stat eases to 2). Below that, at a
+   reachable pool of 1 or 2, the full pool is demanded with no leniency — the
+   `- 1` there would silently turn a rule authored as "these 2 stats must BOTH
+   show up" into an OR. When `reachableRequiredSize` is **0** (the sole
    Required stat IS the primary — e.g. a Speed-primary mod in a Speed set whose
    only Required is Speed), there is nothing left to demand of the secondaries:
    the gate passes on the primary and the winner-picking tiebreakers decide the
