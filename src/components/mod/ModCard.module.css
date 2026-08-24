@@ -166,6 +166,15 @@
   margin-top: -32px;
   padding-left: 2px;
   align-self: flex-start;
+  /* ModSprite's own container is `position: relative` (needed for its
+     layered sprite composition — see ModSprite.module.css). A positioned
+     element always paints above a non-positioned sibling regardless of DOM
+     order, so without this the sprite painted over modMeta even though
+     modMeta comes later in the markup. Matching it here (plus a z-index, to
+     beat the sprite's own z-index:auto) is what actually puts the avatar on
+     top. */
+  position: relative;
+  z-index: 1;
 }
 
 .characterAvatar {
