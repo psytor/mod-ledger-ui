@@ -149,19 +149,21 @@
   margin-bottom: 8px;
 }
 
-/* Overlaps the sprite's bottom-left corner — matches the game's own
-   inventory screen, where the character avatar sits right on the mod icon
-   next to the level/tier text, not in a separate row below it.
-   align-items: flex-end (not center) so the avatar's own bottom edge lines
-   up with the level text's bottom edge — the avatar is taller than the
-   text, so bottom-aligning them is what lets the avatar rise up and
-   overlap the shape from above instead of just centering on the overlap
-   point. */
+/* Overlaps the sprite — matches the game's own inventory screen, where the
+   character avatar sits right on the mod icon next to the level/tier text,
+   not in a separate row below it.
+   The avatar (40px) is taller than the text (~14px), so it already fills
+   the row's full height regardless of align-items — align-items only ever
+   moves the shorter item (the text) within that height, never the avatar.
+   The only lever that moves the avatar itself is this row's margin-top: a
+   bigger negative value pulls the whole row (avatar + text together)
+   further up over the shape. center keeps the text vertically centered on
+   the avatar rather than pinned to its bottom edge. */
 .modMeta {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 6px;
-  margin-top: -14px;
+  margin-top: -32px;
   padding-left: 2px;
   align-self: flex-start;
 }
