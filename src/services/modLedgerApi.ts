@@ -37,7 +37,6 @@ export interface ParsedMod {
   reroll_count?: number;
   calibrations_left?: number;
   calibration_limit?: number;
-  calibration_costs?: { attempt_number: number; cost: number }[];
 }
 
 export interface ModListResponse {

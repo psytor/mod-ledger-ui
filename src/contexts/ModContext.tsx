@@ -6,6 +6,7 @@ import {
   type ModSlotDefinition,
   type ModSetDefinition,
   type StatDefinition,
+  type CalibrationCost,
 } from '@/services/gameDataApi';
 import { navichartsApi } from '@/services/navichartsApi';
 import type { ParsedMod } from '@/services/modLedgerApi';
@@ -16,6 +17,7 @@ interface ModContextType {
   modSets: ModSetDefinition[];
   primaryStats: StatDefinition[];
   secondaryStats: StatDefinition[];
+  calibrationCosts: CalibrationCost[];
   // Character display name -> portrait URL, from navicharts' unit catalog.
   // Best-effort: empty map on fetch failure just means no avatars render.
   characterPortraits: Map<string, string>;
@@ -39,6 +41,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
   const [modSets, setModSets] = useState<ModSetDefinition[]>([]);
   const [primaryStats, setPrimaryStats] = useState<StatDefinition[]>([]);
   const [secondaryStats, setSecondaryStats] = useState<StatDefinition[]>([]);
+  const [calibrationCosts, setCalibrationCosts] = useState<CalibrationCost[]>([]);
   const [characterPortraits, setCharacterPortraits] = useState<Map<string, string>>(new Map());
   const [isLoadingMods, setIsLoadingMods] = useState(false);
   const [modsError, setModsError] = useState<string | null>(null);
@@ -88,16 +91,18 @@ export function ModProvider({ children }: { children: ReactNode }) {
 
   const loadGameData = useCallback(async () => {
     try {
-      const [slots, sets, primaries, secondaries] = await Promise.all([
+      const [slots, sets, primaries, secondaries, costs] = await Promise.all([
         gameDataApi.fetchModSlots(),
         gameDataApi.fetchModSets(),
         gameDataApi.fetchStatDefinitions({ can_be_primary: true }),
         gameDataApi.fetchStatDefinitions({ can_be_secondary: true }),
+        gameDataApi.fetchCalibrationCosts(),
       ]);
       setModSlots(slots);
       setModSets(sets);
       setPrimaryStats(primaries);
       setSecondaryStats(secondaries);
+      setCalibrationCosts(costs);
     } catch (error) {
       console.error('Failed to load game data:', error);
     }
@@ -129,6 +134,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
         modSets,
         primaryStats,
         secondaryStats,
+        calibrationCosts,
         characterPortraits,
         isLoadingMods,
         modsError,

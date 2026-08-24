@@ -3,6 +3,7 @@ import { Modal, Button } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
+import { useMods } from '@/contexts/ModContext';
 import type { SecondaryRole, VerdictResult } from '@/types/evaluation';
 import { explainVerdict, explainQualityScore } from '@/utils/verdictExplain';
 import {
@@ -51,6 +52,7 @@ function roleDisplay(s: SecondaryRole): { label: string; cls: string } {
 export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalProps) {
   const { verdicts } = useEvaluation();
   const { isAssigned, assign, unassign } = usePilotAssignment();
+  const { calibrationCosts } = useMods();
   const [pilotBusy, setPilotBusy] = useState(false);
   const [pilotError, setPilotError] = useState<string | null>(null);
   if (!isOpen || !mod) return null;
@@ -314,11 +316,11 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                 <span className={styles['info-label']}>Calibrations Left:</span>
                 <span className={styles['info-value']}>{mod.calibrations_left} / {mod.calibration_limit}</span>
               </div>
-              {mod.calibrations_left > 0 && mod.calibration_costs && (
+              {mod.calibrations_left > 0 && calibrationCosts.length > 0 && (
                 <div className={styles['mod-info-item']}>
                   <span className={styles['info-label']}>Next Reroll Cost:</span>
                   <span className={styles['info-value']}>
-                    {mod.calibration_costs.find(c => c.attempt_number === (mod.reroll_count || 0) + 1)?.cost || 'Maxed'} Micro Attenuators
+                    {calibrationCosts.find(c => c.attempt_number === (mod.reroll_count || 0) + 1)?.cost ?? 'Maxed'} Micro Attenuators
                   </span>
                 </div>
               )}

@@ -25,6 +25,11 @@ export interface ModSetDefinition {
   description?: string;
 }
 
+export interface CalibrationCost {
+  attempt_number: number;
+  cost: number;      // Micro Attenuators
+}
+
 export interface StatDefinition {
   stat_id: number;
   name: string;            // Display name; NOT unique across primary+secondary pools.
@@ -71,6 +76,15 @@ class GameDataApiClient {
     }
     const data = await response.json();
     return data.mod_sets || [];
+  }
+
+  async fetchCalibrationCosts(): Promise<CalibrationCost[]> {
+    const response = await fetch(`${this.baseUrl}/api/v1/game-data/calibration-costs`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch calibration costs: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.costs || [];
   }
 
   async fetchStatDefinitions(filter?: {
