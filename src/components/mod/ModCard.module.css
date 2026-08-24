@@ -149,18 +149,34 @@
   margin-bottom: 8px;
 }
 
+/* Overlaps the sprite's bottom-left corner — matches the game's own
+   inventory screen, where the character avatar sits right on the mod icon
+   next to the level/tier text, not in a separate row below it. */
 .modMeta {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  margin-top: -14px;
+  padding-left: 2px;
+  align-self: flex-start;
+}
+
+.characterAvatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+  box-shadow:
+    0 0 0 2px rgba(17, 24, 39, 0.85),
+    0 0 0 3px var(--ring-color, rgba(255, 255, 255, 0.2));
 }
 
 .modLevel {
   font-size: 0.75rem;
   font-weight: 600;
   color: #f3f4f6;
-  text-align: center;
+  white-space: nowrap;
 }
 
 /* RIGHT COLUMN: Primary + Secondary stats */

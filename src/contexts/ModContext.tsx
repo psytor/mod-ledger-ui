@@ -7,6 +7,7 @@ import {
   type ModSetDefinition,
   type StatDefinition,
 } from '@/services/gameDataApi';
+import { navichartsApi } from '@/services/navichartsApi';
 import type { ParsedMod } from '@/services/modLedgerApi';
 
 interface ModContextType {
@@ -15,6 +16,9 @@ interface ModContextType {
   modSets: ModSetDefinition[];
   primaryStats: StatDefinition[];
   secondaryStats: StatDefinition[];
+  // Character display name -> portrait URL, from navicharts' unit catalog.
+  // Best-effort: empty map on fetch failure just means no avatars render.
+  characterPortraits: Map<string, string>;
   isLoadingMods: boolean;
   modsError: string | null;
   /** When the underlying player data was pulled from Comlink (naive UTC ISO). */
@@ -35,6 +39,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
   const [modSets, setModSets] = useState<ModSetDefinition[]>([]);
   const [primaryStats, setPrimaryStats] = useState<StatDefinition[]>([]);
   const [secondaryStats, setSecondaryStats] = useState<StatDefinition[]>([]);
+  const [characterPortraits, setCharacterPortraits] = useState<Map<string, string>>(new Map());
   const [isLoadingMods, setIsLoadingMods] = useState(false);
   const [modsError, setModsError] = useState<string | null>(null);
   const [cachedAt, setCachedAt] = useState<string | null>(null);
@@ -98,9 +103,21 @@ export function ModProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Fetched independently of loadGameData: a navicharts outage is cosmetic
+  // (no avatars) and must never block mod-slot/set/stat loading, which the
+  // evaluation engine actually depends on.
+  const loadCharacterPortraits = useCallback(async () => {
+    try {
+      setCharacterPortraits(await navichartsApi.fetchCharacterPortraits());
+    } catch (error) {
+      console.error('Failed to load character portraits:', error);
+    }
+  }, []);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadGameData();
+    loadCharacterPortraits();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -112,6 +129,7 @@ export function ModProvider({ children }: { children: ReactNode }) {
         modSets,
         primaryStats,
         secondaryStats,
+        characterPortraits,
         isLoadingMods,
         modsError,
         cachedAt,

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from 'astrogators-shared-ui';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import { useEvaluation } from '@/contexts/EvaluationContext';
+import { useMods } from '@/contexts/ModContext';
 import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import type { Verdict, VerdictResult } from '@/types/evaluation';
 import {
@@ -106,7 +107,10 @@ const tierBorderColors = {
 
 export default function ModCard({ mod, onClick }: ModCardProps) {
   const { verdicts } = useEvaluation();
+  const { characterPortraits } = useMods();
   const { isAssigned } = usePilotAssignment();
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const avatarUrl = mod.character ? characterPortraits.get(mod.character) : undefined;
   const verdict = verdicts.get(mod.mod_id);
   const action = verdict ? actionOf(mod, verdict) : null;
   const quality = verdict?.absolute_quality;
@@ -247,6 +251,15 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
               </div>
 
               <div className={styles.modMeta}>
+                {avatarUrl && !avatarFailed && (
+                  <img
+                    className={styles.characterAvatar}
+                    src={avatarUrl}
+                    alt=""
+                    style={{ '--ring-color': tierBorderColor } as React.CSSProperties}
+                    onError={() => setAvatarFailed(true)}
+                  />
+                )}
                 <span className={styles.modLevel}>{mod.level} - {mod.tier_name}</span>
               </div>
             </div>
