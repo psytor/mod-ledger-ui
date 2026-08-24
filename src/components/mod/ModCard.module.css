@@ -157,11 +157,11 @@
    moves the shorter item (the text) within that height, never the avatar.
    The only lever that moves the avatar itself is this row's margin-top: a
    bigger negative value pulls the whole row (avatar + text together)
-   further up over the shape. center keeps the text vertically centered on
-   the avatar rather than pinned to its bottom edge. */
+   further up over the shape. align-items: flex-end pins the text to the
+   avatar's bottom edge (rather than centering it on the avatar). */
 .modMeta {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
   margin-top: -32px;
   padding-left: 2px;
