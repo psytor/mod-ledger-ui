@@ -4,8 +4,49 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `d902815` plus earlier work. That commit added
-a **per-rule shape scope**: a `Variant` can now carry `applicable_shapes`
+**Docs current as of:** commit `2ce3da1` plus earlier work. That commit added
+a **character avatar to `ModCard`**, positioned to match SWGOH's own
+inventory screen: a small circular portrait overlapping the mod icon's
+bottom-left corner, next to the level/tier text (`modMeta` in `ModCard.tsx`,
+pulled up with a negative `margin-top` in `ModCard.module.css` so it sits on
+the sprite rather than below it). The existing full character-name text row
+at the bottom of the card (`bottomSection`/`characterRow`) is untouched — the
+avatar is additive, not a replacement, since the name row already shows more
+than the game's own UI does.
+
+This is a **new third backend** for this app: **navicharts**, consumed only
+for `GET /units/catalog` (via the new `src/services/navichartsApi.ts`,
+`VITE_NAVICHARTS_URL` in `.env.example`). Deliberately the *catalog* endpoint,
+not navicharts' ally-code-scoped roster endpoint (`GET /units?ally_code=`) —
+the roster endpoint returns `[]` for any ally code that has never been synced
+via navicharts-ui, which would leave avatars silently absent for most
+mod-ledger-ui-only players. The catalog is static reference data with no such
+dependency: live for every player from the first load, no ally code, no auth.
+Matching key is `mod.character` (`ParsedMod`, `modLedgerApi.ts`) against the
+catalog entry's `name` field — both are the game's human-readable unit name
+(e.g. `"Greef Karga"`), confirmed against a real cached mod payload; `mod.character`
+is **not** a base_id despite `pilotAssignment.ts`'s `ModSnapshot.character`
+comment calling it one (that comment describes the field's provenance/intent,
+not its literal string format). `navichartsApi.fetchCharacterPortraits()`
+returns a `Map<name, thumbnail_url>`, built by fetching the full catalog once
+and immediately dropping everything but `name`/`thumbnail_url` (the raw
+payload carries every unit's abilities and farming locations, ~340KB, not
+needed here). A few unit names collide across event-variant base_ids (e.g. a
+holiday reskin sharing a base hero's display name) — first-wins on
+`Map.set`, safe because observed collisions share the same portrait, and this
+is cosmetic, not scoring-relevant.
+
+`ModContext.loadCharacterPortraits()` fetches this **independently** of
+`loadGameData()` (its own `try`/`catch`, both fired from the same mount
+`useEffect`) — a navicharts outage must only mean "no avatars", never block
+`modSlots`/`modSets`/stat-definition loading, which the evaluation engine
+actually depends on. `characterPortraits: Map<string, string>` is exposed on
+`useMods()`; `ModCard` looks up `characterPortraits.get(mod.character)` and
+falls back to no avatar (not a broken-image icon) via an `onError` handler —
+no retry logic, unlike navicharts-ui's own `retryableImgOnError`, since this
+is decorative rather than the primary content of the page.
+
+Earlier work, commit `d902815`: **per-rule shape scope**: a `Variant` can now carry `applicable_shapes`
 (`ModShape[]`), edited via the new `ShapeScopeToggle` chip row in
 `ScoringRuleCard`'s edit mode. Empty/absent means "all shapes" — every
 evaluation stored before this field existed behaves exactly as it did before.
@@ -42,7 +83,7 @@ surfaced, and added a per-rule quality score to the breakdown table:
   per-rule table shows both the new Quality column and the renamed
   PASS/FAIL badge.
 
-Next session: `git log d902815..HEAD` for anything newer.
+Next session: `git log 2ce3da1..HEAD` for anything newer.
 
 Earlier work, commit `a1bbad5`: **consolidated the mod filters into one system** (see "Filters" and
 "Top-of-page readout" below): the former Sell-Pile / Unconfigured **view modes**
@@ -130,6 +171,9 @@ It consumes:
   `VITE_MOD_LEDGER_URL` at build time
 - **`astrogators-table`** backend — authentication endpoints. URL comes from
   `VITE_ASTROGATORS_TABLE_URL` at build time
+- **`navicharts`** backend — read-only, one endpoint (`GET /units/catalog`)
+  for `ModCard`'s character avatar. URL comes from `VITE_NAVICHARTS_URL` at
+  build time. See "Character avatar on ModCard"
 
 It does not own persistent state. All state lives in the backends or browser
 storage (handled by shared-ui).
@@ -620,6 +664,52 @@ to miss in a cropped/zoomed screenshot that happens to frame out the
 overflow. If revisiting this, verify against an *uncropped* card render,
 not just a magnified interior crop.
 
+## Character avatar on ModCard
+
+`ModCard`'s bottom-left `modMeta` (level/tier text under the sprite) shows a
+small circular character-portrait avatar before that text when one resolves,
+positioned to overlap the sprite's bottom-left corner via a negative
+`margin-top` — matching SWGOH's own inventory screen, which puts the avatar
+directly on the mod icon rather than in a separate row. This is additive:
+the full character name still renders as its own line in `bottomSection`
+further down the card, unchanged.
+
+Portraits come from `src/services/navichartsApi.ts`
+(`navichartsApi.fetchCharacterPortraits()`), the **only** call this app makes
+to the **navicharts** backend (`VITE_NAVICHARTS_URL`) — a third backend
+alongside `mod-ledger` and `astrogators-table`. It hits `GET
+/units/catalog` specifically, not navicharts' ally-code-scoped roster
+endpoint (`GET /units?ally_code=`): the roster endpoint only returns data for
+an ally code that's been synced through navicharts-ui at least once (`[]`
+otherwise), which would leave avatars silently missing for most
+mod-ledger-ui-only players. The catalog is static reference data — every
+unit, unconditionally, no ally code, no auth — so it works from a player's
+very first load here.
+
+Matching is by name: `ParsedMod.character` (`modLedgerApi.ts`) is the game's
+human-readable unit name (e.g. `"Greef Karga"`, confirmed against a real
+cached mod payload — **not** a base_id, despite `pilotAssignment.ts`'s
+`ModSnapshot.character` field comment calling it one; that comment describes
+the field's *purpose*, not its literal format), matched directly against the
+catalog entry's own `name` field. `fetchCharacterPortraits()` returns a
+`Map<name, thumbnail_url>`, discarding every other field the catalog carries
+(abilities, farming locations — the full payload is ~340KB) immediately after
+the fetch. A handful of names collide across event-variant base_ids (e.g. a
+holiday reskin of a hero sharing that hero's display name); first-wins on
+`Map.set` is fine because every observed collision shares one portrait —
+purely cosmetic, never scoring-relevant.
+
+`ModContext.loadCharacterPortraits()` fetches this in its own `try`/`catch`,
+independent of `loadGameData()`'s `Promise.all` (both fire from the same
+mount `useEffect`) — a navicharts outage must only ever mean "no avatars
+render", and must never risk blocking `modSlots`/`modSets`/stat-definition
+loading, which the evaluation engine depends on. `characterPortraits: Map<string,
+string>` is exposed on `useMods()`. `ModCard` looks up
+`characterPortraits.get(mod.character)` and falls back to no avatar (not a
+broken-image icon) via the `<img>`'s `onError` — deliberately no retry logic
+(unlike navicharts-ui's own `retryableImgOnError`), since this is decorative,
+not the page's primary content.
+
 ## Critical rules
 
 **Vite build-time env var inlining.** Any value used in the bundle must come
@@ -665,6 +755,11 @@ Current vars:
   backend's `SERVICE_PREFIX`, also proxied. Dev:
   `http://localhost/astrogators-table`. Prod:
   `https://astrotable.dynv6.net/astrogators-table`.
+- `VITE_NAVICHARTS_URL` — full URL including the navicharts backend's
+  `SERVICE_PREFIX`, also proxied. Only used for `GET /units/catalog` to
+  resolve `ModCard`'s character avatar (see "Character avatar on ModCard").
+  Dev: `http://localhost/navicharts`. Prod:
+  `https://astrotable.dynv6.net/navicharts`.
 
 ## When adding dependencies
 
