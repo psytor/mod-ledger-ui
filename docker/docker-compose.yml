@@ -9,6 +9,7 @@ services:
         # Vite inlines these at build time; passed through from .env at the repo root.
         VITE_MOD_LEDGER_URL: ${VITE_MOD_LEDGER_URL}
         VITE_ASTROGATORS_TABLE_URL: ${VITE_ASTROGATORS_TABLE_URL}
+        VITE_NAVICHARTS_URL: ${VITE_NAVICHARTS_URL}
     image: mod-ledger-ui:latest
     container_name: mod-ledger-ui
     restart: unless-stopped
