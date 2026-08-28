@@ -1,7 +1,11 @@
 import { Card } from 'astrogators-shared-ui';
 import { useFilters } from '@/contexts/FilterContext';
 import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
-import { getBucketCounts, getQualityBandCounts } from '@/utils/modFilters';
+import {
+  applyFlatFilters,
+  getBucketCounts,
+  getQualityBandCounts,
+} from '@/utils/modFilters';
 import {
   QUALITY_BAND_INFO,
   type BucketFilter,
@@ -56,23 +60,38 @@ interface InventoryReadoutProps {
  *  • Quality — how good the scored mods are, as a segmented distribution bar
  *    plus an interactive legend. Clicking a band sets the `band` filter.
  *
- * Both lenses are independent filters that can stack, and both read off the
- * whole inventory (not the filtered view) so the counts are a stable overview.
+ * Both lenses are independent filters that can stack. Each lens's counts
+ * cross-filter: they reflect every OTHER active filter (facets, cross-cutting,
+ * and the sibling lens) but never their own axis — so the readout describes the
+ * slice you're actually looking at, while each chip stays a legible switch
+ * target. The whole-inventory counts are kept alongside for the "N / total"
+ * pair, shown only when something outside the lens is narrowing it.
  */
 export default function InventoryReadout({ mods, verdicts }: InventoryReadoutProps) {
   const { filters, setFilter, clearFilters } = useFilters();
   const { assignments } = usePilotAssignment();
   const assignedModIds = new Set(assignments.keys());
-  const counts = getBucketCounts(mods, verdicts, assignedModIds);
-  const { scored, bands } = getQualityBandCounts(mods, verdicts);
 
-  // The readout's Clear is the same canonical reset as the filter drawer's
-  // (clearFilters), so there is one Clear, surfaced in two places. It appears
-  // whenever ANY filter is active — not just the lenses — so clearing here never
-  // leaves a facet filter silently narrowing the grid from inside the drawer.
-  const hasFilter =
-    filters.bucket !== null ||
-    filters.band !== null ||
+  // Disposition counts see every filter except `bucket`; quality counts see
+  // every filter except `band`. `fullCounts` / `fullQuality` are the unfiltered
+  // whole-inventory tallies behind the "N / total" pair.
+  const fullCounts = getBucketCounts(mods, verdicts, assignedModIds);
+  const counts = getBucketCounts(
+    applyFlatFilters(mods, { ...filters, bucket: null }, verdicts, assignedModIds),
+    verdicts,
+    assignedModIds
+  );
+  const fullQuality = getQualityBandCounts(mods, verdicts);
+  const fullScored = fullQuality.scored;
+  const fullBands = fullQuality.bands;
+  const { scored, bands } = getQualityBandCounts(
+    applyFlatFilters(mods, { ...filters, band: null }, verdicts, assignedModIds),
+    verdicts
+  );
+
+  // Facet + cross-cutting filters — everything the drawer drives except the two
+  // readout lenses. Narrowing from any of these flows into BOTH lens counts.
+  const facetActive =
     filters.flatSets.length > 0 ||
     filters.flatSlots.length > 0 ||
     filters.flatTiers.length > 0 ||
@@ -81,6 +100,18 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
     filters.characters.length > 0 ||
     filters.locked !== 'all';
 
+  // The readout's Clear is the same canonical reset as the filter drawer's
+  // (clearFilters), so there is one Clear, surfaced in two places. It appears
+  // whenever ANY filter is active — not just the lenses — so clearing here never
+  // leaves a facet filter silently narrowing the grid from inside the drawer.
+  const hasFilter =
+    facetActive || filters.bucket !== null || filters.band !== null;
+
+  // Show the "N / total" pair in a lens only when something OUTSIDE that lens is
+  // narrowing it — otherwise N === total and the pair is just noise.
+  const dispositionNarrowed = facetActive || filters.band !== null;
+  const qualityNarrowed = facetActive || filters.bucket !== null;
+
   const toggleBucket = (b: BucketFilter) =>
     setFilter('bucket', filters.bucket === b ? null : b);
 
@@ -88,6 +119,8 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
   // other bucket key matches its count field and style class directly.
   const countFor = (key: BucketFilter): number =>
     key === 'for-pilot' ? counts.forPilot : counts[key];
+  const fullCountFor = (key: BucketFilter): number =>
+    key === 'for-pilot' ? fullCounts.forPilot : fullCounts[key];
   const bucketClass: Record<BucketFilter, string> = {
     sell: styles.sell,
     level: styles.level,
@@ -204,25 +237,42 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
               aria-pressed={filters.bucket === null}
               onClick={() => setFilter('bucket', null)}
             >
-              <span className={styles.count}>{counts.total}</span>
+              <span className={styles.count}>
+                {counts.total}
+                {dispositionNarrowed && (
+                  <span className={styles.countTotal}> / {fullCounts.total}</span>
+                )}
+              </span>
               <span className={styles.label}>All</span>
             </button>
             {DISPOSITIONS.map(({ key, label }) => {
               const count = countFor(key);
-              // Hide an empty bucket — unless it's the active filter, so the
-              // chip the user clicked never vanishes out from under them.
-              if (count === 0 && filters.bucket !== key) return null;
+              const fullCount = fullCountFor(key);
+              // Hide a bucket only when the inventory holds none of that type at
+              // all. A bucket that exists but is filtered down to 0 stays
+              // visible as a dimmed "0 / N" so it's still a legible switch
+              // target. The active filter's own chip never hides.
+              if (fullCount === 0 && filters.bucket !== key) return null;
+              const emptyUnderFilter = count === 0 && fullCount > 0;
               return (
                 <button
                   key={key}
                   type="button"
                   className={`${styles.chip} ${bucketClass[key]} ${
                     filters.bucket === key ? styles.chipActive : ''
-                  }`}
+                  } ${emptyUnderFilter ? styles.chipEmpty : ''}`}
                   aria-pressed={filters.bucket === key}
                   onClick={() => toggleBucket(key)}
                 >
-                  <span className={styles.count}>{count}</span>
+                  <span className={styles.count}>
+                    {count}
+                    {/* 'for-pilot' is an overlay on the whole assignment pool,
+                        not a facet-narrowed bucket — a "N / N" pair there would
+                        imply a filter that isn't being applied. */}
+                    {dispositionNarrowed && key !== 'for-pilot' && (
+                      <span className={styles.countTotal}> / {fullCount}</span>
+                    )}
+                  </span>
                   <span className={styles.label}>{label}</span>
                 </button>
               );
@@ -230,45 +280,65 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
           </div>
         </section>
 
-        {/* Quality lens — only meaningful once something is scored. */}
-        {scored > 0 && (
+        {/* Quality lens — only meaningful once something is scored. Stays
+            mounted while any scored mod exists in inventory, even if the current
+            filters narrow the shown-scored count to zero. */}
+        {fullScored > 0 && (
           <section className={styles.group}>
             <p className={styles.groupLabel}>
-              Quality <span className={styles.groupHint}>{scored} scored</span>
+              Quality{' '}
+              <span className={styles.groupHint}>
+                {qualityNarrowed ? `${scored} of ${fullScored} scored` : `${scored} scored`}
+              </span>
             </p>
 
-            <div
-              className={styles.bar}
-              role="group"
-              aria-label="Quality distribution — click a band to filter"
-            >
-              {QUALITY_BAND_INFO.map(({ band, label, priority, action }, i) => {
-                const count = bands[band];
-                if (count === 0) return null;
-                const pct = Math.round((count / scored) * 100);
-                const dim = filters.band !== null && filters.band !== band;
-                return (
-                  <button
-                    key={band}
-                    type="button"
-                    className={`${styles.segment} ${bandClass[band]} ${
-                      filters.band === band ? styles.segActive : ''
-                    } ${dim ? styles.segDim : ''}`}
-                    style={{ flexGrow: count, ['--i' as string]: i }}
-                    aria-pressed={filters.band === band}
-                    onClick={() => toggleBand(band)}
-                    title={`${label} · ${priority} — ${count} mod${count === 1 ? '' : 's'} (${pct}%). ${action}.`}
-                  >
-                    <span className={styles.segCount}>{count}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {scored > 0 ? (
+              <>
+                <div
+                  className={styles.bar}
+                  role="group"
+                  aria-label="Quality distribution — click a band to filter"
+                >
+                  {QUALITY_BAND_INFO.map(({ band, label, priority, action }, i) => {
+                    const count = bands[band];
+                    if (count === 0) return null;
+                    const pct = Math.round((count / scored) * 100);
+                    const dim = filters.band !== null && filters.band !== band;
+                    const tip = qualityNarrowed
+                      ? `${label} · ${priority} — ${count} of ${fullBands[band]} mod${
+                          fullBands[band] === 1 ? '' : 's'
+                        } (${pct}% of shown). ${action}.`
+                      : `${label} · ${priority} — ${count} mod${
+                          count === 1 ? '' : 's'
+                        } (${pct}%). ${action}.`;
+                    return (
+                      <button
+                        key={band}
+                        type="button"
+                        className={`${styles.segment} ${bandClass[band]} ${
+                          filters.band === band ? styles.segActive : ''
+                        } ${dim ? styles.segDim : ''}`}
+                        style={{ flexGrow: count, ['--i' as string]: i }}
+                        aria-pressed={filters.band === band}
+                        onClick={() => toggleBand(band)}
+                        title={tip}
+                      >
+                        <span className={styles.segCount}>{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-            <div className={styles.scaleHint} aria-hidden="true">
-              <span>← most sliceable</span>
-              <span>least →</span>
-            </div>
+                <div className={styles.scaleHint} aria-hidden="true">
+                  <span>← most sliceable</span>
+                  <span>least →</span>
+                </div>
+              </>
+            ) : (
+              <p className={styles.emptyNote}>
+                No scored mods match the current filters.
+              </p>
+            )}
 
             <div className={styles.legend}>
               {QUALITY_BAND_INFO.map(({ band, label, range, priority, action }) => {

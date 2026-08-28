@@ -4,7 +4,11 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** commit `2ce3da1` plus earlier work. That commit added
+**Docs current as of:** the commit after `f27e5cf` plus earlier work. That
+commit made the `InventoryReadout` lenses **cross-filter** (faceted): each
+lens's counts now reflect every *other* active filter but not its own axis,
+with a `N / total` pair carrying the old whole-inventory number — see
+"Top-of-page readout" below. Before it, commit `2ce3da1` added
 a **character avatar to `ModCard`**, positioned to match SWGOH's own
 inventory screen: a small circular portrait overlapping the mod icon's
 bottom-left corner, next to the level/tier text (`modMeta` in `ModCard.tsx`,
@@ -388,25 +392,54 @@ still gets a real verdict.
 `InventoryReadout` (`src/components/mod/InventoryReadout.tsx`) is the single
 framed panel above the flat grid. It consolidates what used to be three separate
 strips (`InventoryOverview` + `ResultsDistribution` + `SliceLegend`, all now
-removed) into two interactive lenses, both computed from the **whole inventory**
-(not the filtered view) so the counts stay a stable overview:
+removed) into two interactive lenses.
+
+**Cross-filtering (faceted).** Each lens's counts reflect every *other* active
+filter but **never its own axis** — the disposition counts are computed over
+`applyFlatFilters(mods, { ...filters, bucket: null })`, the quality counts over
+`{ ...filters, band: null }`. So filtering to "Square" (or picking a quality
+band) re-tallies the disposition chips over that slice, while each chip stays a
+legible switch target because the disposition filter isn't applied to its own
+row. Alongside each live count the readout keeps the **whole-inventory** tally
+(`fullCounts` / `fullQuality`) and shows an unobtrusive `N / total` pair —
+**only** when something outside that lens is narrowing it (`dispositionNarrowed`
+= any facet/cross-cutting filter or `band`; `qualityNarrowed` = any
+facet/cross-cutting filter or `bucket`). When nothing narrows a lens, `N ===
+total` and only the single number shows. The literal on-screen count still lives
+in `ModGridPage`'s "Showing X of Y mods" line.
 
 - **Disposition** — a count chip per `BucketFilter` (Sell / Level Up / Slice /
   For Pilots / Maxed / Unconfigured) plus an "All" chip. Clicking sets
   `filters.bucket` (`getBucketCounts`). These chips are also the view
   navigation that the removed Sell-Pile / Unconfigured *modes* used to be —
   picking **Unconfigured** swaps the grid for the grouped-by-set "configure
-  rules" view (handled in `ModGridPage`).
-- **Quality** — a segmented distribution bar over every *scored* mod
-  (`getQualityBandCounts`; a finite `absolute_quality`), highest band on the
-  left, plus an interactive legend doubling as the colour key. Clicking a
-  segment or legend item sets `filters.band`.
+  rules" view (handled in `ModGridPage`). A bucket hides only when the *whole
+  inventory* holds none of that type (`fullCount === 0`); a bucket that exists
+  but the current filters narrow to zero stays visible as a dimmed `0 / N`
+  (`.chipEmpty`) so the row doesn't reflow as you filter. **For Pilots** is an
+  assignment-pool overlay, not a facet-narrowed bucket, so it never shows the
+  `N / total` pair.
+- **Quality** — a segmented distribution bar over the *scored* mods in the
+  current slice (`getQualityBandCounts`; a finite `absolute_quality`), highest
+  band on the left, plus an interactive legend doubling as the colour key.
+  Clicking a segment or legend item sets `filters.band`. The lens stays mounted
+  whenever *any* scored mod exists in inventory (`fullScored > 0`); if the
+  filters narrow the shown-scored count to zero, a `.emptyNote` replaces the bar
+  and the legend (the colour key) stays.
 - **Active filters** — a removable chip row (shown only when at least one
   panel-driven filter is on) summarising every set/slot/tier/rarity/primary/
   character/lock filter. Each chip removes just that one value; `bucket`/`band`
   are intentionally excluded (the two lenses already show their own active
   state). This makes the readout the single honest picture of everything
   narrowing the grid.
+
+> **History:** the two lenses were originally computed from the **whole
+> inventory** regardless of the active filter, on the reasoning that a fixed
+> overview is more stable. In practice that made the readout unable to answer
+> "within what I'm looking at, what should I do?" — filtering to Squares still
+> showed inventory-wide Sell/Slice counts. Replaced with the faceted
+> cross-filtering above; the whole-inventory numbers are retained as the
+> `N / total` pair rather than dropped.
 
 `bucket` and `band` are **independent** filters that stack (e.g. slice mods in
 the gold band). The band filter lives in `ModFilters` and is applied in

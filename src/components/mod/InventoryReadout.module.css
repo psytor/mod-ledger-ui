@@ -188,6 +188,21 @@
   color: #f1f5f9;
 }
 
+/* The whole-inventory half of a "12 / 45" cross-filter pair — recedes behind
+   the live (filtered) count so the eye lands on what's currently shown. */
+.countTotal {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* A disposition the inventory has, but the current filters narrow to zero.
+   Kept visible (as "0 / N") so it stays a legible switch target, dimmed so it
+   doesn't compete with the buckets that actually have matches. */
+.chipEmpty {
+  opacity: 0.45;
+}
+
 .label {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -268,6 +283,14 @@
   margin-top: -0.15rem;
   font-size: 0.68rem;
   letter-spacing: 0.03em;
+  color: #6b7280;
+}
+
+/* Shown in place of the distribution bar when filters narrow the scored set to
+   zero (the lens itself stays mounted because scored mods exist elsewhere). */
+.emptyNote {
+  margin: 0;
+  font-size: 0.78rem;
   color: #6b7280;
 }
 
