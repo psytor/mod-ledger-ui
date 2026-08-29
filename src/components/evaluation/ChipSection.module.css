@@ -51,6 +51,11 @@
   gap: var(--spacing-xs);
 }
 
+.chipWrap {
+  position: relative;
+  display: inline-flex;
+}
+
 .chip {
   padding: 0.4rem 0.85rem;
   font-family: var(--font-heading);
@@ -92,4 +97,48 @@
   color: var(--color-info);
   border-color: var(--color-info);
   box-shadow: 0 0 0 1px var(--color-info), 0 0 12px rgba(66, 133, 244, 0.25);
+}
+
+.chip[data-state='mandatory'] {
+  background: rgba(251, 188, 4, 0.18);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  box-shadow: 0 0 0 1px var(--color-warning), 0 0 12px rgba(251, 188, 4, 0.28);
+}
+
+/* Pin toggle — a small corner control on Required/Mandatory chips. */
+.chipPin {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-disabled);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all var(--transition-fast);
+}
+
+.chipWrap:hover .chipPin {
+  opacity: 0.85;
+}
+
+.chipPin:hover {
+  opacity: 1;
+  color: var(--color-text-primary);
+  border-color: var(--color-text-disabled);
+}
+
+.chipPin[data-pinned='true'] {
+  opacity: 1;
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  background: rgba(251, 188, 4, 0.18);
 }

@@ -5,7 +5,16 @@ import type { ModShape } from '@/utils/modSpriteConfig';
 export type Verdict = 'SELL' | 'UPGRADE' | 'PASS_RULES' | 'UNCONFIGURED';
 
 export type PrimaryClassification = 'wanted' | 'not_wanted' | 'neutral';
-export type SecondaryClassification = 'required' | 'complementary' | 'neutral';
+// 'mandatory' is 'required' plus a hard gate: the stat must appear on the mod
+// as a revealed secondary OR be the mod's primary, or the variant fails — no
+// "miss one" grace. A satisfied mandatory stat still counts toward the match
+// tally (including when it's the primary). Authored in the rule builder as a
+// pin on a Required chip; the chip cycle itself never lands on it.
+export type SecondaryClassification =
+  | 'required'
+  | 'mandatory'
+  | 'complementary'
+  | 'neutral';
 
 // Classifications are keyed by stat_id (number). Stat names are NOT unique —
 // e.g. flat "Health" (id 1) and percent "Health" (id 55) collide.
@@ -92,7 +101,7 @@ export type VariantResult = {
 export type SecondaryRole = {
   stat_name: string;
   display_value: string;        // e.g. "+15" / "+2.12%"
-  role: SecondaryClassification; // 'required' | 'complementary' | 'neutral'
+  role: SecondaryClassification; // 'required' | 'mandatory' | 'complementary' | 'neutral'
   is_revealed: boolean;
 };
 
@@ -102,6 +111,7 @@ export type SecondaryRole = {
 export type MatchBreakdown = {
   variant_name: string;
   secondaries: SecondaryRole[];       // the mod's secondaries, role-tagged
+  mandatory_wanted: string[];         // stat names the rule marks Mandatory
   required_wanted: string[];          // stat names the rule marks Required
   complementary_wanted: string[];     // stat names the rule marks Complementary
 };

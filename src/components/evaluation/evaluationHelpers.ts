@@ -35,12 +35,14 @@ export function countClassifications(variant: Variant) {
     else if (c === 'not_wanted') notWanted++;
   }
   let required = 0;
+  let mandatory = 0;
   let complementary = 0;
   for (const c of Object.values(variant.secondary_classifications)) {
     if (c === 'required') required++;
+    else if (c === 'mandatory') mandatory++;
     else if (c === 'complementary') complementary++;
   }
-  return { wanted, notWanted, required, complementary };
+  return { wanted, notWanted, required, mandatory, complementary };
 }
 
 // Edit-mode cycle config: click neutral → first non-neutral → second → back.
@@ -98,14 +100,20 @@ export function groupPrimaryClassified(
 export function groupSecondaryClassified(
   variant: Variant,
   stats: StatDefinition[]
-): { required: StatDefinition[]; complementary: StatDefinition[] } {
+): {
+  mandatory: StatDefinition[];
+  required: StatDefinition[];
+  complementary: StatDefinition[];
+} {
+  const mandatory: StatDefinition[] = [];
   const required: StatDefinition[] = [];
   const complementary: StatDefinition[] = [];
   for (const s of stats) {
     const c: SecondaryClassification | undefined =
       variant.secondary_classifications[s.stat_id];
-    if (c === 'required') required.push(s);
+    if (c === 'mandatory') mandatory.push(s);
+    else if (c === 'required') required.push(s);
     else if (c === 'complementary') complementary.push(s);
   }
-  return { required, complementary };
+  return { mandatory, required, complementary };
 }

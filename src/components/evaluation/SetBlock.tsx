@@ -37,6 +37,7 @@ interface EditProps {
     statId: number,
     c: SecondaryClassification
   ) => void;
+  onPinSecondary: (variantId: string, statId: number, pinned: boolean) => void;
   onSetTarget: (variantId: string, statId: number, sliderValue: number) => void;
   onToggleMaster: (variantId: string, checked: boolean) => void;
   onSetShapes: (variantId: string, shapes: ModShape[]) => void;
@@ -90,6 +91,7 @@ function EditBody({
   onMoveVariant,
   onSetPrimary,
   onSetSecondary,
+  onPinSecondary,
   onSetTarget,
   onToggleMaster,
   onSetShapes,
@@ -119,6 +121,7 @@ function EditBody({
           onMove={(dir) => onMoveVariant(v.id, dir)}
           onSetPrimary={(sid, c) => onSetPrimary(v.id, sid, c)}
           onSetSecondary={(sid, c) => onSetSecondary(v.id, sid, c)}
+          onPinSecondary={(sid, pinned) => onPinSecondary(v.id, sid, pinned)}
           onSetTarget={(sid, val) => onSetTarget(v.id, sid, val)}
           onToggleMaster={(checked) => onToggleMaster(v.id, checked)}
           onSetShapes={(shapes) => onSetShapes(v.id, shapes)}

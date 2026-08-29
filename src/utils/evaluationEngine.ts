@@ -138,17 +138,20 @@ type SecondaryCheck = {
   complementaryCount: number;
   visibleCount: number;
   threshold: number;
+  mandatoryMissing: boolean;
 };
 
-function checkSecondary(
+export function checkSecondary(
   mod: ParsedMod,
   variant: Variant,
   primaryStatId: number | undefined,
   statIdLookup: Map<string, number>
 ): SecondaryCheck {
   const requiredStatIds = new Set<number>();
+  const mandatoryStatIds = new Set<number>();
   for (const [key, classification] of Object.entries(variant.secondary_classifications)) {
     if (classification === 'required') requiredStatIds.add(Number(key));
+    else if (classification === 'mandatory') mandatoryStatIds.add(Number(key));
   }
 
   const visibleSecondaries = mod.secondary_stats.filter(
@@ -156,86 +159,105 @@ function checkSecondary(
   );
   const visibleCount = visibleSecondaries.length;
 
-  let requiredCount = 0;
+  const visibleSecondaryIds = new Set<number>();
+  let requiredHits = 0;
   let complementaryCount = 0;
   for (const sec of visibleSecondaries) {
     const id = resolveStatId(sec, statIdLookup);
     if (id === undefined) continue;
+    visibleSecondaryIds.add(id);
     const c = variant.secondary_classifications[id] ?? 'neutral';
-    if (c === 'required') requiredCount++;
+    if (c === 'required') requiredHits++;
     else if (c === 'complementary') complementaryCount++;
   }
 
-  // Auto-pass: variant defines no Required stats (parallel to all-Neutral primary rule).
-  if (requiredStatIds.size === 0) {
+  // Mandatory hard gate: each Mandatory stat must show up as a revealed secondary
+  // OR be the mod's primary. A satisfied Mandatory stat still counts toward the
+  // match tally (including via the primary — unlike a Required stat that is the
+  // primary, which is instead subtracted from the reachable pool below).
+  let mandatoryHits = 0;
+  for (const mid of mandatoryStatIds) {
+    if (visibleSecondaryIds.has(mid) || (primaryStatId !== undefined && primaryStatId === mid)) {
+      mandatoryHits++;
+    }
+  }
+  const mandatoryMissing = mandatoryHits !== mandatoryStatIds.size;
+
+  // The tally the threshold is compared against: Required hits + satisfied
+  // Mandatory stats. Named `requiredCount` on the result for continuity with the
+  // fail-reason string, the winner tiebreak, and the Stage-2 coverage discount.
+  const matchTally = requiredHits + mandatoryHits;
+
+  // Auto-pass: variant defines no Required AND no Mandatory stats (parallel to
+  // the all-Neutral primary rule).
+  const poolSize = requiredStatIds.size + mandatoryStatIds.size;
+  if (poolSize === 0) {
     return {
       pass: true,
       requiredCount: 0,
       complementaryCount,
       visibleCount,
       threshold: 0,
+      mandatoryMissing: false,
     };
   }
 
-  // Threshold = how many Required secondaries the mod must hit. The bar scales
-  // with the *reachable* Required pool, not just the presence of the primary:
+  // Threshold = how many pool stats (Required ∪ Mandatory) the mod must hit. The
+  // bar scales with the *reachable* pool, not just the presence of the primary:
   //
-  //   bar = reachableRequiredSize <= 2
-  //       ? reachableRequiredSize
-  //       : max(1, min(visibleCount - 1, reachableRequiredSize - 1))
+  //   bar = reachablePoolSize <= 2
+  //       ? reachablePoolSize
+  //       : max(1, min(visibleCount - 1, reachablePoolSize - 1))
   //
-  // - `reachableRequiredSize` is the Required list minus the primary when the
-  //   primary is itself a Required stat (the game blocks the primary stat from
-  //   also rolling as a secondary, so it can never be hit there).
+  // - `reachablePoolSize` subtracts the primary only when it is a *Required*
+  //   stat (the game blocks the primary from also rolling as a secondary, so it
+  //   can never be hit there). A *Mandatory* primary is NOT subtracted — it is
+  //   satisfied by the primary and still counts toward `matchTally`.
   // - `visibleCount - 1` is the "3 of 4" ideal — you're allowed to miss one of
   //   the four secondary slots. On a fully-revealed mod this is 3.
-  // - `reachableRequiredSize - 1` is "allowed to miss one Required too". This
-  //   only bites when the reachable pool is tight: a big pool (e.g. Defensive's
-  //   7 Required, 6 reachable) stays capped at 3, while a tight pool (Offensive's
-  //   4 Required, 3 reachable once the primary takes one) eases to 2 — this is
-  //   correct and intentional, confirmed against real data: a 4-Required rule
-  //   whose primary occupies one Required slot only needs 2 of the remaining 3.
-  // - Below reachableRequiredSize 3, that same "-1" leniency degenerates into
-  //   "hit any 1 of 2" or "hit the 1 of 1" — silently turning a rule authored
-  //   as "these 2 stats must BOTH show up" (e.g. Required = {Speed, Potency})
-  //   into an OR. So the "-1" allowance only applies once the reachable pool is
-  //   3 or more; at 1 or 2, every reachable Required stat is demanded, no miss
-  //   allowed. This never changes any rule with 3+ reachable Required stats —
-  //   confirmed against every live rule at the time of this fix.
+  // - `reachablePoolSize - 1` is "allowed to miss one pool stat too". This only
+  //   bites when the reachable pool is tight: a big pool (e.g. Defensive's 7,
+  //   6 reachable) stays capped at 3, while a tight pool (Offensive's 4, 3
+  //   reachable once the primary takes one) eases to 2.
+  // - Below reachablePoolSize 3, that same "-1" leniency degenerates into "hit
+  //   any 1 of 2" or "hit the 1 of 1" — silently turning a rule authored as
+  //   "these 2 stats must BOTH show up" into an OR. So the "-1" allowance only
+  //   applies once the reachable pool is 3 or more; at 1 or 2, every reachable
+  //   pool stat is demanded, no miss allowed.
+  //
+  // With no Mandatory stats every quantity above reduces exactly to the old
+  // Required-only computation, so zero-Mandatory rules are unchanged.
   const primaryInRequired =
     primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
-  const reachableRequiredSize = primaryInRequired
-    ? requiredStatIds.size - 1
-    : requiredStatIds.size;
+  const reachablePoolSize = primaryInRequired ? poolSize - 1 : poolSize;
 
-  // Reachable pool empty: the sole Required stat IS the mod's primary, so the
-  // game blocks it from also rolling as a secondary — there is nothing left to
-  // demand of the secondaries. The primary itself satisfies the requirement, so
-  // the gate passes and the mod's value/direction is decided downstream by
-  // complementary coverage + quality. (Only reachable when primaryInRequired and
-  // the Required list has exactly one stat; the requiredStatIds.size === 0
-  // early-return above guarantees this can't be a zero-Required variant.)
-  if (reachableRequiredSize === 0) {
+  // Reachable pool empty: the sole pool member IS a Required primary (=> zero
+  // Mandatory, Required list of exactly one). The primary satisfies it; the
+  // gate passes and direction is decided downstream by complementary coverage
+  // + quality. (poolSize === 0 early-return guarantees this isn't an empty rule.)
+  if (reachablePoolSize === 0) {
     return {
       pass: true,
-      requiredCount,
+      requiredCount: matchTally,
       complementaryCount,
       visibleCount,
       threshold: 0,
+      mandatoryMissing: false,
     };
   }
 
   const threshold =
-    reachableRequiredSize <= 2
-      ? reachableRequiredSize
-      : Math.max(1, Math.min(visibleCount - 1, reachableRequiredSize - 1));
+    reachablePoolSize <= 2
+      ? reachablePoolSize
+      : Math.max(1, Math.min(visibleCount - 1, reachablePoolSize - 1));
 
   return {
-    pass: requiredCount >= threshold,
-    requiredCount,
+    pass: !mandatoryMissing && matchTally >= threshold,
+    requiredCount: matchTally,
     complementaryCount,
     visibleCount,
     threshold,
+    mandatoryMissing,
   };
 }
 
@@ -283,7 +305,9 @@ function runVariantChain(
       variant,
       requiredCount: sec.requiredCount,
       complementaryCount: sec.complementaryCount,
-      reason: `Matched ${sec.requiredCount} of ${sec.visibleCount} secondaries as Required — this rule needs at least ${sec.threshold}.`,
+      reason: sec.mandatoryMissing
+        ? 'Missing a stat this rule marks Mandatory.'
+        : `Matched ${sec.requiredCount} of ${sec.visibleCount} secondaries as Required — this rule needs at least ${sec.threshold}.`,
     };
   }
 
@@ -321,16 +345,24 @@ function buildMatchBreakdown(
     };
   });
 
+  const mandatory_wanted: string[] = [];
   const required_wanted: string[] = [];
   const complementary_wanted: string[] = [];
   for (const [key, classification] of Object.entries(variant.secondary_classifications)) {
     const label = nameById.get(Number(key));
     if (!label) continue;
-    if (classification === 'required') required_wanted.push(label);
+    if (classification === 'mandatory') mandatory_wanted.push(label);
+    else if (classification === 'required') required_wanted.push(label);
     else if (classification === 'complementary') complementary_wanted.push(label);
   }
 
-  return { variant_name: variant.name, secondaries, required_wanted, complementary_wanted };
+  return {
+    variant_name: variant.name,
+    secondaries,
+    mandatory_wanted,
+    required_wanted,
+    complementary_wanted,
+  };
 }
 
 function toVariantResult(r: VariantChainResult, quality: number | undefined): VariantResult {
@@ -539,10 +571,14 @@ export function applyQualityGates(
       continue;
     }
 
-    // Primary-aware threshold relief. Only fires when the primary stat is
-    // itself a Required stat — in that case the game blocks it from rolling
-    // as a secondary, so the *reachable* Required pool is `required \ {primary}`.
-    // The relief scales with how much of that reachable pool the mod hit.
+    // Primary-aware threshold relief. Fires when the primary stat is itself a
+    // Required OR Mandatory pool stat — in that case the game blocks it from
+    // rolling as a secondary, so the *reachable* pool is `(required ∪ mandatory)
+    // \ {primary}` when the primary is Required. A Mandatory primary is not
+    // subtracted (it's satisfied by the primary and counts toward the tally),
+    // matching checkSecondary. The relief scales with how much of that reachable
+    // pool the mod hit. With no Mandatory stats this reduces to the old
+    // Required-only computation.
     let threshold = rawThreshold;
     const config = evaluation.mod_set_configs.find((c) => c.set_id === mod.set_id);
     const winningVariant = config?.variants.find(
@@ -554,15 +590,23 @@ export function applyQualityGates(
     if (winningVariant && winningResult) {
       const primaryStatId = resolveStatId(mod.primary_stat, statIdLookup);
       const requiredIds = new Set<number>();
+      const mandatoryIds = new Set<number>();
       for (const [k, c] of Object.entries(winningVariant.secondary_classifications)) {
         if (c === 'required') requiredIds.add(Number(k));
+        else if (c === 'mandatory') mandatoryIds.add(Number(k));
       }
       const primaryInRequired =
         primaryStatId !== undefined && requiredIds.has(primaryStatId);
-      if (primaryInRequired) {
-        const reachableSize = requiredIds.size - 1;
+      const primaryInMandatory =
+        primaryStatId !== undefined && mandatoryIds.has(primaryStatId);
+      if (primaryInRequired || primaryInMandatory) {
+        const reachableSize =
+          requiredIds.size + mandatoryIds.size - (primaryInRequired ? 1 : 0);
         if (reachableSize > 0) {
-          const coverage = winningResult.required_count / reachableSize;
+          const coverage = Math.min(
+            1,
+            winningResult.required_count / reachableSize
+          );
           threshold = rawThreshold * (1 - coverage * COVERAGE_DISCOUNT_K);
         }
       }

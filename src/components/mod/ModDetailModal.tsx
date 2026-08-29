@@ -43,6 +43,7 @@ function verdictLabel(v: VerdictResult): string {
 function roleDisplay(s: SecondaryRole): { label: string; cls: string } {
   if (!s.is_revealed) return { label: 'Hidden', cls: styles.secRoleNeutral };
   switch (s.role) {
+    case 'mandatory': return { label: 'Mandatory', cls: styles.secRoleMandatory };
     case 'required': return { label: 'Required', cls: styles.secRoleRequired };
     case 'complementary': return { label: 'Complementary', cls: styles.secRoleComplementary };
     case 'neutral': return { label: 'Neutral', cls: styles.secRoleNeutral };
@@ -247,6 +248,9 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                 </ul>
                 <div className={styles.evalWanted}>
                   <span className={styles.evalWantedLabel}>Rule wants —</span>{' '}
+                  {verdict.match_breakdown.mandatory_wanted.length > 0 && (
+                    <>Mandatory: {verdict.match_breakdown.mandatory_wanted.join(', ')} · </>
+                  )}
                   Required: {verdict.match_breakdown.required_wanted.join(', ') || '—'}
                   {verdict.match_breakdown.complementary_wanted.length > 0 && (
                     <> · Complementary: {verdict.match_breakdown.complementary_wanted.join(', ')}</>

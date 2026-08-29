@@ -321,6 +321,12 @@
   white-space: nowrap;
 }
 
+.secRoleMandatory {
+  color: #fbbf24;
+  background-color: rgba(251, 188, 4, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(251, 188, 4, 0.5);
+}
+
 .secRoleRequired {
   color: #fde68a;
   background-color: rgba(202, 138, 4, 0.18);

@@ -44,6 +44,7 @@ interface EditProps {
   onMove: (dir: -1 | 1) => void;
   onSetPrimary: (statId: number, c: PrimaryClassification) => void;
   onSetSecondary: (statId: number, c: SecondaryClassification) => void;
+  onPinSecondary: (statId: number, pinned: boolean) => void;
   onSetTarget: (statId: number, sliderValue: number) => void;
   onToggleMaster: (checked: boolean) => void;
   onSetShapes: (shapes: ModShape[]) => void;
@@ -103,6 +104,11 @@ function ViewModeCard({
         title="Secondary stats"
         groups={[
           {
+            label: 'Mandatory',
+            swatchColor: 'var(--color-warning)',
+            stats: secondaryGroups.mandatory,
+          },
+          {
             label: 'Required',
             swatchColor: 'var(--color-secondary)',
             stats: secondaryGroups.required,
@@ -147,6 +153,7 @@ function EditModeCard({
   onMove,
   onSetPrimary,
   onSetSecondary,
+  onPinSecondary,
   onSetTarget,
   onToggleMaster,
   onSetShapes,
@@ -228,7 +235,13 @@ function EditModeCard({
         cycle={SECONDARY_CYCLE}
         getClass={(sid) => variant.secondary_classifications[sid] ?? 'neutral'}
         setClass={(sid, c) => onSetSecondary(sid, c as SecondaryClassification)}
+        onPin={onPinSecondary}
         counts={[
+          {
+            color: 'var(--color-warning)',
+            label: 'Mandatory',
+            value: counts.mandatory,
+          },
           {
             color: 'var(--color-secondary)',
             label: 'Required',

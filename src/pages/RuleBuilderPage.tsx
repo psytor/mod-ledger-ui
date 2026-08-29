@@ -71,6 +71,11 @@ export default function RuleBuilderPage() {
   const [pendingMasterOptIn, setPendingMasterOptIn] = useState<
     { setId: number; variantId: string } | null
   >(null);
+  // Non-null while the "3rd Mandatory stat" confirm modal is open; carries the
+  // pin that will be applied on confirm.
+  const [pendingMandatoryPin, setPendingMandatoryPin] = useState<
+    { setId: number; variantId: string; statId: number } | null
+  >(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   // Loaded once for live name-collision detection. We don't refresh
@@ -241,6 +246,60 @@ export default function RuleBuilderPage() {
       })
     );
   };
+
+  // Pin toggle on a Required chip. `pinned` true → 'mandatory', false → 'required'.
+  const applyMandatoryPin = (
+    setId: number,
+    variantId: string,
+    statId: number,
+    pinned: boolean
+  ) => {
+    updateVariants(setId, (vs) =>
+      vs.map((v) => {
+        if (v.id !== variantId) return v;
+        return {
+          ...v,
+          secondary_classifications: {
+            ...v.secondary_classifications,
+            [statId]: pinned ? 'mandatory' : 'required',
+          },
+        };
+      })
+    );
+  };
+
+  const requestMandatoryPin = (
+    setId: number,
+    variantId: string,
+    statId: number,
+    pinned: boolean
+  ) => {
+    if (!pinned) {
+      applyMandatoryPin(setId, variantId, statId, false);
+      return;
+    }
+    const variant = variantsBySet.get(setId)?.find((v) => v.id === variantId);
+    const currentMandatory = variant
+      ? Object.values(variant.secondary_classifications).filter(
+          (c) => c === 'mandatory'
+        ).length
+      : 0;
+    // Confirm only at the 2 → 3 transition (this stat is currently Required, so
+    // pinning it makes currentMandatory + 1). A 4th/5th pin goes straight through.
+    if (currentMandatory === 2) {
+      setPendingMandatoryPin({ setId, variantId, statId });
+      return;
+    }
+    applyMandatoryPin(setId, variantId, statId, true);
+  };
+
+  const confirmMandatoryPin = () => {
+    if (!pendingMandatoryPin) return;
+    const { setId, variantId, statId } = pendingMandatoryPin;
+    applyMandatoryPin(setId, variantId, statId, true);
+    setPendingMandatoryPin(null);
+  };
+  const cancelMandatoryPin = () => setPendingMandatoryPin(null);
 
   const setApplicableShapes = (
     setId: number,
@@ -545,6 +604,9 @@ export default function RuleBuilderPage() {
                         onSetSecondary={(vid, sid, c) =>
                           setSecondaryClass(set.set_id, vid, sid, c)
                         }
+                        onPinSecondary={(vid, sid, pinned) =>
+                          requestMandatoryPin(set.set_id, vid, sid, pinned)
+                        }
                         onSetTarget={(vid, sid, val) =>
                           setSecondaryTarget(set.set_id, vid, sid, val)
                         }
@@ -620,6 +682,40 @@ export default function RuleBuilderPage() {
             </Button>
             <Button type="button" variant="primary" onClick={confirmMasterOptIn}>
               Replace with master
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={pendingMandatoryPin !== null}
+        onClose={cancelMandatoryPin}
+        title="A third Mandatory stat covers the match target by itself"
+        size="sm"
+      >
+        <div className={styles.confirmBody}>
+          <p>
+            This rule passes a mod when it hits roughly 3 of its 4 secondary
+            slots from the rule's stats, and Mandatory stats always count toward
+            that total.
+          </p>
+          <p>
+            With 3 stats pinned as Mandatory, any mod that could pass has already
+            reached the target from those 3 alone. The Required stats below still
+            shape a mod's score and decide which rule wins when several match —
+            but they will no longer change whether a mod passes or fails this
+            rule.
+          </p>
+          <p className={styles.confirmHint}>
+            Pin a 3rd only if you mean “a mod must carry all three of these”.
+            Otherwise, leave it as Required.
+          </p>
+          <div className={styles.confirmActions}>
+            <Button type="button" variant="outline" onClick={cancelMandatoryPin}>
+              Cancel
+            </Button>
+            <Button type="button" variant="primary" onClick={confirmMandatoryPin}>
+              Pin anyway
             </Button>
           </div>
         </div>

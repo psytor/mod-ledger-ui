@@ -9,13 +9,14 @@ import type {
 // (drop to 0.05 if lucky-garbage mods feel overrepresented in real inventories).
 const TIER_MULTIPLIERS: Record<SecondaryClassification | 'neutral', number> = {
   required: 1.0,
+  mandatory: 1.0, // same weight as Required — Mandatory is Required plus a hard gate
   complementary: 0.4,
   neutral: 0.1,
 };
 
 // Boosted Complementary weight used only when the rule's primary stat is
-// itself marked Required (the same signal that eases the Stage 1 threshold
-// in evaluationEngine.ts's checkSecondary/applyQualityGates — the game
+// itself marked Required or Mandatory (the same signal that eases the Stage 1
+// threshold in evaluationEngine.ts's checkSecondary/applyQualityGates — the game
 // blocks a primary from also rolling as a secondary, so that Required slot
 // is structurally unreachable and the bar is loosened to compensate). A mod
 // clearing that eased bar is leaning on its Complementary hits to do work a
@@ -84,9 +85,12 @@ export function scoreModForVariant(
   const targets = variant.secondary_targets;
 
   const primaryStatId = resolveStatId(mod.primary_stat, statIdLookup);
-  const primaryInRequired =
-    primaryStatId !== undefined &&
-    variant.secondary_classifications[primaryStatId] === 'required';
+  const primaryClass =
+    primaryStatId !== undefined
+      ? variant.secondary_classifications[primaryStatId]
+      : undefined;
+  const primaryInRequiredOrMandatory =
+    primaryClass === 'required' || primaryClass === 'mandatory';
   const primaryIsWanted =
     primaryStatId !== undefined &&
     variant.primary_classifications[primaryStatId] === 'wanted';
@@ -110,7 +114,7 @@ export function scoreModForVariant(
     const classification: SecondaryClassification | 'neutral' =
       variant.secondary_classifications[statId] ?? 'neutral';
     const multiplier =
-      classification === 'complementary' && primaryInRequired
+      classification === 'complementary' && primaryInRequiredOrMandatory
         ? COMPLEMENTARY_WEIGHT_WHEN_EASED
         : TIER_MULTIPLIERS[classification];
 
