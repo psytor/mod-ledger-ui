@@ -12,8 +12,15 @@ export function statDisplayName(s: StatDefinition): string {
   return s.is_percentage ? `${s.name} %` : s.name;
 }
 
-// Linear interp on the stat's per-roll range. Whole number for flat stats,
-// 2 decimals + "%" for percent stats (matches in-game presentation).
+// The approximate per-roll value at a given target efficiency. The engine's
+// efficiency is (rollValue - min) / (max - min), and the game *floors* the
+// value it shows, so a target must be floored too: efficiency 0.50 on Speed is
+// value 4.5, which the game (and real rolls at that efficiency) show as +4, not
+// +5. Rounding here mislabels the whole 50-67% band of the Speed slider as "+5"
+// when a real roll there reads +4 in-game. Verified against a live roster:
+// displayed +3 = eff 0-33%, +4 = 33-67%, +5 = 67-100%.
+// Percent stats keep 2 decimals (the game shows 2dp, so flooring at that
+// precision matches without visibly changing the number).
 // Returns null when the stat has no roll bounds (e.g. primary-only stats).
 export function formatRollAt(
   stat: StatDefinition,
@@ -24,7 +31,9 @@ export function formatRollAt(
   const max = tier === 6 ? stat.max_roll_6 : stat.max_roll_5;
   if (min === undefined || max === undefined) return null;
   const value = min + efficiency * (max - min);
-  return stat.is_percentage ? `${value.toFixed(2)}%` : `${Math.round(value)}`;
+  return stat.is_percentage
+    ? `${(Math.floor(value * 100) / 100).toFixed(2)}%`
+    : `${Math.floor(value)}`;
 }
 
 export function countClassifications(variant: Variant) {
