@@ -189,7 +189,7 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
       variant="outline"
       padding="none"
       showDiagonalBorders
-      diagonalBorderColor="var(--color-primary)"
+      edgeColor="var(--color-primary)"
       className={styles.card}
     >
       <div className={styles.panel}>

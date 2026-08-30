@@ -334,7 +334,7 @@ export default function EvaluationDetailPage() {
               variant="outline"
               padding="none"
               showDiagonalBorders
-              diagonalBorderColor="var(--color-primary)"
+              edgeColor="var(--color-primary)"
               className={styles.heroCard}
             >
               <span className={styles.heroAccent} aria-hidden="true" />
@@ -415,7 +415,7 @@ export default function EvaluationDetailPage() {
               chamfered
               chamferSize="md"
               showDiagonalBorders
-              diagonalBorderColor="var(--color-primary)"
+              edgeColor="var(--color-primary)"
               padding="none"
               className={styles.statusCard}
             >

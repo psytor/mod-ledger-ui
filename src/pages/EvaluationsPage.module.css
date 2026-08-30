@@ -57,9 +57,7 @@
     rgba(19, 23, 41, 0.85) 100%
   );
   backdrop-filter: blur(8px);
-  /* Outline border survives only on straight edges — clip-path cuts the corners,
-     so the corner color comes from showDiagonalBorders + diagonalBorderColor. */
-  border-color: var(--color-primary);
+  /* Outline (border + corner lines) is drawn by the Card from edgeColor. */
 }
 
 .heroAccent {
@@ -261,10 +259,7 @@
   gap: var(--spacing-md);
   text-align: center;
   background: var(--color-surface);
-  /* Straight-side border (corners are clipped). Matches the diagonal corner
-     color (diagonalBorderColor="var(--color-primary)") so the box reads as a
-     closed chamfered outline. */
-  border: 1px solid var(--color-primary);
+  /* Outline (border + corner lines) is drawn by the Card from edgeColor. */
 }
 
 .emptyAccent {
@@ -333,16 +328,13 @@
   gap: var(--spacing-sm);
   min-height: 180px;
   transition: border-color var(--transition-base);
-  /* Straight-side border (corners are clipped). The diagonal corner lines read
-     --card-line-color (set below) so edges and corners stay the same colour and
-     read as one closed chamfered outline: grey at rest, blue on hover. */
+  /* The Card draws the whole outline (border + corner lines) from edgeColor,
+     which is fed var(--card-line-color) — grey at rest, blue on hover. */
   --card-line-color: var(--color-border);
-  border: 1px solid var(--color-border);
 }
 
 .cardLink:hover .card.card {
   --card-line-color: var(--color-primary);
-  border-color: var(--color-primary);
 }
 
 .cardAccent {

@@ -458,7 +458,7 @@ export default function RuleBuilderPage() {
               variant="outline"
               padding="none"
               showDiagonalBorders
-              diagonalBorderColor="var(--color-primary)"
+              edgeColor="var(--color-primary)"
               className={styles.hero}
             >
               <span className={styles.heroAccent} aria-hidden="true" />
@@ -527,7 +527,7 @@ export default function RuleBuilderPage() {
                 chamferSize="md"
                 padding="none"
                 showDiagonalBorders
-                diagonalBorderColor="var(--color-info)"
+                edgeColor="var(--color-info)"
                 className={`${styles.variantCard} ${styles.masterCard}`}
               >
                 <div className={styles.section}>

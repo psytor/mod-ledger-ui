@@ -130,15 +130,6 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
     return mod.secondary_stats[index] || null;
   });
 
-  const getTierClass = (tier: number): string => {
-    if (tier >= 5) return styles.tierGold;
-    if (tier >= 4) return styles.tierPurple;
-    if (tier >= 3) return styles.tierBlue;
-    if (tier >= 2) return styles.tierGreen;
-    return styles.tierGrey;
-  };
-
-  const tierClass = getTierClass(mod.tier);
   const isSixDot = mod.rarity === 6;
   const tierBorderColor = tierBorderColors[Math.min(5, Math.max(1, mod.tier)) as keyof typeof tierBorderColors];
 
@@ -218,12 +209,11 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
         chamfered
         chamferSize="asymmetric"
         showDiagonalBorders
-        diagonalBorderColor={tierBorderColor}
+        edgeColor={tierBorderColor}
         hoverable
         padding="none"
         onClick={onClick}
-        className={`${styles.modCard} ${tierClass} ${isSixDot ? styles.sixDot : ''}`}
-        style={{ '--border-color': tierBorderColor } as React.CSSProperties}
+        className={`${styles.modCard} ${isSixDot ? styles.sixDot : ''}`}
       >
         <div className={`${styles.cardContent} ${verdict || assigned ? styles.withVerdict : ''}`}>
           {/* MIDDLE ROW: Mod Shape (left) and Stats (right) */}

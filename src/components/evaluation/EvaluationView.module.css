@@ -54,7 +54,6 @@
 
 .masterCard.masterCard {
   padding: var(--spacing-lg);
-  border-color: var(--color-info);
   background: linear-gradient(
     180deg,
     rgba(26, 115, 232, 0.08) 0%,

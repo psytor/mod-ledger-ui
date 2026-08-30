@@ -76,7 +76,7 @@ export default function ModerationPage() {
             variant="outline"
             padding="none"
             showDiagonalBorders
-            diagonalBorderColor="var(--color-primary)"
+            edgeColor="var(--color-primary)"
             className={styles.hero}
           >
             <span className={styles.heroAccent} aria-hidden="true" />
@@ -99,7 +99,7 @@ export default function ModerationPage() {
               chamfered
               padding="none"
               showDiagonalBorders
-              diagonalBorderColor="var(--color-primary)"
+              edgeColor="var(--color-primary)"
               className={styles.empty}
             >
               <p className={styles.emptyText}>Loading shared evaluations…</p>
@@ -109,7 +109,7 @@ export default function ModerationPage() {
               chamfered
               padding="none"
               showDiagonalBorders
-              diagonalBorderColor="var(--color-primary)"
+              edgeColor="var(--color-primary)"
               className={styles.empty}
             >
               <p className={styles.emptyText}>
@@ -196,7 +196,7 @@ function ManifestCard({
         chamfered
         padding="none"
         showDiagonalBorders
-        diagonalBorderColor="var(--card-line-color)"
+        edgeColor="var(--card-line-color)"
         className={styles.card}
       >
         <span className={styles.cardAccent} aria-hidden="true" />

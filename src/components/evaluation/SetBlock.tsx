@@ -54,7 +54,7 @@ export default function SetBlock(props: SetBlockProps) {
       chamferSize="md"
       padding="none"
       showDiagonalBorders
-      diagonalBorderColor={configured ? 'var(--color-success)' : 'var(--color-border)'}
+      edgeColor={configured ? 'var(--color-success)' : 'var(--color-border)'}
       className={`${styles.card} ${configured ? styles.cardConfigured : ''}`}
     >
       <div className={styles.header}>

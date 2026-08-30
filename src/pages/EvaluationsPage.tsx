@@ -163,7 +163,7 @@ export default function EvaluationsPage() {
             variant="outline"
             padding="none"
             showDiagonalBorders
-            diagonalBorderColor="var(--color-primary)"
+            edgeColor="var(--color-primary)"
             className={styles.hero}
           >
             <span className={styles.heroAccent} aria-hidden="true" />
@@ -271,7 +271,7 @@ function MineSection({
           chamfered
           padding="none"
           showDiagonalBorders
-          diagonalBorderColor="var(--color-primary)"
+          edgeColor="var(--color-primary)"
           className={styles.empty}
         >
           <p className={styles.emptyText}>Loading evaluations…</p>
@@ -281,7 +281,7 @@ function MineSection({
           chamfered
           padding="none"
           showDiagonalBorders
-          diagonalBorderColor="var(--color-primary)"
+          edgeColor="var(--color-primary)"
           className={styles.empty}
         >
           <span className={styles.emptyAccent} aria-hidden="true" />
@@ -334,7 +334,7 @@ function ProtocolsSection({
           chamfered
           padding="none"
           showDiagonalBorders
-          diagonalBorderColor="var(--color-primary)"
+          edgeColor="var(--color-primary)"
           className={styles.empty}
         >
           <p className={styles.emptyText}>Loading Protocols…</p>
@@ -344,7 +344,7 @@ function ProtocolsSection({
           chamfered
           padding="none"
           showDiagonalBorders
-          diagonalBorderColor="var(--color-primary)"
+          edgeColor="var(--color-primary)"
           className={styles.empty}
         >
           <p className={styles.emptyText}>
@@ -396,7 +396,7 @@ function EvaluationCard({
         hoverable
         padding="none"
         showDiagonalBorders
-        diagonalBorderColor="var(--card-line-color)"
+        edgeColor="var(--card-line-color)"
         className={styles.card}
       >
         <span className={styles.cardAccent} aria-hidden="true" />

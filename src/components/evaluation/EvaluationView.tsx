@@ -56,7 +56,7 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
           chamferSize="md"
           padding="none"
           showDiagonalBorders
-          diagonalBorderColor="var(--color-info)"
+          edgeColor="var(--color-info)"
           className={styles.masterCard}
         >
           {/* Show every secondary, not just customised ones. Untouched stats

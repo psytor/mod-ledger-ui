@@ -98,9 +98,7 @@
     rgba(19, 23, 41, 0.9) 100%
   );
   backdrop-filter: blur(8px);
-  /* Outline border survives only on straight edges — clip-path cuts the corners,
-     so the corner color comes from showDiagonalBorders + diagonalBorderColor. */
-  border-color: var(--color-primary);
+  /* Outline (border + corner lines) is drawn by the Card from edgeColor. */
 }
 
 .heroAccent {
@@ -250,9 +248,7 @@
   display: grid;
   gap: var(--spacing-sm);
   background: var(--color-background-elevated);
-  /* Straight-side border pairs with the chamfered corner accent lines
-     (showDiagonalBorders) to close the octagonal outline. */
-  border: 1px solid var(--color-border);
+  /* Outline (border + corner lines) is drawn by the Card from edgeColor. */
 }
 
 .statusHead {
