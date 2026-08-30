@@ -196,7 +196,7 @@ function ManifestCard({
         chamfered
         padding="none"
         showDiagonalBorders
-        edgeColor="var(--card-line-color)"
+        edgeColor="var(--color-border)"
         className={styles.card}
       >
         <span className={styles.cardAccent} aria-hidden="true" />

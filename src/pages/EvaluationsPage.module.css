@@ -327,14 +327,8 @@
   flex-direction: column;
   gap: var(--spacing-sm);
   min-height: 180px;
-  transition: border-color var(--transition-base);
-  /* The Card draws the whole outline (border + corner lines) from edgeColor,
-     which is fed var(--card-line-color) — grey at rest, blue on hover. */
-  --card-line-color: var(--color-border);
-}
-
-.cardLink:hover .card.card {
-  --card-line-color: var(--color-primary);
+  /* Outline (border + corner lines) is drawn by the Card from edgeColor. The
+     hover feedback is the lift + shadow below, not an edge-colour change. */
 }
 
 .cardAccent {
