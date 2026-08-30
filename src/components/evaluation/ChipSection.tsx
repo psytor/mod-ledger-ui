@@ -94,7 +94,7 @@ export default function ChipSection({
                     onPin!(stat.stat_id, !pinned);
                   }}
                 >
-                  <svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true">
                     <path
                       fill="currentColor"
                       d="M9.5 1.5 8 3l.6.6-2.7 2.7-2-.4L1 7.4l3 3-3.2 3.2 1 1L6 11.4l3 3 1.5-1.9-.4-2 2.7-2.7.6.6 1.5-1.5-5.4-5.4Z"

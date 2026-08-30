@@ -250,8 +250,8 @@
   display: grid;
   gap: var(--spacing-sm);
   background: var(--color-background-elevated);
-  /* Straight-side border; this card has no diagonal corner accent, so the
-     side border is the only visible edge treatment. */
+  /* Straight-side border pairs with the chamfered corner accent lines
+     (showDiagonalBorders) to close the octagonal outline. */
   border: 1px solid var(--color-border);
 }
 

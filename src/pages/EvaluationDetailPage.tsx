@@ -413,7 +413,7 @@ export default function EvaluationDetailPage() {
 
             <Card
               chamfered
-              chamferSize="sm"
+              chamferSize="md"
               showDiagonalBorders
               diagonalBorderColor="var(--color-primary)"
               padding="none"

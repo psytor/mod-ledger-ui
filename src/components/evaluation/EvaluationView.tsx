@@ -51,7 +51,14 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
           <h2 className={styles.sectionTitle}>Master roll targets</h2>
           <p className={styles.sectionMeta}>Shared across all sets &amp; variants</p>
         </header>
-        <Card chamfered chamferSize="sm" padding="none" className={styles.masterCard}>
+        <Card
+          chamfered
+          chamferSize="md"
+          padding="none"
+          showDiagonalBorders
+          diagonalBorderColor="var(--color-info)"
+          className={styles.masterCard}
+        >
           {/* Show every secondary, not just customised ones. Untouched stats
               render at the 50% default the scorer actually uses, so the view
               matches the editor — what you see is what you save. */}

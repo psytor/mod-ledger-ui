@@ -524,8 +524,10 @@ export default function RuleBuilderPage() {
 
               <Card
                 chamfered
-                chamferSize="sm"
+                chamferSize="md"
                 padding="none"
+                showDiagonalBorders
+                diagonalBorderColor="var(--color-info)"
                 className={`${styles.variantCard} ${styles.masterCard}`}
               >
                 <div className={styles.section}>

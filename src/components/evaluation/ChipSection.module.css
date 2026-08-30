@@ -106,39 +106,38 @@
   box-shadow: 0 0 0 1px var(--color-warning), 0 0 12px rgba(251, 188, 4, 0.28);
 }
 
-/* Pin toggle — a small corner control on Required/Mandatory chips. */
+/* Pin toggle — a small corner control on Required/Mandatory chips. Visible at
+   rest as an outline badge; hovering the chip previews the gold Mandatory
+   state, and a pinned chip locks that gold in. */
 .chipPin {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -7px;
+  right: -7px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   padding: 0;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-disabled);
   border-radius: var(--radius-full);
-  background: var(--color-surface);
-  color: var(--color-text-disabled);
+  background: var(--color-background-elevated);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  opacity: 0.5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   transition: all var(--transition-fast);
 }
 
-.chipWrap:hover .chipPin {
-  opacity: 0.85;
-}
-
+.chipWrap:hover .chipPin,
 .chipPin:hover {
-  opacity: 1;
-  color: var(--color-text-primary);
-  border-color: var(--color-text-disabled);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  background: rgba(251, 188, 4, 0.14);
 }
 
 .chipPin[data-pinned='true'] {
-  opacity: 1;
   color: var(--color-warning);
   border-color: var(--color-warning);
-  background: rgba(251, 188, 4, 0.18);
+  background: rgba(251, 188, 4, 0.2);
+  box-shadow: 0 0 0 1px var(--color-warning), 0 1px 3px rgba(0, 0, 0, 0.45);
 }
