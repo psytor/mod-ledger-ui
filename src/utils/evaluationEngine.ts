@@ -139,6 +139,10 @@ type SecondaryCheck = {
   visibleCount: number;
   threshold: number;
   mandatoryMissing: boolean;
+  // True while a Mandatory stat isn't satisfied yet AND the mod isn't revealed
+  // enough to judge it (all 4 secondaries showing, or level >= 9). The miss is
+  // provisional — don't sell for it, let the mod level up to check.
+  mandatoryDeferred: boolean;
 };
 
 export function checkSecondary(
@@ -199,11 +203,12 @@ export function checkSecondary(
       visibleCount,
       threshold: 0,
       mandatoryMissing: false,
+      mandatoryDeferred: false,
     };
   }
 
-  // Threshold = how many pool stats (Required ∪ Mandatory) the mod must hit. The
-  // bar scales with the *reachable* pool, not just the presence of the primary:
+  // Threshold = how many pool stats (Required ∪ Mandatory) the mod must hit,
+  // scaled by the *reachable* pool:
   //
   //   bar = reachablePoolSize <= 2
   //       ? reachablePoolSize
@@ -213,23 +218,16 @@ export function checkSecondary(
   //   stat (the game blocks the primary from also rolling as a secondary, so it
   //   can never be hit there). A *Mandatory* primary is NOT subtracted — it is
   //   satisfied by the primary and still counts toward `matchTally`.
-  // - `visibleCount - 1` is the "3 of 4" ideal — you're allowed to miss one of
-  //   the four secondary slots. On a fully-revealed mod this is 3.
-  // - `reachablePoolSize - 1` is "allowed to miss one pool stat too". This only
-  //   bites when the reachable pool is tight: a big pool (e.g. Defensive's 7,
-  //   6 reachable) stays capped at 3, while a tight pool (Offensive's 4, 3
-  //   reachable once the primary takes one) eases to 2.
-  // - Below reachablePoolSize 3, that same "-1" leniency degenerates into "hit
-  //   any 1 of 2" or "hit the 1 of 1" — silently turning a rule authored as
-  //   "these 2 stats must BOTH show up" into an OR. So the "-1" allowance only
-  //   applies once the reachable pool is 3 or more; at 1 or 2, every reachable
-  //   pool stat is demanded, no miss allowed.
-  //
-  // With no Mandatory stats every quantity above reduces exactly to the old
-  // Required-only computation, so zero-Mandatory rules are unchanged.
+  // - `visibleCount - 1` is the "3 of 4" ideal — allowed to miss one slot.
+  // - `reachablePoolSize - 1` is "allowed to miss one pool stat too": a big
+  //   pool (Defensive's 7, 6 reachable) stays capped at 3, a tight pool
+  //   (Offensive's 4, 3 reachable once the primary takes one) eases to 2.
+  // - Below reachablePoolSize 3, the "-1" only applies once the reachable pool
+  //   is 3 or more, so 2-stat "these must BOTH show" rules stay an AND.
   const primaryInRequired =
     primaryStatId !== undefined && requiredStatIds.has(primaryStatId);
   const reachablePoolSize = primaryInRequired ? poolSize - 1 : poolSize;
+  const hasMandatory = mandatoryStatIds.size > 0;
 
   // Reachable pool empty: the sole pool member IS a Required primary (=> zero
   // Mandatory, Required list of exactly one). The primary satisfies it; the
@@ -243,21 +241,76 @@ export function checkSecondary(
       visibleCount,
       threshold: 0,
       mandatoryMissing: false,
+      mandatoryDeferred: false,
     };
   }
 
-  const threshold =
+  // Rules with NO Mandatory stat: byte-for-byte the original computation — the
+  // leveling-checkpoint behaviour below is deliberately Mandatory-only.
+  if (!hasMandatory) {
+    const threshold =
+      reachablePoolSize <= 2
+        ? reachablePoolSize
+        : Math.max(1, Math.min(visibleCount - 1, reachablePoolSize - 1));
+    return {
+      pass: !mandatoryMissing && matchTally >= threshold,
+      requiredCount: matchTally,
+      complementaryCount,
+      visibleCount,
+      threshold,
+      mandatoryMissing,
+      mandatoryDeferred: false,
+    };
+  }
+
+  // --- Mandatory rules only, from here down ---
+
+  // Full-reveal bar (the "3 of 4" ideal → visibleCount - 1 becomes the constant 3).
+  const fullThreshold =
     reachablePoolSize <= 2
       ? reachablePoolSize
-      : Math.max(1, Math.min(visibleCount - 1, reachablePoolSize - 1));
+      : Math.max(1, Math.min(3, reachablePoolSize - 1));
+
+  // Partial-reveal checkpoint. A grey mod at L6 shows only 2 of 4 secondaries,
+  // and the ~19.5k credits to reach L9 are only justified if the mod is still
+  // "on pace" for `fullThreshold` counting AT MOST ONE still-hidden slot as a
+  // future hit. So at L6 (2 unseen) the bar is fullThreshold - 1 (= 2 for the
+  // usual bar of 3); at L9 / green-at-L6 (1 unseen) it's the full bar; at full
+  // reveal (0 unseen) it is exactly fullThreshold — which equals the original
+  // formula at visibleCount 4, so a fully-revealed Mandatory rule is unchanged.
+  const unseenSlots = 4 - visibleCount;
+  const threshold = Math.min(
+    visibleCount,
+    Math.max(1, fullThreshold - Math.max(0, unseenSlots - 1))
+  );
+
+  // The Mandatory hard gate is deferred until the mod can be judged: every
+  // secondary revealed, or level >= 9 (whichever comes first). Before that a
+  // missing Mandatory stat does NOT sell the mod — if the anchor is already
+  // present the mod advances regardless of the identity bar; if the anchor is
+  // still unproven, the checkpoint identity bar decides keep-vs-sell and the
+  // anchor gets its chance at the next milestone.
+  const mandatoryEnforced = visibleCount === 4 || mod.level >= 9;
+  const mandatoryDeferred = !mandatoryEnforced && mandatoryMissing;
+
+  let pass: boolean;
+  if (!mandatoryEnforced) {
+    pass =
+      mandatoryHits === mandatoryStatIds.size
+        ? true
+        : matchTally >= threshold;
+  } else {
+    pass = !mandatoryMissing && matchTally >= threshold;
+  }
 
   return {
-    pass: !mandatoryMissing && matchTally >= threshold,
+    pass,
     requiredCount: matchTally,
     complementaryCount,
     visibleCount,
     threshold,
     mandatoryMissing,
+    mandatoryDeferred,
   };
 }
 
@@ -305,9 +358,10 @@ function runVariantChain(
       variant,
       requiredCount: sec.requiredCount,
       complementaryCount: sec.complementaryCount,
-      reason: sec.mandatoryMissing
-        ? 'Missing a stat this rule marks Mandatory.'
-        : `Matched ${sec.requiredCount} of ${sec.visibleCount} secondaries as Required — this rule needs at least ${sec.threshold}.`,
+      reason:
+        sec.mandatoryMissing && !sec.mandatoryDeferred
+          ? 'Missing a stat this rule marks Mandatory.'
+          : `Matched ${sec.requiredCount} of ${sec.visibleCount} secondaries as Required — this rule needs at least ${sec.threshold}.`,
     };
   }
 
