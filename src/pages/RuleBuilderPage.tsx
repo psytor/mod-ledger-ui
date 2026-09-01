@@ -6,6 +6,7 @@ import { evaluationStorage } from '@/services/evaluationStorage';
 import { useMods } from '@/contexts/ModContext';
 import RollTargetsGrid from '@/components/evaluation/RollTargetsGrid';
 import SetBlock from '@/components/evaluation/SetBlock';
+import SetSwitcher from '@/components/evaluation/SetSwitcher';
 import { canModerate } from '@/utils/permissions';
 import { buildShapePrimaryMap } from '@/utils/evaluationEngine';
 import { type TierView } from '@/components/evaluation/evaluationHelpers';
@@ -68,6 +69,10 @@ export default function RuleBuilderPage() {
   const [variantsBySet, setVariantsBySet] = useState<Map<number, Variant[]>>(new Map());
   const [masterTargets, setMasterTargets] = useState<Record<number, number>>({});
   const [tierView, setTierView] = useState<TierView>(5);
+  // Which set's SetBlock the Mod Sets section currently shows. Every set's
+  // rules live in `variantsBySet` regardless — this only drives the display.
+  // Null until the user picks one; the render resolves the default (Health).
+  const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [pendingMasterOptIn, setPendingMasterOptIn] = useState<
     { setId: number; variantId: string } | null
   >(null);
@@ -583,15 +588,23 @@ export default function RuleBuilderPage() {
               {modSets.length === 0 ? (
                 <p className={styles.loadingState}>Loading mod sets…</p>
               ) : (
-                <div className={styles.setList}>
-                  {modSets.map((set) => {
-                    const variants = variantsBySet.get(set.set_id) ?? [];
-                    return (
+                (() => {
+                  const set =
+                    modSets.find((s) => s.set_id === selectedSetId) ??
+                    modSets.find((s) => s.name === 'Health') ??
+                    modSets[0];
+                  return (
+                    <div className={styles.setList}>
+                      <SetSwitcher
+                        sets={modSets}
+                        activeSetId={set.set_id}
+                        onSelect={setSelectedSetId}
+                      />
                       <SetBlock
                         key={set.set_id}
                         mode="edit"
                         set={set}
-                        variants={variants}
+                        variants={variantsBySet.get(set.set_id) ?? []}
                         primaryStats={orderedPrimaryStats}
                         secondaryStats={orderedSecondaryStats}
                         tierView={tierView}
@@ -619,9 +632,9 @@ export default function RuleBuilderPage() {
                           setApplicableShapes(set.set_id, vid, shapes)
                         }
                       />
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })()
               )}
             </section>
 

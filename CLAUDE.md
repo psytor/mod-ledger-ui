@@ -4,8 +4,19 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** the commit after `f27e5cf` plus earlier work. That
-commit made the `InventoryReadout` lenses **cross-filter** (faceted): each
+**Docs current as of:** an uncommitted change on top of the commit after
+`f27e5cf` plus earlier work. The uncommitted change adds a **set switcher**
+to the Mod Sets section: `RuleBuilderPage` (Edit/New Evaluation) and
+`EvaluationView` (read-only detail) no longer stack all 8 `SetBlock`s — a
+sticky `SetSwitcher` bar (`src/components/evaluation/SetSwitcher.tsx`, icon +
+name per set, sprite via the new standalone
+`src/components/mod/SetIcon.tsx`) picks **one** set and only that set's
+`SetBlock` renders. Defaults to Health, resolved during render from a
+nullable `selectedSetId` state (no effect). All sets' rules stay resident in
+`variantsBySet` (builder) / the `allSets` memo (view) regardless of what's
+shown, so switching loses nothing and `handleSubmit` still saves every set.
+See "Set switcher" under "How evaluations work". Before it, the commit after
+`f27e5cf` made the `InventoryReadout` lenses **cross-filter** (faceted): each
 lens's counts now reflect every *other* active filter but not its own axis,
 with a `N / total` pair carrying the old whole-inventory number — see
 "Top-of-page readout" below. Before it, commit `2ce3da1` added
@@ -268,6 +279,34 @@ instead of judging on partial data. 6-dot mods are always evaluable.
 The Evaluations feature classifies each mod against a player-authored rule
 set. The engine lives in `src/utils/evaluationEngine.ts`; pages
 (`EvaluationsPage`, `EvaluationDetailPage`, `RuleBuilderPage`) wrap it.
+
+### Set switcher
+
+The Mod Sets section on `RuleBuilderPage` (Edit/New Evaluation) and inside
+`EvaluationView` (the read-only detail page) shows **one mod set at a time**,
+not all 8 stacked. `SetSwitcher`
+(`src/components/evaluation/SetSwitcher.tsx`) is a sticky bar of buttons —
+one per set, each an icon + the set name — that picks which set's single
+`SetBlock` renders below it. The icon is `SetIcon`
+(`src/components/mod/SetIcon.tsx`), a standalone render of just the mod-set
+bonus glyph: it mirrors `ModSprite`'s `renderSetIcon()` background-crop math
+(compute `background-size`/`-position` at the real target px in one step, no
+upscale-then-scale-down) but drops the shape-relative
+`SET_ICON_LAYOUT_CONFIG` offsets and reuses the `.tint*` filter classes from
+`ModSprite.module.css`. It is deliberately **not** additive — it replaces the
+stacked layout in this one section, per an explicit request ("only 1 is
+displayed on the screen at a time").
+
+The selected set is a nullable `selectedSetId` state on each page; the
+default (Health, else the first set) is resolved **during render**, not via
+an effect — `react-hooks/set-state-in-effect` forbids the seed-in-effect
+pattern. Every set's rules stay resident regardless of what's shown
+(`variantsBySet` in the builder, the `allSets` memo in the view), so
+switching sets loses no in-progress edits and `handleSubmit` still writes a
+`ModSetConfig` for every set with variants. The switcher only appears once
+at least one set is configured on the view page (matching the prior
+behaviour, where the whole set list was hidden for an empty evaluation);
+on the builder it always shows once `modSets` has loaded.
 
 ### Two-stage gate
 

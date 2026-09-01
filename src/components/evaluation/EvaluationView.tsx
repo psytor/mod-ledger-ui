@@ -4,6 +4,7 @@ import { useMods } from '@/contexts/ModContext';
 import type { Evaluation } from '@/types/evaluation';
 import RollTargetsList from './RollTargetsList';
 import SetBlock from './SetBlock';
+import SetSwitcher from './SetSwitcher';
 import type { TierView } from './evaluationHelpers';
 import styles from './EvaluationView.module.css';
 
@@ -14,6 +15,9 @@ interface EvaluationViewProps {
 export default function EvaluationView({ evaluation }: EvaluationViewProps) {
   const { modSets, primaryStats, secondaryStats } = useMods();
   const [tierView, setTierView] = useState<TierView>(5);
+  // Which set the Mod Sets section shows one-at-a-time. Null until the user
+  // picks one; the render resolves the default (Health).
+  const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
 
   const orderedPrimaryStats = useMemo(
     () => [...primaryStats].sort((a, b) => a.name.localeCompare(b.name)),
@@ -109,19 +113,30 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
             No scoring rules configured. Edit to add some.
           </p>
         ) : (
-          <div className={styles.setList}>
-            {allSets.map(({ set, variants }) => (
-              <SetBlock
-                key={set.set_id}
-                mode="view"
-                set={set}
-                variants={variants}
-                primaryStats={orderedPrimaryStats}
-                secondaryStats={orderedSecondaryStats}
-                tierView={tierView}
-              />
-            ))}
-          </div>
+          (() => {
+            const row =
+              allSets.find((r) => r.set.set_id === selectedSetId) ??
+              allSets.find((r) => r.set.name === 'Health') ??
+              allSets[0];
+            return (
+              <div className={styles.setList}>
+                <SetSwitcher
+                  sets={modSets}
+                  activeSetId={row.set.set_id}
+                  onSelect={setSelectedSetId}
+                />
+                <SetBlock
+                  key={row.set.set_id}
+                  mode="view"
+                  set={row.set}
+                  variants={row.variants}
+                  primaryStats={orderedPrimaryStats}
+                  secondaryStats={orderedSecondaryStats}
+                  tierView={tierView}
+                />
+              </div>
+            );
+          })()
         )}
       </section>
     </div>
