@@ -4,18 +4,30 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** an uncommitted change on top of the commit after
-`f27e5cf` plus earlier work. The uncommitted change adds a **set switcher**
-to the Mod Sets section: `RuleBuilderPage` (Edit/New Evaluation) and
-`EvaluationView` (read-only detail) no longer stack all 8 `SetBlock`s — a
+**Docs current as of:** an uncommitted change on top of commit `0c9e077`
+plus earlier work. The uncommitted change **restyles the Filters drawer**
+(`FilterPanel`) into the `InventoryReadout` visual language: every facet
+section is now a grid of `FilterChip` toggles instead of a checkbox list —
+Mod Sets carry the `SetIcon` sprite, Slots carry a new `ShapeIcon`
+(`src/components/mod/ShapeIcon.tsx`, shape glyph, same crop math as
+`SetIcon`), Tiers are colour pills (`--tier-*`), Rarity shows dot pips,
+Primary is a text chip. Sort / Group / Lock became a shared
+`SegmentedToggle` (`src/components/filter/`), and the Character section
+gained a search box + navicharts avatars, selected characters shown as
+removable chips. **Filter state and behaviour are unchanged** — `ModFilters`,
+`setFilter`, `clearFilters`, `applyFlatFilters`, and the readout's
+active-filter mirror all still work as before; this is presentation only.
+See "Filters (one system — no view modes)". Commit `0c9e077` added a **set
+switcher** to the Mod Sets section: `RuleBuilderPage` (Edit/New Evaluation)
+and `EvaluationView` (read-only detail) no longer stack all 8 `SetBlock`s — a
 sticky `SetSwitcher` bar (`src/components/evaluation/SetSwitcher.tsx`, icon +
-name per set, sprite via the new standalone
-`src/components/mod/SetIcon.tsx`) picks **one** set and only that set's
-`SetBlock` renders. Defaults to Health, resolved during render from a
-nullable `selectedSetId` state (no effect). All sets' rules stay resident in
-`variantsBySet` (builder) / the `allSets` memo (view) regardless of what's
-shown, so switching loses nothing and `handleSubmit` still saves every set.
-See "Set switcher" under "How evaluations work". Before it, the commit after
+name per set, sprite via the standalone `src/components/mod/SetIcon.tsx`)
+picks **one** set and only that set's `SetBlock` renders. Defaults to Health,
+resolved during render from a nullable `selectedSetId` state (no effect). All
+sets' rules stay resident in `variantsBySet` (builder) / the `allSets` memo
+(view) regardless of what's shown, so switching loses nothing and
+`handleSubmit` still saves every set. See "Set switcher" under "How
+evaluations work". Before it, the commit after
 `f27e5cf` made the `InventoryReadout` lenses **cross-filter** (faceted): each
 lens's counts now reflect every *other* active filter but not its own axis,
 with a `N / total` pair carrying the old whole-inventory number — see
@@ -530,6 +542,20 @@ need no verdicts. `bucket === 'sell'` diverts assigned (pilot-pool) mods out, an
 > already did the same routing — so the duplication and the second navigation
 > model are gone. Don't reintroduce a `mode` axis: a new "view" is a new
 > `BucketFilter`/disposition, not a mode.
+
+**Drawer presentation.** `FilterPanel` renders every facet as a grid of
+`FilterChip` toggles (`src/components/filter/FilterChip.tsx` — the drawer's
+counterpart to `InventoryReadout`'s disposition chips): Mod Sets show the
+`SetIcon` sprite, Slots the `ShapeIcon` glyph
+(`src/components/mod/ShapeIcon.tsx`), Tiers are `--tier-*` colour pills,
+Rarity is dot pips, Primary is text. Sort / Group / Lock are a shared
+`SegmentedToggle` (`src/components/filter/SegmentedToggle.tsx` — the
+extracted 5-dot/6-dot toggle; the two eval pages still inline their own
+copies). The Character section has a search box, navicharts avatars
+(`characterPortraits` from `useMods()`), and shows selected characters as
+removable chips. This is **presentation only** — the chips call the same
+`setFilter` setters the old checkboxes did, so `applyFlatFilters` and the
+readout's active-filter mirror are untouched.
 
 ### Storage
 
