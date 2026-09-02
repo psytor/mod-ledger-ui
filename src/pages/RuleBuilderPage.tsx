@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Card, Container, Modal, useAuth, type User } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import { evaluationStorage } from '@/services/evaluationStorage';
@@ -59,6 +59,7 @@ export default function RuleBuilderPage() {
   const navigate = useNavigate();
   const { modSets, modSlots, primaryStats, secondaryStats } = useMods();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const [searchParams] = useSearchParams();
   const isEditMode = Boolean(id);
 
   const [state, setState] = useState<LoadState>(
@@ -71,8 +72,13 @@ export default function RuleBuilderPage() {
   const [tierView, setTierView] = useState<TierView>(5);
   // Which set's SetBlock the Mod Sets section currently shows. Every set's
   // rules live in `variantsBySet` regardless — this only drives the display.
-  // Null until the user picks one; the render resolves the default (Health).
-  const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
+  // Seeded once from `?set=` (set by the detail page's Edit link, so you stay
+  // on the set you were viewing); after mount the switcher owns it. The render
+  // resolves the default (Health) when this is null or matches no set.
+  const [selectedSetId, setSelectedSetId] = useState<number | null>(() => {
+    const raw = Number(searchParams.get('set'));
+    return Number.isInteger(raw) && raw > 0 ? raw : null;
+  });
   const [pendingMasterOptIn, setPendingMasterOptIn] = useState<
     { setId: number; variantId: string } | null
   >(null);

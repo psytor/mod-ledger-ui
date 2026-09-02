@@ -10,14 +10,29 @@ import styles from './EvaluationView.module.css';
 
 interface EvaluationViewProps {
   evaluation: Evaluation;
+  // Optional: let the parent observe/control which set the Mod Sets section
+  // shows, so the "Edit" link can carry it into the builder. When omitted,
+  // the component drives its own selection as before.
+  selectedSetId?: number | null;
+  onSelectSet?: (setId: number) => void;
 }
 
-export default function EvaluationView({ evaluation }: EvaluationViewProps) {
+export default function EvaluationView({
+  evaluation,
+  selectedSetId: controlledSetId,
+  onSelectSet,
+}: EvaluationViewProps) {
   const { modSets, primaryStats, secondaryStats } = useMods();
   const [tierView, setTierView] = useState<TierView>(5);
   // Which set the Mod Sets section shows one-at-a-time. Null until the user
-  // picks one; the render resolves the default (Health).
-  const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
+  // picks one; the render resolves the default (Health). The parent may lift
+  // this up (controlledSetId) — its value wins when non-null.
+  const [ownSetId, setOwnSetId] = useState<number | null>(null);
+  const selectedSetId = controlledSetId ?? ownSetId;
+  const selectSet = (setId: number) => {
+    setOwnSetId(setId);
+    onSelectSet?.(setId);
+  };
 
   const orderedPrimaryStats = useMemo(
     () => [...primaryStats].sort((a, b) => a.name.localeCompare(b.name)),
@@ -123,7 +138,7 @@ export default function EvaluationView({ evaluation }: EvaluationViewProps) {
                 <SetSwitcher
                   sets={modSets}
                   activeSetId={row.set.set_id}
-                  onSelect={setSelectedSetId}
+                  onSelect={selectSet}
                 />
                 <SetBlock
                   key={row.set.set_id}

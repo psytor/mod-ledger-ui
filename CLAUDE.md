@@ -4,8 +4,18 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** an uncommitted change on top of commit `0c9e077`
-plus earlier work. The uncommitted change **restyles the Filters drawer**
+**Docs current as of:** an uncommitted change on top of commit `a0f3e96`
+plus earlier work. The uncommitted change makes the **set switcher
+selection carry from view into edit**: `EvaluationDetailPage` now owns the
+`EvaluationView` set selection (new optional `selectedSetId` / `onSelectSet`
+props on `EvaluationView` — controlled value wins, else it self-drives as
+before) and its **Edit** link appends `?set=<setId>`. `RuleBuilderPage`
+seeds its `selectedSetId` **once** from that query param via
+`useSearchParams` in the `useState` initializer (integer > 0, else null);
+after mount the switcher owns it, and the render-time default resolver
+still falls back to Health for a null / unknown id. `/evaluations/new` has
+no param, so it still defaults to Health. See "Set switcher" under "How
+evaluations work". Commit `a0f3e96` **restyled the Filters drawer**
 (`FilterPanel`) into the `InventoryReadout` visual language: every facet
 section is now a grid of `FilterChip` toggles instead of a checkbox list —
 Mod Sets carry the `SetIcon` sprite, Slots carry a new `ShapeIcon`
@@ -312,7 +322,23 @@ displayed on the screen at a time").
 The selected set is a nullable `selectedSetId` state on each page; the
 default (Health, else the first set) is resolved **during render**, not via
 an effect — `react-hooks/set-state-in-effect` forbids the seed-in-effect
-pattern. Every set's rules stay resident regardless of what's shown
+pattern.
+
+**View → edit carry-over.** The selection follows you from the read-only
+detail page into the builder. `EvaluationView` takes optional
+`selectedSetId` / `onSelectSet` props: `EvaluationDetailPage` passes them so
+it owns the view's selection (the controlled value wins when non-null; with
+no props `EvaluationView` self-drives exactly as before), and its **Edit**
+link becomes `/evaluations/:id/edit?set=<setId>` when a set is picked.
+`RuleBuilderPage` reads that param with `useSearchParams` **inside the
+`useState` initializer** for `selectedSetId` (`Number.isInteger(raw) && raw
+> 0`, else `null`) — a one-time seed, not an effect and not a live binding;
+after mount the `SetSwitcher` owns the state. The render-time default
+resolver already tolerates a `selectedSetId` that matches no set, so a
+stale/garbage `?set=` silently falls back to Health. `/evaluations/new`
+carries no param and still starts on Health.
+
+Every set's rules stay resident regardless of what's shown
 (`variantsBySet` in the builder, the `allSets` memo in the view), so
 switching sets loses no in-progress edits and `handleSubmit` still writes a
 `ModSetConfig` for every set with variants. The switcher only appears once

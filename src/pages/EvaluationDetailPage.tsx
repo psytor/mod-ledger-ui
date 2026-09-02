@@ -86,6 +86,9 @@ export default function EvaluationDetailPage() {
   // The caller's own eval names — fetched when the copy modal opens, drives
   // the duplicate-name warning the same way the builder does.
   const [myNames, setMyNames] = useState<string[]>([]);
+  // Which mod set EvaluationView is currently showing, so the Edit link can
+  // hand it to the builder (?set=) and you land on the same set.
+  const [viewSetId, setViewSetId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -356,7 +359,11 @@ export default function EvaluationDetailPage() {
                   Use this
                 </Button>
                 {canEdit && (
-                  <Link to={`/evaluations/${evaluation.id}/edit`}>
+                  <Link
+                    to={`/evaluations/${evaluation.id}/edit${
+                      viewSetId != null ? `?set=${viewSetId}` : ''
+                    }`}
+                  >
                     <Button variant="outline">Edit</Button>
                   </Link>
                 )}
@@ -434,7 +441,11 @@ export default function EvaluationDetailPage() {
               </div>
             </Card>
 
-            <EvaluationView evaluation={evaluation} />
+            <EvaluationView
+              evaluation={evaluation}
+              selectedSetId={viewSetId}
+              onSelectSet={setViewSetId}
+            />
           </div>
         </div>
       </Container>
