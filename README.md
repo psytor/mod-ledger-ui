@@ -55,7 +55,7 @@ component with `chamfered` / `chamferSize` props). No local fork.
 The app is mounted under **`/mod-ledger/`** and served from a single origin
 together with the rest of the Astrogator's Table products. The workspace
 nginx (lives at the workspace root, not in this submodule) is the front door
-for both dev (`http://localhost/`) and prod (`https://astrotable.dynv6.net/`)
+for both dev (`http://localhost/`) and prod (`https://astrotable.org/`)
 and dumb-proxies each prefix to its backend or frontend.
 
 It consumes:
@@ -117,8 +117,8 @@ is committed. Vite **inlines `VITE_*` values at build time**, so changing
 
 | Variable                      | Dev                                | Prod                                              |
 |-------------------------------|------------------------------------|---------------------------------------------------|
-| `VITE_MOD_LEDGER_URL`         | `http://localhost/mod-ledger`      | `https://astrotable.dynv6.net/mod-ledger`         |
-| `VITE_ASTROGATORS_TABLE_URL`  | `http://localhost/astrogators-table` | `https://astrotable.dynv6.net/astrogators-table` |
+| `VITE_MOD_LEDGER_URL`         | `http://localhost/mod-ledger`      | `https://astrotable.org/mod-ledger`         |
+| `VITE_ASTROGATORS_TABLE_URL`  | `http://localhost/astrogators-table` | `https://astrotable.org/astrogators-table` |
 
 Both must point through the workspace nginx — never direct-port (e.g.
 `http://localhost:8001/...`). Direct ports are a different origin from `:80`,

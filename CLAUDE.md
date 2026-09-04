@@ -218,7 +218,7 @@ storage (handled by shared-ui).
 ## Single-origin rule (read before touching URLs)
 
 `mod-ledger-ui`, the hub, and both backends are served from **one origin**
-in both dev and prod — `http://localhost/` in dev, `https://astrotable.dynv6.net/`
+in both dev and prod — `http://localhost/` in dev, `https://astrotable.org/`
 in prod. The workspace nginx reverse proxy (at the workspace root, not in
 this submodule) fronts every request and dumb-proxies each prefix to the
 right backend or frontend.
@@ -874,16 +874,16 @@ Current vars:
 - `VITE_MOD_LEDGER_URL` — full URL including the mod-ledger backend's
   `SERVICE_PREFIX`, routed through the workspace nginx. Dev:
   `http://localhost/mod-ledger`. Prod:
-  `https://astrotable.dynv6.net/mod-ledger`.
+  `https://astrotable.org/mod-ledger`.
 - `VITE_ASTROGATORS_TABLE_URL` — full URL including the astrogators-table
   backend's `SERVICE_PREFIX`, also proxied. Dev:
   `http://localhost/astrogators-table`. Prod:
-  `https://astrotable.dynv6.net/astrogators-table`.
+  `https://astrotable.org/astrogators-table`.
 - `VITE_NAVICHARTS_URL` — full URL including the navicharts backend's
   `SERVICE_PREFIX`, also proxied. Only used for `GET /units/catalog` to
   resolve `ModCard`'s character avatar (see "Character avatar on ModCard").
   Dev: `http://localhost/navicharts`. Prod:
-  `https://astrotable.dynv6.net/navicharts`.
+  `https://astrotable.org/navicharts`.
 
 ## When adding dependencies
 
