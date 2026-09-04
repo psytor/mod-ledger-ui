@@ -3,11 +3,17 @@ import { useAuth, Button, Input, Card, Container } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
 import styles from './AllyCodeSelectionPage.module.css';
 
+// Edge colours for the ally-code cards — grey at rest, blue on hover, matching
+// the application cards on the hub home page.
+const EDGE_REST = 'var(--color-border)';
+const EDGE_HOVER = 'rgba(59, 130, 246, 0.55)';
+
 export default function AllyCodeSelectionPage() {
   const { allyCodes, addAllyCode, selectAllyCode } = useAuth();
   const [newAllyCode, setNewAllyCode] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredCode, setHoveredCode] = useState<string | null>(null);
 
   const handleAddAllyCode = async () => {
     if (!newAllyCode.trim()) {
@@ -71,20 +77,33 @@ export default function AllyCodeSelectionPage() {
             /* Has ally codes - show grid */
             <>
               <div className={styles.allyCodeGrid}>
-                {allyCodes.map((ac) => (
-                  <Card
-                    key={ac.ally_code}
-                    chamfered
-                    hoverable
-                    onClick={() => handleSelectExisting(ac.ally_code)}
-                    className={styles.allyCodeCard}
-                  >
-                    <div className={styles.playerName}>
-                      {ac.player_name || 'Unknown Player'}
+                {allyCodes.map((ac) => {
+                  const isHovered = hoveredCode === ac.ally_code;
+                  return (
+                    <div
+                      key={ac.ally_code}
+                      className={styles.cardWrapper}
+                      onMouseEnter={() => setHoveredCode(ac.ally_code)}
+                      onMouseLeave={() => setHoveredCode(null)}
+                    >
+                      {isHovered && <div className={styles.cardGlow} />}
+                      <Card
+                        chamfered
+                        chamferSize="lg"
+                        showDiagonalBorders
+                        edgeColor={isHovered ? EDGE_HOVER : EDGE_REST}
+                        onClick={() => handleSelectExisting(ac.ally_code)}
+                        className={styles.allyCodeCard}
+                      >
+                        <div className={styles.playerName}>
+                          {ac.player_name || 'Unknown Player'}
+                        </div>
+                        <div className={styles.allyCode}>{ac.ally_code}</div>
+                        <div className={styles.viewHint}>View mods →</div>
+                      </Card>
                     </div>
-                    <div className={styles.allyCode}>{ac.ally_code}</div>
-                  </Card>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Option to add another */}

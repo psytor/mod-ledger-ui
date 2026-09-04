@@ -42,8 +42,11 @@
 }
 
 .title {
-  font-size: 2.5rem;
-  font-weight: bold;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: var(--font-weight-bold, 700);
+  font-family: var(--font-heading);
+  color: var(--color-primary);
+  text-shadow: 0 2px 8px rgba(26, 115, 232, 0.5);
   margin: 0;
   text-align: center;
 }
@@ -104,21 +107,57 @@
    would left-justify a partial last row). */
 .allyCodeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 200px);
+  grid-template-columns: repeat(auto-fill, 220px);
   justify-content: center;
-  gap: 1rem;
+  gap: 1.25rem;
   width: 100%;
 }
 
-.allyCodeCard {
-  padding: 1rem 1.25rem;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+/* Wrapper carries the blurred glow that pulses behind a card on hover —
+   same treatment as the application cards on the hub home page. */
+.cardWrapper {
+  position: relative;
 }
 
-.allyCodeCard:hover {
-  transform: scale(1.02);
+.cardGlow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(59, 130, 246, 0.22),
+    rgba(59, 130, 246, 0.16)
+  );
+  filter: blur(22px);
+  animation: glowPulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    filter: blur(22px);
+  }
+  50% {
+    filter: blur(30px);
+  }
+}
+
+.allyCodeCard {
+  position: relative;
+  z-index: 1;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(17, 24, 39, 0.82);
+  backdrop-filter: blur(8px);
+  transition: transform 200ms ease, box-shadow 200ms ease,
+    --card-edge-color 200ms ease;
+}
+
+.cardWrapper:hover .allyCodeCard {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
 .playerName {
@@ -131,6 +170,21 @@
   color: var(--color-text-secondary, #999);
   font-family: monospace;
   font-size: 0.8125rem;
+}
+
+/* Click affordance — muted at rest, lights up blue with the card's edge. */
+.viewHint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-disabled, #5a5f7a);
+  transition: color 200ms ease;
+}
+
+.cardWrapper:hover .viewHint {
+  color: rgba(59, 130, 246, 0.9);
 }
 
 .addAnother {
