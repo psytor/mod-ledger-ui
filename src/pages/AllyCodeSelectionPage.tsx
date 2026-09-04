@@ -101,7 +101,7 @@ export default function AllyCodeSelectionPage() {
                   <Button
                     onClick={handleAddAllyCode}
                     disabled={isAdding}
-                    variant="secondary"
+                    variant="primary"
                   >
                     {isAdding ? 'Adding...' : 'Add'}
                   </Button>
