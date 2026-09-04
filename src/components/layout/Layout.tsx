@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { NavBar, Footer, Container, Button, useAuth } from 'astrogators-shared-ui';
+import { NavBar, Footer, Container, RosterRefresh, useAuth } from 'astrogators-shared-ui';
 import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { pilotAssignmentStorage } from '@/services/pilotAssignmentStorage';
@@ -15,31 +15,6 @@ import styles from './Layout.module.css';
 // can subscribe and refetch.
 export const EVALS_MIGRATED_EVENT = 'mod-ledger:evals-migrated';
 
-// The backend emits naive UTC ISO timestamps (no timezone suffix). new Date()
-// would read those as LOCAL time, so append 'Z' when no offset is present.
-function parseBackendTime(iso: string): Date {
-  const hasTz = /([zZ]|[+-]\d{2}:?\d{2})$/.test(iso);
-  return new Date(hasTz ? iso : `${iso}Z`);
-}
-
-// Compact "updated X ago" relative time.
-function formatAgo(date: Date, nowMs: number): string {
-  const sec = Math.max(0, Math.floor((nowMs - date.getTime()) / 1000));
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  return `${Math.floor(hr / 24)}d ago`;
-}
-
-// m:ss countdown for the refresh cooldown.
-function formatCountdown(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
 interface LayoutProps {
   children: ReactNode;
 }
@@ -50,27 +25,11 @@ export default function Layout({ children }: LayoutProps) {
   const { clearVerdicts } = useEvaluation();
   const location = useLocation();
 
-  // Tick a 1s clock only while there's a snapshot to age / a cooldown to count
-  // down. This drives the "Updated X ago" label and the cooldown timer — it is
-  // a display clock, NOT data polling (no network calls happen here).
-  const [now, setNow] = useState<number>(() => Date.now());
-  const showClock = Boolean(selectedAllyCode && cachedAt);
-  useEffect(() => {
-    if (!showClock) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [showClock]);
-
-  const cooldownRemaining = refreshAvailableAt
-    ? Math.max(0, Math.ceil((refreshAvailableAt - now) / 1000))
-    : 0;
-  const updatedAgo = cachedAt ? formatAgo(parseBackendTime(cachedAt), now) : null;
-  const refreshDisabled = isLoadingMods || cooldownRemaining > 0;
-
   // Manual inventory refresh — re-pulls the selected ally code's mods. The
   // fetch lives in ModContext (not shared-ui): refreshing a mod inventory is a
-  // mod-ledger concern, so the button lives here rather than inside the shared
-  // AllyCodeDropdown.
+  // mod-ledger concern, so the handler lives here; the shared RosterRefresh
+  // control owns only the button + "Updated X ago" / cooldown readout, and
+  // disables itself while a pull is in flight or the floor is active.
   //
   // We clear verdicts first: the new mod data would otherwise be paired with
   // scoring computed against the *old* data (verdicts aren't recomputed
@@ -79,11 +38,11 @@ export default function Layout({ children }: LayoutProps) {
   // readout and every per-card band chip together, so the grid shows plain
   // mods until the user re-runs the evaluation. Mirrors the ally-code switch.
   const handleRefresh = useCallback(() => {
-    if (selectedAllyCode && !refreshDisabled) {
+    if (selectedAllyCode && !isLoadingMods) {
       clearVerdicts();
       refreshMods(selectedAllyCode);
     }
-  }, [selectedAllyCode, refreshDisabled, clearVerdicts, refreshMods]);
+  }, [selectedAllyCode, isLoadingMods, clearVerdicts, refreshMods]);
 
   // Migration prompt lives at the Layout level (not on EvaluationsPage)
   // so it fires no matter which mod-ledger-ui page the user lands on
@@ -168,44 +127,17 @@ export default function Layout({ children }: LayoutProps) {
       : []),
   ];
 
-  // App-specific controls for the NavBar's right cluster: the "Updated X ago"
-  // readout + the manual inventory refresh button. NavBar renders these just
-  // left of the ally-code dropdown, preserving the tight refresh-hugs-ally group.
-  const rightExtras = (
-    <>
-      {selectedAllyCode && updatedAgo && (
-        <span
-          className={styles.updatedLabel}
-          title={
-            cooldownRemaining > 0
-              ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
-              : 'Click refresh to pull the latest from the game'
-          }
-        >
-          {cooldownRemaining > 0
-            ? `Updated ${updatedAgo} · fresh in ${formatCountdown(cooldownRemaining)}`
-            : `Updated ${updatedAgo}`}
-        </span>
-      )}
-      {selectedAllyCode && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshDisabled}
-          title={
-            cooldownRemaining > 0
-              ? `Fresh data available in ${formatCountdown(cooldownRemaining)}`
-              : 'Refresh inventory'
-          }
-          aria-label="Refresh inventory"
-          className={styles.refreshButton}
-        >
-          <span className={isLoadingMods ? styles.spin : undefined}>⟳</span>
-        </Button>
-      )}
-    </>
-  );
+  // App-specific control for the NavBar's right cluster: the shared
+  // RosterRefresh (the "Updated X ago" readout + manual inventory re-pull).
+  // NavBar renders it just left of the ally-code dropdown.
+  const rightExtras = selectedAllyCode ? (
+    <RosterRefresh
+      onRefresh={handleRefresh}
+      isRefreshing={isLoadingMods}
+      cachedAt={cachedAt}
+      refreshAvailableAt={refreshAvailableAt}
+    />
+  ) : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>

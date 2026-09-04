@@ -6,35 +6,3 @@
 .topBar > div {
   max-width: 1400px;
 }
-
-/* Icon-only refresh button — keep the outline button look but make it a tidy
-   circle around the glyph (no text). */
-.refreshButton {
-  border-radius: 50%;
-  aspect-ratio: 1;
-  padding: 0.4rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-/* "Updated X ago" / cooldown readout sitting left of the refresh button.
-   Small, muted, and nowrap so it never wraps the bar. */
-.updatedLabel {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-/* Spinning refresh glyph while an inventory fetch is in flight. inline-block so
-   the transform applies, and a tight line so it stays centred in the button. */
-.spin {
-  display: inline-block;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
