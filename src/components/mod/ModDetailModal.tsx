@@ -167,9 +167,21 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
           <div className={styles['modal-stats-section']}>
             <h3>Evaluation</h3>
             <div className={styles.evalSummary}>
-              <span className={`${styles.evalBadge} ${verdictBadgeClass(verdict.verdict)}`}>
-                {verdictLabel(verdict)}
-              </span>
+              {pilotMod && verdict.verdict === 'SELL' ? (
+                <>
+                  <span className={`${styles.evalBadge} ${styles.evalBadgeForPilot}`}>
+                    FOR PILOT
+                  </span>
+                  <span className={styles.evalBadgeSeparator}>/</span>
+                  <span className={`${styles.evalBadge} ${styles.evalBadgeSell}`}>
+                    SELL
+                  </span>
+                </>
+              ) : (
+                <span className={`${styles.evalBadge} ${verdictBadgeClass(verdict.verdict)}`}>
+                  {verdictLabel(verdict)}
+                </span>
+              )}
               <span className={styles.evalMeaning}>{exp.meaning}</span>
             </div>
 

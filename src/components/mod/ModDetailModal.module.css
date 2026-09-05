@@ -400,6 +400,16 @@
 .evalBadgePass { background: #15803d; }
 .evalBadgeUpgrade { background: #b45309; }
 .evalBadgeUnconfigured { background: #475569; }
+/* Same cyan as ModCard's .verdictForPilot, for one consistent "pilot" color
+   across the card badge and this modal badge. */
+.evalBadgeForPilot { background: rgba(8, 145, 178, 0.92); }
+
+/* Plain separator between the two FOR PILOT / SELL tags — not a badge itself,
+   just punctuation, so it stays quiet instead of competing with them. */
+.evalBadgeSeparator {
+  color: #6b7280;
+  font-weight: 600;
+}
 
 .evalTable {
   width: 100%;
