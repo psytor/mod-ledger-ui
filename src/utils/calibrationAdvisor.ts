@@ -89,9 +89,19 @@ function priorityOf(evPerCost: number): CalibrationPriority {
 
 /**
  * Returns null whenever the mod isn't a real calibration candidate: wrong
- * rarity, no attempts left, no reference rule to judge roles/targets against
- * (an UNCONFIGURED mod has no match_breakdown), or no secondary with enough
+ * rarity, no attempts left, not a PASS_RULES mod, or no secondary with enough
  * rolls to donate from at all.
+ *
+ * Restricted to PASS_RULES on purpose. checkSecondary's pass/fail gate
+ * (evaluationEngine.ts) counts only which secondary stat TYPES are present
+ * and Required/Mandatory-classified — never roll count or roll value.
+ * Calibration only ever reshuffles rolls among a mod's four EXISTING stat
+ * types; it can never introduce a different type. So a SELL mod's gate is
+ * fixed forever — no calibration outcome can ever turn it into a PASS_RULES
+ * mod, and its fate (sell it, or keep it as a pilot mod, per the SELL
+ * verdict's own explanation) doesn't depend on roll quality either. There is
+ * no genuine calibration value on a SELL mod, so it's excluded rather than
+ * offered as a false "this could still pass" candidate.
  */
 export function computeCalibrationCandidacy(
   mod: ParsedMod,
@@ -100,7 +110,8 @@ export function computeCalibrationCandidacy(
 ): CalibrationCandidacy | null {
   if (mod.rarity !== 6) return null;
   if (mod.calibrations_left === undefined || mod.calibrations_left <= 0) return null;
-  const breakdown = verdict?.match_breakdown;
+  if (verdict?.verdict !== 'PASS_RULES') return null;
+  const breakdown = verdict.match_breakdown;
   if (!breakdown) return null;
 
   const nextAttemptNumber = (mod.reroll_count ?? 0) + 1;
