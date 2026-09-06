@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { BucketFilter, QualityBand } from '@/utils/modDisposition';
+import type { CalibrationPriority } from '@/utils/calibrationAdvisor';
 import { defaultFilters } from './defaultFilters';
 
 export type GroupBy = 'none' | 'shape' | 'tier' | 'set' | 'primary';
@@ -20,6 +21,10 @@ export interface ModFilters {
   // quality-band lens (null = all bands); independent of `bucket` — both can
   // be active at once to narrow e.g. "slice mods in the gold band":
   band: QualityBand | null;
+  // calibration-candidacy lens (null = all mods); independent of `bucket` and
+  // `band` — only 6-dot mods with attempts left and a reference rule can ever
+  // match a non-null value here (see calibrationAdvisor.ts).
+  calibration: CalibrationPriority | null;
   // how the result grid is grouped (none = one flat list):
   groupBy: GroupBy;
   // how the result grid is ordered (none = inventory order):

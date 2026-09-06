@@ -271,13 +271,48 @@
 }
 
 .calibrationRow {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .calibration {
   color: #22d3ee;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+/* Calibration-priority pill — same accent colours as the InventoryReadout's
+   Calibration lens chips, so the two surfaces speak one colour language. */
+.calibrationPill {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: help;
+  pointer-events: auto;
+}
+
+.calibrationPrimePill {
+  background: rgba(20, 184, 166, 0.18);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.45);
+}
+
+.calibrationWorthAShotPill {
+  background: rgba(234, 179, 8, 0.16);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.calibrationLowPriorityPill {
+  background: rgba(100, 116, 139, 0.16);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.4);
 }
 
 .characterRow {

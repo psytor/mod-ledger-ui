@@ -67,7 +67,7 @@ function UnconfiguredView({
 
 export default function ModGridPage() {
   const { selectedAllyCode } = useAuth();
-  const { mods, isLoadingMods, modsError, fetchMods } = useMods();
+  const { mods, isLoadingMods, modsError, fetchMods, calibrationCosts } = useMods();
   const { filters, openPanel } = useFilters();
   const { verdicts, clearVerdicts, activeEvaluationId } = useEvaluation();
   const { assignments, syncSnapshots } = usePilotAssignment();
@@ -139,7 +139,7 @@ export default function ModGridPage() {
     // readout and disposition lenses are meaningless — show every mod plainly,
     // with the facet/cross-cutting filters still applied.
     if (noEvaluation) {
-      const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds);
+      const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds, calibrationCosts);
       const sorted = sortMods(filtered, filters.sortBy, verdicts);
       const groups = groupMods(sorted, filters.groupBy);
       return groups.map((group) => (
@@ -150,7 +150,7 @@ export default function ModGridPage() {
       ));
     }
 
-    const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds);
+    const filtered = applyFlatFilters(mods, filters, verdicts, assignedModIds, calibrationCosts);
     const sorted = sortMods(filtered, filters.sortBy, verdicts);
     const groups = groupMods(sorted, filters.groupBy);
 
@@ -220,7 +220,7 @@ export default function ModGridPage() {
           <div className={styles.headerLeft}>
             <h1>All Mods</h1>
             <p className={styles.modCount}>
-              {`Showing ${applyFlatFilters(mods, filters, verdicts).length} of ${mods.length} mods`}
+              {`Showing ${applyFlatFilters(mods, filters, verdicts, assignedModIds, calibrationCosts).length} of ${mods.length} mods`}
             </p>
           </div>
 

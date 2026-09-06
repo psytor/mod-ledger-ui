@@ -1,7 +1,9 @@
 import type { ParsedMod } from '@/services/modLedgerApi';
+import type { CalibrationCost } from '@/services/gameDataApi';
 import type { VerdictResult } from '@/types/evaluation';
 import type { ModFilters, GroupBy, SortBy } from '@/contexts/FilterContext';
 import { bucketOf, advancementRank, qualityBand, type QualityBand } from './modDisposition';
+import { computeCalibrationCandidacy, type CalibrationPriority } from './calibrationAdvisor';
 
 function matchesCrossCutting(mod: ParsedMod, filters: ModFilters): boolean {
   if (filters.locked === 'locked' && !mod.locked) return false;
@@ -26,7 +28,8 @@ export function applyFlatFilters(
   mods: ParsedMod[],
   filters: ModFilters,
   verdicts?: Map<string, VerdictResult>,
-  assignedModIds?: Set<string>
+  assignedModIds?: Set<string>,
+  calibrationCosts?: CalibrationCost[]
 ): ParsedMod[] {
   return mods.filter((mod) => {
     if (filters.flatSets.length && !filters.flatSets.includes(mod.set)) return false;
@@ -55,6 +58,18 @@ export function applyFlatFilters(
     if (filters.band && verdicts?.size) {
       const quality = verdicts.get(mod.mod_id)?.absolute_quality;
       if (quality === undefined || qualityBand(quality) !== filters.band) return false;
+    }
+    // Calibration-candidacy lens — same stale-guard as band. A mod that isn't
+    // a real candidate (wrong rarity, no attempts left, no reference rule) has
+    // no priority, so a calibration filter excludes it, same treatment as an
+    // unscored mod under the band filter.
+    if (filters.calibration && verdicts?.size) {
+      const candidacy = computeCalibrationCandidacy(
+        mod,
+        verdicts.get(mod.mod_id),
+        calibrationCosts ?? []
+      );
+      if (!candidacy || candidacy.priority !== filters.calibration) return false;
     }
     if (!matchesCrossCutting(mod, filters)) return false;
     return true;
@@ -133,6 +148,38 @@ export function getQualityBandCounts(
     bands[qualityBand(quality)]++;
   }
   return { scored, bands };
+}
+
+/**
+ * Distribution of every calibration-*eligible* mod across the three priority
+ * tiers. "Eligible" means computeCalibrationCandidacy returned non-null (6-dot,
+ * attempts left, has a reference rule, has a viable donor) — everything else
+ * (wrong rarity, maxed attempts, UNCONFIGURED) is excluded entirely, same
+ * treatment as an unscored mod under getQualityBandCounts.
+ */
+export interface CalibrationCounts {
+  eligible: number;
+  priorities: Record<CalibrationPriority, number>;
+}
+
+export function getCalibrationCounts(
+  mods: ParsedMod[],
+  verdicts: Map<string, VerdictResult>,
+  calibrationCosts: CalibrationCost[]
+): CalibrationCounts {
+  const priorities: Record<CalibrationPriority, number> = {
+    prime: 0,
+    'worth-a-shot': 0,
+    'low-priority': 0,
+  };
+  let eligible = 0;
+  for (const mod of mods) {
+    const candidacy = computeCalibrationCandidacy(mod, verdicts.get(mod.mod_id), calibrationCosts);
+    if (!candidacy) continue;
+    eligible++;
+    priorities[candidacy.priority]++;
+  }
+  return { eligible, priorities };
 }
 
 /**

@@ -8,6 +8,7 @@ export const defaultFilters: ModFilters = {
   flatPrimaries: [],
   bucket: null,
   band: null,
+  calibration: null,
   groupBy: 'none',
   sortBy: 'none',
   locked: 'all',

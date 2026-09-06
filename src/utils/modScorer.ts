@@ -7,7 +7,9 @@ import type {
 
 // Hardcoded multipliers. Lever to tune later is the neutral multiplier
 // (drop to 0.05 if lucky-garbage mods feel overrepresented in real inventories).
-const TIER_MULTIPLIERS: Record<SecondaryClassification | 'neutral', number> = {
+// Exported: calibrationAdvisor.ts reuses these exact weights rather than
+// duplicating magic numbers that could drift out of sync.
+export const TIER_MULTIPLIERS: Record<SecondaryClassification | 'neutral', number> = {
   required: 1.0,
   mandatory: 1.0, // same weight as Required — Mandatory is Required plus a hard gate
   complementary: 0.4,
@@ -24,7 +26,7 @@ const TIER_MULTIPLIERS: Record<SecondaryClassification | 'neutral', number> = {
 // default 0.4 here — but deliberately still short of Required's 1.0, so a
 // mod stacked with Complementary alone can't outscore one that actually met
 // the Required bar.
-const COMPLEMENTARY_WEIGHT_WHEN_EASED = 0.7;
+export const COMPLEMENTARY_WEIGHT_WHEN_EASED = 0.7;
 
 // A Wanted primary contributes to the score at the same weight as a Required
 // secondary that rolled perfectly. Unlike a secondary, a primary has no roll
@@ -35,7 +37,10 @@ const COMPLEMENTARY_WEIGHT_WHEN_EASED = 0.7;
 // this function at all (rejected earlier by evaluationEngine's checkPrimary).
 const PRIMARY_WANTED_WEIGHT = 1.0;
 
-const DEFAULT_TARGET = 0.5;
+// Exported: buildMatchBreakdown (evaluationEngine.ts) uses this same fallback
+// when populating SecondaryRole.target, so an un-authored stat reads the same
+// "coin flip" target everywhere rather than two independently-chosen defaults.
+export const DEFAULT_TARGET = 0.5;
 
 // Piecewise linear with kink at (T, 50). Endpoints (0,0) and (1,100). UI clamps
 // T to [0.01, 0.99]; the T=0/T=1 guards here are defensive against direct calls.

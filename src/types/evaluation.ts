@@ -98,11 +98,18 @@ export type VariantResult = {
 
 // One of the mod's own secondaries, tagged with the role the reference rule
 // assigns it. Presentation only — lets the modal show *which* stats counted.
+// `stat_id`/`target` are additive (calibrationAdvisor.ts): since this array is
+// built via `mod.secondary_stats.map(...)` in buildMatchBreakdown, it stays
+// index-aligned with `ParsedMod.secondary_stats` — callers needing both the
+// role/target AND the roll data (rolls/roll_efficiencies) zip the two arrays
+// by index rather than re-resolving stat ids themselves.
 export type SecondaryRole = {
   stat_name: string;
   display_value: string;        // e.g. "+15" / "+2.12%"
   role: SecondaryClassification; // 'required' | 'mandatory' | 'complementary' | 'neutral'
   is_revealed: boolean;
+  stat_id: number;
+  target: number;                // variant.secondary_targets[stat_id] ?? DEFAULT_TARGET (0.5)
 };
 
 // Per-mod breakdown against the reference rule (the winner on a pass, or the
@@ -114,6 +121,12 @@ export type MatchBreakdown = {
   mandatory_wanted: string[];         // stat names the rule marks Mandatory
   required_wanted: string[];          // stat names the rule marks Required
   complementary_wanted: string[];     // stat names the rule marks Complementary
+  // True when the reference variant's primary classification is 'required' or
+  // 'mandatory' — the same "eased Complementary weight" signal modScorer.ts
+  // and evaluationEngine.ts's applyQualityGates each already compute for
+  // their own purposes. Carried here so calibrationAdvisor.ts can reuse the
+  // exact same weighting without re-deriving it from the raw Variant.
+  primary_eases_complementary: boolean;
 };
 
 export type VerdictResult = {

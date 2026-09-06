@@ -15,6 +15,12 @@ import {
   type QualityBand,
 } from '@/utils/modDisposition';
 import { verdictTooltip } from '@/utils/verdictExplain';
+import {
+  computeCalibrationCandidacy,
+  calibrationTooltip,
+  CALIBRATION_PRIORITY_INFO,
+  type CalibrationPriority,
+} from '@/utils/calibrationAdvisor';
 import ModSprite from './ModSprite';
 import styles from './ModCard.module.css';
 
@@ -105,14 +111,25 @@ const tierBorderColors = {
   5: '#fbbf24',  // Gold
 } as const;
 
+const calibrationPillClass: Record<CalibrationPriority, string> = {
+  prime: styles.calibrationPrimePill,
+  'worth-a-shot': styles.calibrationWorthAShotPill,
+  'low-priority': styles.calibrationLowPriorityPill,
+};
+
+const calibrationPriorityLabel: Record<CalibrationPriority, string> = Object.fromEntries(
+  CALIBRATION_PRIORITY_INFO.map((info) => [info.priority, info.label])
+) as Record<CalibrationPriority, string>;
+
 export default function ModCard({ mod, onClick }: ModCardProps) {
   const { verdicts } = useEvaluation();
-  const { characterPortraits } = useMods();
+  const { characterPortraits, calibrationCosts } = useMods();
   const { isAssigned } = usePilotAssignment();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const avatarUrl = mod.character ? characterPortraits.get(mod.character) : undefined;
   const verdict = verdicts.get(mod.mod_id);
   const action = verdict ? actionOf(mod, verdict) : null;
+  const calibrationCandidacy = computeCalibrationCandidacy(mod, verdict, calibrationCosts);
   const quality = verdict?.absolute_quality;
   const assigned = isAssigned(mod.mod_id);
   // Layer-1 relabel gate: a built SELL mod reads "FOR PILOT" instead of "SELL".
@@ -287,6 +304,14 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
             {isSixDot && mod.calibrations_left !== undefined && mod.calibration_limit !== undefined && (
               <div className={styles.calibrationRow}>
                 <span className={styles.calibration}>🔄 Calibrations left: {mod.calibrations_left} / {mod.calibration_limit}</span>
+                {calibrationCandidacy && (
+                  <span
+                    className={`${styles.calibrationPill} ${calibrationPillClass[calibrationCandidacy.priority]}`}
+                    title={calibrationTooltip(calibrationCandidacy)}
+                  >
+                    {calibrationPriorityLabel[calibrationCandidacy.priority]}
+                  </span>
+                )}
               </div>
             )}
 

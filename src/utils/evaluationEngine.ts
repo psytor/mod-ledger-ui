@@ -8,7 +8,7 @@ import type {
   VariantResult,
   VerdictResult,
 } from '@/types/evaluation';
-import { scoreModForVariant } from '@/utils/modScorer';
+import { scoreModForVariant, DEFAULT_TARGET } from '@/utils/modScorer';
 
 const MILESTONES = [1, 3, 6, 9, 12, 15] as const;
 
@@ -396,6 +396,11 @@ function buildMatchBreakdown(
       display_value: sec.display_value,
       role,
       is_revealed: sec.is_revealed !== false,
+      // -1 is a defensive sentinel for the (should-not-happen) case a stat
+      // couldn't be resolved to an id at all; role/target already fall back
+      // to neutral/default above in that same case.
+      stat_id: id ?? -1,
+      target: id !== undefined ? variant.secondary_targets[id] ?? DEFAULT_TARGET : DEFAULT_TARGET,
     };
   });
 
@@ -410,12 +415,21 @@ function buildMatchBreakdown(
     else if (classification === 'complementary') complementary_wanted.push(label);
   }
 
+  // Same "primary covers a required/mandatory slot" signal modScorer.ts's
+  // scoreModForVariant computes for its own eased-Complementary weight —
+  // carried here so calibrationAdvisor.ts can reuse it without re-deriving.
+  const primaryStatId = resolveStatId(mod.primary_stat, statIdLookup);
+  const primaryClass =
+    primaryStatId !== undefined ? variant.secondary_classifications[primaryStatId] : undefined;
+  const primary_eases_complementary = primaryClass === 'required' || primaryClass === 'mandatory';
+
   return {
     variant_name: variant.name,
     secondaries,
     mandatory_wanted,
     required_wanted,
     complementary_wanted,
+    primary_eases_complementary,
   };
 }
 

@@ -6,6 +6,7 @@ import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
 import { useMods } from '@/contexts/ModContext';
 import type { SecondaryRole, VerdictResult } from '@/types/evaluation';
 import { explainVerdict, explainQualityScore } from '@/utils/verdictExplain';
+import { computeCalibrationCandidacy, explainCalibration } from '@/utils/calibrationAdvisor';
 import {
   actionOf,
   isPilotMod,
@@ -61,6 +62,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
   const verdict = verdicts.get(mod.mod_id);
   const assigned = isAssigned(mod.mod_id);
   const pilotMod = verdict ? isPilotMod(mod, verdict) : false;
+  const calibrationCandidacy = computeCalibrationCandidacy(mod, verdict, calibrationCosts);
 
   const handleAssign = async () => {
     setPilotError(null);
@@ -127,6 +129,25 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                 </div>
               )}
             </div>
+
+            {/* Calibration advice — only when the mod has a reference rule to
+                judge secondary roles/targets against (see calibrationAdvisor.ts).
+                Advisory only: this never runs the actual in-game calibration. */}
+            {calibrationCandidacy && (() => {
+              const calExp = explainCalibration(calibrationCandidacy);
+              return (
+                <div className={styles['calibration-advice']}>
+                  <p className={styles.evalSlice}>
+                    <span className={styles.evalSliceLabel}>Calibration advice:</span>{' '}
+                    <strong>{calExp.priority}</strong> ({calExp.label}) — {calExp.action}.
+                  </p>
+                  <p className={styles.evalExplainDetail}>{calExp.detail}</p>
+                  <p className={styles.evalNextStep}>
+                    <span className={styles.evalNextStepLabel}>Next step:</span> {calExp.nextStep}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         )}
 

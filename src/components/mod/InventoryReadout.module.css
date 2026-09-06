@@ -218,6 +218,11 @@
 .maxed { --accent: #22c55e; }
 .unconfigured { --accent: #6b7280; }
 
+/* ── Calibration priority chips (own accent set — separate lens/section) ── */
+.calibrationPrime { --accent: #14b8a6; }
+.calibrationWorthAShot { --accent: #eab308; }
+.calibrationLowPriority { --accent: #64748b; }
+
 /* ── Quality distribution bar ─────────────────────────────── */
 .bar {
   display: flex;

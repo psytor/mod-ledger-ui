@@ -1,16 +1,19 @@
 import { Card } from 'astrogators-shared-ui';
 import { useFilters } from '@/contexts/FilterContext';
 import { usePilotAssignment } from '@/contexts/PilotAssignmentContext';
+import { useMods } from '@/contexts/ModContext';
 import {
   applyFlatFilters,
   getBucketCounts,
   getQualityBandCounts,
+  getCalibrationCounts,
 } from '@/utils/modFilters';
 import {
   QUALITY_BAND_INFO,
   type BucketFilter,
   type QualityBand,
 } from '@/utils/modDisposition';
+import { CALIBRATION_PRIORITY_INFO, type CalibrationPriority } from '@/utils/calibrationAdvisor';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import type { VerdictResult } from '@/types/evaluation';
 import styles from './InventoryReadout.module.css';
@@ -53,23 +56,27 @@ interface InventoryReadoutProps {
 }
 
 /**
- * The console at the top of the flat view. One framed panel with two lenses:
+ * The console at the top of the flat view. One framed panel with three lenses:
  *
  *  • Disposition — what to do with each mod (Sell / Level / Slice / Maxed /
  *    Unconfigured). Clicking sets the `bucket` filter.
  *  • Quality — how good the scored mods are, as a segmented distribution bar
  *    plus an interactive legend. Clicking a band sets the `band` filter.
+ *  • Calibration — which 6-dot mods with attempts left are worth spending an
+ *    Attenuator on (Prime / Worth a Shot / Low Priority). Clicking a chip
+ *    sets the `calibration` filter. See calibrationAdvisor.ts for the model.
  *
- * Both lenses are independent filters that can stack. Each lens's counts
+ * All three lenses are independent filters that can stack. Each lens's counts
  * cross-filter: they reflect every OTHER active filter (facets, cross-cutting,
- * and the sibling lens) but never their own axis — so the readout describes the
- * slice you're actually looking at, while each chip stays a legible switch
+ * and the sibling lenses) but never their own axis — so the readout describes
+ * the slice you're actually looking at, while each chip stays a legible switch
  * target. The whole-inventory counts are kept alongside for the "N / total"
  * pair, shown only when something outside the lens is narrowing it.
  */
 export default function InventoryReadout({ mods, verdicts }: InventoryReadoutProps) {
   const { filters, setFilter, clearFilters } = useFilters();
   const { assignments } = usePilotAssignment();
+  const { calibrationCosts } = useMods();
   const assignedModIds = new Set(assignments.keys());
 
   // Disposition counts see every filter except `bucket`; quality counts see
@@ -77,7 +84,7 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
   // whole-inventory tallies behind the "N / total" pair.
   const fullCounts = getBucketCounts(mods, verdicts, assignedModIds);
   const counts = getBucketCounts(
-    applyFlatFilters(mods, { ...filters, bucket: null }, verdicts, assignedModIds),
+    applyFlatFilters(mods, { ...filters, bucket: null }, verdicts, assignedModIds, calibrationCosts),
     verdicts,
     assignedModIds
   );
@@ -85,8 +92,18 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
   const fullScored = fullQuality.scored;
   const fullBands = fullQuality.bands;
   const { scored, bands } = getQualityBandCounts(
-    applyFlatFilters(mods, { ...filters, band: null }, verdicts, assignedModIds),
+    applyFlatFilters(mods, { ...filters, band: null }, verdicts, assignedModIds, calibrationCosts),
     verdicts
+  );
+  // Calibration counts see every filter except `calibration` itself — same
+  // cross-filter contract as the other two lenses. `eligible` only ever
+  // includes 6-dot mods with attempts left and a reference rule (see
+  // calibrationAdvisor.ts) — everything else is excluded, not just uncounted.
+  const fullCalibration = getCalibrationCounts(mods, verdicts, calibrationCosts);
+  const calibration = getCalibrationCounts(
+    applyFlatFilters(mods, { ...filters, calibration: null }, verdicts, assignedModIds, calibrationCosts),
+    verdicts,
+    calibrationCosts
   );
 
   // Facet + cross-cutting filters — everything the drawer drives except the two
@@ -105,12 +122,13 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
   // whenever ANY filter is active — not just the lenses — so clearing here never
   // leaves a facet filter silently narrowing the grid from inside the drawer.
   const hasFilter =
-    facetActive || filters.bucket !== null || filters.band !== null;
+    facetActive || filters.bucket !== null || filters.band !== null || filters.calibration !== null;
 
   // Show the "N / total" pair in a lens only when something OUTSIDE that lens is
   // narrowing it — otherwise N === total and the pair is just noise.
-  const dispositionNarrowed = facetActive || filters.band !== null;
-  const qualityNarrowed = facetActive || filters.bucket !== null;
+  const dispositionNarrowed = facetActive || filters.band !== null || filters.calibration !== null;
+  const qualityNarrowed = facetActive || filters.bucket !== null || filters.calibration !== null;
+  const calibrationNarrowed = facetActive || filters.bucket !== null || filters.band !== null;
 
   const toggleBucket = (b: BucketFilter) =>
     setFilter('bucket', filters.bucket === b ? null : b);
@@ -131,6 +149,15 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
   };
   const toggleBand = (b: QualityBand) =>
     setFilter('band', filters.band === b ? null : b);
+
+  const toggleCalibration = (p: CalibrationPriority) =>
+    setFilter('calibration', filters.calibration === p ? null : p);
+
+  const calibrationClass: Record<CalibrationPriority, string> = {
+    prime: styles.calibrationPrime,
+    'worth-a-shot': styles.calibrationWorthAShot,
+    'low-priority': styles.calibrationLowPriority,
+  };
 
   // Removable summary of the panel-driven filters (facets + cross-cutting), so
   // the readout shows WHICH other filters are narrowing the grid — not just that
@@ -358,6 +385,51 @@ export default function InventoryReadout({ mods, verdicts }: InventoryReadoutPro
                     <span className={styles.legendRange}>{range}</span>
                     <span className={styles.legendLabel}>{label}</span>
                     <span className={styles.legendPriority}>{priority}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Calibration lens — only meaningful once at least one mod is a real
+            candidate (6-dot, attempts left, judged against a reference rule).
+            Stays mounted while any eligible mod exists in inventory, even if
+            the current filters narrow the shown-eligible count to zero. */}
+        {fullCalibration.eligible > 0 && (
+          <section className={styles.group}>
+            <p className={styles.groupLabel}>
+              Calibration{' '}
+              <span className={styles.groupHint}>
+                {calibrationNarrowed
+                  ? `${calibration.eligible} of ${fullCalibration.eligible} eligible`
+                  : `${calibration.eligible} eligible`}
+              </span>
+            </p>
+            <div className={styles.chips}>
+              {CALIBRATION_PRIORITY_INFO.map(({ priority, label, priorityText, action }) => {
+                const count = calibration.priorities[priority];
+                const fullCount = fullCalibration.priorities[priority];
+                if (fullCount === 0 && filters.calibration !== priority) return null;
+                const emptyUnderFilter = count === 0 && fullCount > 0;
+                return (
+                  <button
+                    key={priority}
+                    type="button"
+                    className={`${styles.chip} ${calibrationClass[priority]} ${
+                      filters.calibration === priority ? styles.chipActive : ''
+                    } ${emptyUnderFilter ? styles.chipEmpty : ''}`}
+                    aria-pressed={filters.calibration === priority}
+                    onClick={() => toggleCalibration(priority)}
+                    title={`${priorityText} — ${action}.`}
+                  >
+                    <span className={styles.count}>
+                      {count}
+                      {calibrationNarrowed && (
+                        <span className={styles.countTotal}> / {fullCount}</span>
+                      )}
+                    </span>
+                    <span className={styles.label}>{label}</span>
                   </button>
                 );
               })}
