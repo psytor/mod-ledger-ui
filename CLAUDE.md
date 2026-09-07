@@ -4,8 +4,13 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
-**Docs current as of:** an uncommitted change on top of commit `a0f3e96`
-plus earlier work. The uncommitted change makes the **set switcher
+**Docs current as of:** uncommitted work on branch
+`recommendation-caution-strip` (off `ff87784`) plus everything below. That
+branch adds the **recommendation caution strip** on `ModGridPage` — see
+"Recommendation caution strip" under "How evaluations work". Everything after
+this paragraph was last levelled at an uncommitted change on top of commit
+`a0f3e96` (predates `ff87784`; `git log a0f3e96..HEAD` for the gap). That
+change makes the **set switcher
 selection carry from view into edit**: `EvaluationDetailPage` now owns the
 `EvaluationView` set selection (new optional `selectedSetId` / `onSelectSet`
 props on `EvaluationView` — controlled value wins, else it self-drives as
@@ -301,6 +306,33 @@ instead of judging on partial data. 6-dot mods are always evaluable.
 The Evaluations feature classifies each mod against a player-authored rule
 set. The engine lives in `src/utils/evaluationEngine.ts`; pages
 (`EvaluationsPage`, `EvaluationDetailPage`, `RuleBuilderPage`) wrap it.
+
+### Recommendation caution strip
+
+`RecommendationCaution` (`src/components/evaluation/RecommendationCaution.tsx`)
+is a slim warning strip rendered on `ModGridPage` between `EvaluationSelector`
+and the page header — deliberately below the selector so it reads as a caveat
+about the recommendations you're about to see, not a site-wide legal notice.
+It is **always shown** (not gated on verdicts existing) and **dismissable for
+the current session only**: the dismiss flag lives in `sessionStorage`
+(`mod-ledger:recommendation-caution-dismissed`, read/written in try/catch), so
+it returns on the next visit — a permanent opt-out would let a new player
+silence it once and forget it. Copy tells players the evaluations are
+suggestions from a shared rule set that can't cover every character/team, and
+to keep a mod and check with someone if unsure before selling. It reads only
+static copy — no engine calls, no verdict data. Added because the tool went to
+production and shared players worried a SELL verdict taken at face value could
+cost a genuinely good mod; point-of-action reinforcement (Sell bucket, modal)
+was considered and deferred.
+
+**Colour is deliberately restrained.** Red appears only as the 3px left border
+and the ⚠ icon, and is a muted `#d05a63`, not a pure `#ff4444`. The strip's
+text — bold lead included — stays `--color-text`. A player reported saturated
+red made nearby text hard to read: pure red on the dark-blue page background
+(`#0a0e1a`) causes a focus mismatch (chromostereopsis / accommodative lag →
+blur + fatigue for adjacent text) and halation for people with astigmatism.
+Accent-only red keeps the warning legible as a warning without that cost — do
+not "brighten it up" or move the red back onto the words.
 
 ### Set switcher
 

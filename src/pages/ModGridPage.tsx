@@ -13,6 +13,7 @@ import ModDetailModal from '@/components/mod/ModDetailModal';
 import InventoryReadout from '@/components/mod/InventoryReadout';
 import FilterPanel from '@/components/filter/FilterPanel';
 import EvaluationSelector from '@/components/evaluation/EvaluationSelector';
+import RecommendationCaution from '@/components/evaluation/RecommendationCaution';
 import type { ParsedMod } from '@/services/modLedgerApi';
 import styles from './ModGridPage.module.css';
 
@@ -215,6 +216,8 @@ export default function ModGridPage() {
     <Layout>
       <div className={styles.pageContainer}>
         <EvaluationSelector />
+
+        <RecommendationCaution />
 
         <div className={styles.header}>
           <div className={styles.headerLeft}>
