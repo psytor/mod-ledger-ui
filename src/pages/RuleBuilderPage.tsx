@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Card, Container, Modal, useAuth, type User } from 'astrogators-shared-ui';
 import Layout from '@/components/layout/Layout';
+import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { useMods } from '@/contexts/ModContext';
 import RollTargetsGrid from '@/components/evaluation/RollTargetsGrid';
@@ -54,6 +55,31 @@ function emptyVariant(masterTargets: Record<number, number> = {}): Variant {
   };
 }
 
+// Stable string form of everything a save would persist — the four editable
+// fields, sets ordered and empty ones dropped (matching handleSubmit), target
+// keys sorted. Compared against a baseline snapshot to drive the unsaved-work
+// guard; not used for the actual save payload. Display-only state
+// (selectedSetId, tierView) is deliberately excluded.
+function canonicalPayload(
+  name: string,
+  description: string,
+  variantsBySet: Map<number, Variant[]>,
+  masterTargets: Record<number, number>
+): string {
+  const configs = Array.from(variantsBySet.entries())
+    .filter(([, variants]) => variants.length > 0)
+    .map(([set_id, variants]) => ({ set_id, variants }))
+    .sort((a, b) => a.set_id - b.set_id);
+  const targets = Object.keys(masterTargets)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .reduce<Record<number, number>>((acc, key) => {
+      acc[key] = masterTargets[key];
+      return acc;
+    }, {});
+  return JSON.stringify({ name, description, configs, targets });
+}
+
 export default function RuleBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -89,6 +115,12 @@ export default function RuleBuilderPage() {
   >(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // canonicalPayload() as it stood when the form got its initial values:
+  // the empty form for a new evaluation (seeded here), the loaded record for
+  // an edit (set in the loader's .then below). Drives the unsaved-work guard.
+  const [baseline, setBaseline] = useState<string | null>(() =>
+    isEditMode ? null : canonicalPayload('', '', new Map(), {})
+  );
   // Loaded once for live name-collision detection. We don't refresh
   // during the page session (no other tab is editing this user's evals
   // concurrently from this UI).
@@ -140,6 +172,14 @@ export default function RuleBuilderPage() {
         }
         setVariantsBySet(map);
         setMasterTargets(ev.master_secondary_targets);
+        setBaseline(
+          canonicalPayload(
+            ev.name,
+            ev.description,
+            map,
+            ev.master_secondary_targets
+          )
+        );
         setState({ kind: 'ready', existing: ev });
       })
       .catch(() => {
@@ -150,6 +190,18 @@ export default function RuleBuilderPage() {
       cancelled = true;
     };
   }, [id, isEditMode, isAuthLoading, user]);
+
+  const currentPayload = canonicalPayload(
+    name,
+    description,
+    variantsBySet,
+    masterTargets
+  );
+  const isDirty = baseline !== null && currentPayload !== baseline;
+
+  // Guard tab-close / reload while there's unsaved work. Suppressed during the
+  // save itself (handleSubmit navigates away on success).
+  useUnsavedChangesWarning(isDirty && !isSaving);
 
   const orderedPrimaryStats = useMemo(() => {
     return [...primaryStats].sort((a, b) => a.name.localeCompare(b.name));

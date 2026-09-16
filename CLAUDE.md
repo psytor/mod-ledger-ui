@@ -648,6 +648,20 @@ the frontend type uses camelCase epoch ms (`ownerUserId`, `authoredBy`,
 (`fromWire` / `toWriteWire`); the rest of the app sees Evaluations in
 the frontend shape only.
 
+**Unsaved-changes guard.** `RuleBuilderPage` warns on tab-close / reload
+while the form differs from the record it loaded (or from an empty form for
+`/evaluations/new`). `canonicalPayload()` serialises the four saveable
+fields — sets ordered, empty ones dropped (matching `handleSubmit`), target
+keys sorted — into a stable string; a `baseline` state holds that string as
+of load (seeded empty for new, set in the loader `.then` for edit), and
+`isDirty` is a plain string compare. `useUnsavedChangesWarning(isDirty &&
+!isSaving)` (`src/hooks/`) attaches a `beforeunload` listener. It's
+`beforeunload` only — the declarative router has no `useBlocker`, so in-app
+`<Link>` / Cancel navigation is not intercepted (a deliberate user action
+anyway). On a failed save `handleSubmit` already keeps all form state and
+shows a persistent `saveError` (no navigation, no reset) — the guard is the
+only piece that was missing.
+
 ### Moderation (admin/mod)
 
 `src/utils/permissions.ts` is the single source of truth for the
