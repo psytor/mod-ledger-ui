@@ -22,35 +22,41 @@ import styles from './ModCard.module.css';
 // it's a fine pilot mod rather than a literal sell. It stays in the Sell bucket
 // until the user assigns it.
 //
-// UPGRADE ("Level Up") is graded by the same quality-band scale as the Slice
-// chip when a score exists — a Level Up mod already carries a real
-// absolute_quality once it's past the pre-eval threshold, so "how good is
-// this one already" is just as meaningful here as it is for a Slice mod.
-// Falls back to a neutral grey only for the narrower case where the mod is
-// too low-level to have its secondaries revealed at all yet (no score to
-// grade by).
+// UPGRADE ("Level Up") and SELL are both graded by the same letter scale as
+// the Slice chip whenever a score exists — a graded SELL mod (one that either
+// matched no rule but scored against its closest one, or matched a rule but
+// fell below the level's quality bar) shows its letter instead of the bare
+// word "SELL", same colour scale as everywhere else. `verdictBandClass` falls
+// back to a flat neutral only for the narrower case where there's no score at
+// all yet (a pre-eval mod, or the instant "N-dot mod, no longer farmable"
+// SELL, which is an objective game-legality fact, not a graded call).
 function verdictClassName(verdict: Verdict, isPilot: boolean, band: QualityBand | null): string {
   if (isPilot && verdict === 'SELL') return styles.verdictForPilot;
   switch (verdict) {
-    case 'SELL': return styles.verdictSell;
-    case 'UPGRADE': return band ? upgradeBandClass(band) : styles.verdictUpgradeNoData;
+    case 'SELL': return band ? verdictBandClass(band) : styles.verdictSell;
+    case 'UPGRADE': return band ? verdictBandClass(band) : styles.verdictUpgradeNoData;
     case 'PASS_RULES': return styles.verdictPass;
     case 'UNCONFIGURED': return styles.verdictUnconfigured;
   }
 }
 
-function upgradeBandClass(band: QualityBand): string {
+function verdictBandClass(band: QualityBand): string {
   switch (band) {
-    case 'perfect': return styles.verdictUpgradePerfect;
-    case 'nearly-perfect': return styles.verdictUpgradeNearlyPerfect;
-    case 'on-target': return styles.verdictUpgradeOnTarget;
-    case 'under-target': return styles.verdictUpgradeUnderTarget;
-    case 'bad': return styles.verdictUpgradeBad;
+    case 's': return styles.verdictGradeS;
+    case 'a': return styles.verdictGradeA;
+    case 'b': return styles.verdictGradeB;
+    case 'c': return styles.verdictGradeC;
+    case 'd': return styles.verdictGradeD;
+    case 'f': return styles.verdictGradeF;
   }
 }
 
-function verdictLabel(v: VerdictResult, isPilot: boolean): string {
+// SELL shows its letter grade when it has one — the whole point of the grade
+// is to replace the bare directive word. Falls back to the literal verdict
+// (i.e. "SELL") only when there's no score to grade by at all.
+function verdictLabel(v: VerdictResult, isPilot: boolean, band: QualityBand | null): string {
   if (isPilot && v.verdict === 'SELL') return 'FOR PILOT';
+  if (v.verdict === 'SELL' && band) return qualityBandLabel(band);
   if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
   if (v.verdict === 'PASS_RULES') return 'PASS';
   return v.verdict;
@@ -72,11 +78,12 @@ function avgRollEfficiency(stat: {
 
 function qualityBandClass(band: QualityBand): string {
   switch (band) {
-    case 'perfect': return styles.qualityPerfect;
-    case 'nearly-perfect': return styles.qualityNearlyPerfect;
-    case 'on-target': return styles.qualityOnTarget;
-    case 'under-target': return styles.qualityUnderTarget;
-    case 'bad': return styles.qualityBad;
+    case 's': return styles.qualityGradeS;
+    case 'a': return styles.qualityGradeA;
+    case 'b': return styles.qualityGradeB;
+    case 'c': return styles.qualityGradeC;
+    case 'd': return styles.qualityGradeD;
+    case 'f': return styles.qualityGradeF;
   }
 }
 
@@ -84,11 +91,12 @@ function qualityBandClass(band: QualityBand): string {
 // best ones still stand out by colour.
 function maxedBandClass(band: QualityBand): string {
   switch (band) {
-    case 'perfect': return styles.maxedPerfect;
-    case 'nearly-perfect': return styles.maxedNearlyPerfect;
-    case 'on-target': return styles.maxedOnTarget;
-    case 'under-target': return styles.maxedUnderTarget;
-    case 'bad': return styles.maxedBad;
+    case 's': return styles.maxedGradeS;
+    case 'a': return styles.maxedGradeA;
+    case 'b': return styles.maxedGradeB;
+    case 'c': return styles.maxedGradeC;
+    case 'd': return styles.maxedGradeD;
+    case 'f': return styles.maxedGradeF;
   }
 }
 
@@ -117,12 +125,14 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
   const assigned = isAssigned(mod.mod_id);
   // Layer-1 relabel gate: a built SELL mod reads "FOR PILOT" instead of "SELL".
   const pilotMod = verdict ? isPilotMod(mod, verdict) : false;
-  // The 5-band quality scale colours slice candidates (vibrant), maxed 6d-A
-  // mods (same hue, dark-muted), and now the Level Up verdict badge itself
-  // (same vibrant hue as slice) whenever a Level Up mod already has a real
-  // score. Everything else relies on its verdict badge alone.
+  // The 6-band letter scale colours slice candidates (vibrant chip), maxed
+  // 6d-A mods (same hue, dark-muted), and the Level Up / Sell verdict badges
+  // themselves (same vibrant hue as slice) whenever the mod already has a
+  // real score. A Sell mod with no score at all (pre-eval, or an instant
+  // "N-dot, no longer farmable" sell) has no band and keeps its flat badge.
   const band =
-    (action === 'slice' || action === 'maxed' || action === 'level') && quality !== undefined
+    (action === 'slice' || action === 'maxed' || action === 'level' || action === 'sell') &&
+    quality !== undefined
       ? qualityBand(quality)
       : null;
 
@@ -171,9 +181,9 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
         verdict.verdict !== 'PASS_RULES' && (
           <div
             className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict, pilotMod, band)}`}
-            title={verdictTooltip(verdict, { rarity: mod.rarity, isPilot: pilotMod })}
+            title={verdictTooltip(verdict, { rarity: mod.rarity, isPilot: pilotMod, band })}
           >
-            {verdictLabel(verdict, pilotMod)}
+            {verdictLabel(verdict, pilotMod, band)}
           </div>
         )
       )}

@@ -13,6 +13,7 @@ import {
   qualityBandLabel,
   qualityBandPriority,
   qualityBandAction,
+  type QualityBand,
 } from '@/utils/modDisposition';
 import SecondaryStatColumn from './SecondaryStatColumn';
 import styles from './ModDetailModal.module.css';
@@ -23,16 +24,34 @@ interface ModDetailModalProps {
   onClose: () => void;
 }
 
-function verdictBadgeClass(v: VerdictResult['verdict']): string {
+// SELL shows its letter grade (same colour scale as everywhere else) instead
+// of a flat red badge, whenever the mod has a score to grade by — mirrors
+// ModCard's verdictClassName/verdictLabel. Falls back to the flat "Sell"
+// treatment only when there's no score at all (a pre-eval mod, or the
+// instant "N-dot, no longer farmable" sell, which is an objective fact, not
+// a graded call).
+function verdictBadgeClass(v: VerdictResult['verdict'], band: QualityBand | null): string {
   switch (v) {
-    case 'SELL': return styles.evalBadgeSell;
+    case 'SELL': return band ? gradeBadgeClass(band) : styles.evalBadgeSell;
     case 'UPGRADE': return styles.evalBadgeUpgrade;
     case 'PASS_RULES': return styles.evalBadgePass;
     case 'UNCONFIGURED': return styles.evalBadgeUnconfigured;
   }
 }
 
-function verdictLabel(v: VerdictResult): string {
+function gradeBadgeClass(band: QualityBand): string {
+  switch (band) {
+    case 's': return styles.evalBadgeGradeS;
+    case 'a': return styles.evalBadgeGradeA;
+    case 'b': return styles.evalBadgeGradeB;
+    case 'c': return styles.evalBadgeGradeC;
+    case 'd': return styles.evalBadgeGradeD;
+    case 'f': return styles.evalBadgeGradeF;
+  }
+}
+
+function verdictLabel(v: VerdictResult, band: QualityBand | null): string {
+  if (v.verdict === 'SELL' && band) return qualityBandLabel(band);
   if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
   if (v.verdict === 'PASS_RULES') return 'PASS';
   return v.verdict;
@@ -151,18 +170,17 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
 
         {/* Evaluation Section — only when an evaluation is active for this mod */}
         {verdict && (() => {
-          const exp = explainVerdict(verdict, { rarity: mod.rarity, isPilot: pilotMod });
-          // Slicing advice band — only on slice candidates and maxed (6d-A) mods,
-          // matching the card chip. The quality % is how close the rolls came to
-          // the targets you set (50 = on target); see modDisposition.ts.
+          // The mod's letter grade, when it has a score — used for the Sell
+          // badge, the tooltip prose, and (restricted to slice/maxed) the
+          // slicing advice line. The quality % is how close the rolls came
+          // to the targets you set (50 = on target); see modDisposition.ts.
           const sliceAction = actionOf(mod, verdict);
-          const sliceQuality = verdict.absolute_quality;
+          const quality = verdict.absolute_quality;
+          const gradeBand =
+            quality !== undefined && Number.isFinite(quality) ? qualityBand(quality) : null;
           const sliceBand =
-            (sliceAction === 'slice' || sliceAction === 'maxed') &&
-            sliceQuality !== undefined &&
-            Number.isFinite(sliceQuality)
-              ? qualityBand(sliceQuality)
-              : null;
+            sliceAction === 'slice' || sliceAction === 'maxed' ? gradeBand : null;
+          const exp = explainVerdict(verdict, { rarity: mod.rarity, isPilot: pilotMod, band: gradeBand });
           return (
           <div className={styles['modal-stats-section']}>
             <h3>Evaluation</h3>
@@ -173,13 +191,13 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                     FOR PILOT
                   </span>
                   <span className={styles.evalBadgeSeparator}>/</span>
-                  <span className={`${styles.evalBadge} ${styles.evalBadgeSell}`}>
-                    SELL
+                  <span className={`${styles.evalBadge} ${gradeBand ? gradeBadgeClass(gradeBand) : styles.evalBadgeSell}`}>
+                    {gradeBand ? qualityBandLabel(gradeBand) : 'SELL'}
                   </span>
                 </>
               ) : (
-                <span className={`${styles.evalBadge} ${verdictBadgeClass(verdict.verdict)}`}>
-                  {verdictLabel(verdict)}
+                <span className={`${styles.evalBadge} ${verdictBadgeClass(verdict.verdict, gradeBand)}`}>
+                  {verdictLabel(verdict, gradeBand)}
                 </span>
               )}
               <span className={styles.evalMeaning}>{exp.meaning}</span>

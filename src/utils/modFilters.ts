@@ -102,7 +102,7 @@ export function getBucketCounts(
 }
 
 /**
- * Distribution of every *scored* mod across the five quality bands. "Scored"
+ * Distribution of every *scored* mod across the six quality bands. "Scored"
  * means the verdict carries a finite `absolute_quality` (the % shown on the
  * card) — UNCONFIGURED and pre-eval mods have none and are excluded. The band
  * is intrinsic to each mod (no cross-mod comparison), so this is computed over
@@ -119,11 +119,12 @@ export function getQualityBandCounts(
   verdicts: Map<string, VerdictResult>
 ): QualityBandCounts {
   const bands: Record<QualityBand, number> = {
-    perfect: 0,
-    'nearly-perfect': 0,
-    'on-target': 0,
-    'under-target': 0,
-    bad: 0,
+    s: 0,
+    a: 0,
+    b: 0,
+    c: 0,
+    d: 0,
+    f: 0,
   };
   let scored = 0;
   for (const mod of mods) {

@@ -53,39 +53,36 @@ export function isPilotMod(mod: ParsedMod, verdict: VerdictResult): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Per-mod quality band (the slicing advice scale)
+// Per-mod letter grade (S/A/B/C/D/F)
 //
-// A slice-candidate mod's advice is decided entirely by its own
-// `absolute_quality` (0-100): how close its rolls came to the targets YOU set.
-// In `curveScore` a roll scores 50 when it lands on your target, so on the
-// mod's overall score 50 = "rolls met your targets — this mod already does what
-// you want, so push it forward", above 50 = "rolls beat your targets" (your
-// best bets), and below 50 = "rolls fell short". 50 is the TARGET, not an
-// average. The score splits into five even 20-point bands mapped to the game's
-// quality colours (Grey → Green → Blue → Purple → Gold); the band holding 50 is
-// "On Target", a green light — never "Average". There is no peer group /
-// cohort: a single mod gets a real verdict, the displayed value always matches
-// its band, and filtering never changes a mod's band (only what's shown and in
-// what order). Higher band = closer to / further past your targets = better
-// slice bet.
+// A mod's grade is decided entirely by its own `absolute_quality` (0-100): how
+// close its rolls came to the targets YOU set. In `curveScore` a roll scores
+// 50 when it lands on your target, so on the mod's overall score 50 = "rolls
+// met your targets — this mod already does what you want, so push it
+// forward", above 50 = "rolls beat your targets" (your best bets), and below
+// 50 = "rolls fell short". 50 is the TARGET, not an average. There is no peer
+// group / cohort: a single mod gets a real grade, and filtering never changes
+// a mod's grade (only what's shown and in what order). Higher grade = closer
+// to / further past your targets.
+//
+// The six bands (`QUALITY_BAND_BOUNDARIES`, scoringConstants.ts) are uneven on
+// purpose so 50 lands inside B, not the literal middle letter (C) — see that
+// file's comment. The band holding 50 stays a real, unambiguous yes; letter
+// grades don't get to demote it to "average" any more than the old word
+// labels did.
 // ---------------------------------------------------------------------------
 
 export type QualityBand =
-  | 'perfect' //       80-100  Gold   "Elite"     (Top Priority  — rolls far beat your targets)
-  | 'nearly-perfect' // 60-80  Purple "Strong"    (High Priority — rolls beat your targets)
-  | 'on-target' //     40-60   Blue   "On Target" (Priority      — 50 = rolls hit your targets)
-  | 'under-target' //  20-40   Green  "Weak"      (Low Priority  — rolls fell short)
-  | 'bad'; //          0-20    Grey   "Poor"      (Skip          — rolls well short)
+  | 's' // 85-100  Gold   (Top Priority  — rolls far beat your targets)
+  | 'a' // 65-85   Purple (High Priority — rolls beat your targets)
+  | 'b' // 45-65   Blue   (Priority      — 50 = rolls hit your targets)
+  | 'c' // 30-45   Green  (Low Priority  — rolls a bit short of your targets)
+  | 'd' // 15-30   Orange (Minimal       — rolls well short)
+  | 'f'; // 0-15   Grey   (Skip          — rolls far short)
 
 // Ascending order so index 0 is the lowest band. The boundaries split the
 // 0-100 range; a quality lands in the first band whose upper bound it is below.
-const BAND_ORDER: QualityBand[] = [
-  'bad',
-  'under-target',
-  'on-target',
-  'nearly-perfect',
-  'perfect',
-];
+const BAND_ORDER: QualityBand[] = ['f', 'd', 'c', 'b', 'a', 's'];
 
 export function qualityBand(quality: number): QualityBand {
   for (let i = 0; i < QUALITY_BAND_BOUNDARIES.length; i++) {
@@ -96,42 +93,48 @@ export function qualityBand(quality: number): QualityBand {
 
 export interface QualityBandInfo {
   band: QualityBand;
-  /** One-word label shown on the card chip (Elite / Strong / On Target / Weak / Poor). */
+  /** The letter shown on the card chip/badge (S/A/B/C/D/F). */
   label: string;
-  /** Score range on the 0-100 quality scale, e.g. "80–100". No "%" — the score
+  /** Score range on the 0-100 quality scale, e.g. "85–100". No "%" — the score
    *  is a quality score where 50 = on target, not a percentage. */
   range: string;
   /**
-   * Slicing priority. The target band ("On Target", 40-60) is "Priority" — a
-   * full yes, the actual goal — NOT "medium". The bands above stack Top/High
-   * Priority on top of it (bonus past target); below it falls off to Low / Skip.
+   * Slicing priority — used for mods that already matched a scoring rule
+   * (slice/maxed/level). The target band ("B") is "Priority" — a full yes,
+   * the actual goal — NOT "medium". The bands above stack Top/High Priority
+   * on top of it (bonus past target); below it falls off toward Skip.
+   * NOT used for a no-match SELL — that gets fit-description copy instead
+   * (see verdictExplain.ts), since "slice this" makes no sense for a mod
+   * that doesn't match any current rule regardless of how well it rolled.
    */
   priority: string;
-  /** Plain-language slicing instruction for the legend + tooltips. */
+  /** Plain-language slicing instruction for the legend + tooltips (slice/maxed/level only). */
   action: string;
 }
 
 // Legend metadata, highest band first (matches how the legend reads top-down).
-// label = card chip word; priority + action surface in the legend and tooltips.
+// label = card chip letter; priority + action surface in the legend and
+// tooltips for mods that matched a rule (see the `priority`/`action` doc above).
 export const QUALITY_BAND_INFO: QualityBandInfo[] = [
-  { band: 'perfect',        label: 'Elite',     range: '80–100', priority: 'Top Priority',  action: 'Slice this first' },
-  { band: 'nearly-perfect', label: 'Strong',    range: '60–80',  priority: 'High Priority', action: 'Slice soon' },
-  { band: 'on-target',      label: 'On Target', range: '40–60',  priority: 'Priority',      action: 'Already meets your bar — slice normally' },
-  { band: 'under-target',   label: 'Weak',      range: '20–40',  priority: 'Low Priority',  action: 'Slice only if you have spare materials' },
-  { band: 'bad',            label: 'Poor',      range: '0–20',   priority: 'Skip',          action: 'Not worth your materials' },
+  { band: 's', label: 'S', range: '85–100', priority: 'Top Priority',     action: 'Slice this first' },
+  { band: 'a', label: 'A', range: '65–85',  priority: 'High Priority',    action: 'Slice soon' },
+  { band: 'b', label: 'B', range: '45–65',  priority: 'Priority',         action: 'Already meets your bar — slice normally' },
+  { band: 'c', label: 'C', range: '30–45',  priority: 'Low Priority',     action: 'Slice only if you have spare materials' },
+  { band: 'd', label: 'D', range: '15–30',  priority: 'Minimal Priority', action: 'Well below your bar — not worth materials yet' },
+  { band: 'f', label: 'F', range: '0–15',   priority: 'Skip',             action: 'Not worth your materials' },
 ];
 
 const BAND_INFO = Object.fromEntries(
   QUALITY_BAND_INFO.map((b) => [b.band, b])
 ) as Record<QualityBand, QualityBandInfo>;
 
-// Card chip word (Elite / Strong / On Target / Weak / Poor).
+// Card chip letter (S / A / B / C / D / F).
 export function qualityBandLabel(band: QualityBand): string {
   return BAND_INFO[band].label;
 }
 
-// Slicing priority (Top Priority / High Priority / Priority / Low Priority / Skip).
-// "On Target" is "Priority" — the goal, not a middling tier.
+// Slicing priority (Top Priority / High Priority / Priority / Low Priority / Minimal Priority / Skip).
+// "B" is "Priority" — the goal, not a middling tier.
 export function qualityBandPriority(band: QualityBand): string {
   return BAND_INFO[band].priority;
 }

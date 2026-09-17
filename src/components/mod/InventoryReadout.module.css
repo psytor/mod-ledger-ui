@@ -360,15 +360,16 @@
 }
 
 /* ── Band tints (shared by segments + swatches) ───────────── */
-.perfect {
+.gradeS {
   background: rgba(234, 179, 8, 0.96);
   color: #1c1503;
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.25);
 }
-.nearlyPerfect { background: rgba(147, 51, 234, 0.96); }
-.onTarget { background: rgba(37, 99, 235, 0.96); }
-.underTarget { background: rgba(22, 163, 74, 0.96); }
-.bad { background: rgba(107, 114, 128, 0.95); }
+.gradeA { background: rgba(147, 51, 234, 0.96); }
+.gradeB { background: rgba(37, 99, 235, 0.96); }
+.gradeC { background: rgba(22, 163, 74, 0.96); }
+.gradeD { background: rgba(217, 119, 6, 0.96); }
+.gradeF { background: rgba(107, 114, 128, 0.95); }
 
 @media (max-width: 640px) {
   .panel { padding: 0.9rem 1rem 1rem; }
