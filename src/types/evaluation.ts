@@ -123,6 +123,10 @@ export type VerdictResult = {
   winning_variant_name?: string;
   reason?: string;
   all_results?: VariantResult[];  // Per-variant breakdown for debug / UI
-  absolute_quality?: number;      // 0-100, raw_score / theoretical_max under the winning variant
+  // 0-100, raw_score / theoretical_max under the winning variant. On a SELL
+  // where no variant passed, this is instead computed against the closest
+  // (reference) variant, once the mod is fully revealed — see evaluateMod's
+  // `passing.length === 0` branch.
+  absolute_quality?: number;
   match_breakdown?: MatchBreakdown; // Which secondaries the reference rule wanted (UI only)
 };

@@ -5,6 +5,16 @@ Guide for Claude Code when working inside this submodule.
 ## Documentation currency (update when you edit docs)
 
 **Docs current as of:** uncommitted work on branch
+`feat/mod-ledger-ui-score-unmatched-mods` — a no-match SELL (every variant
+rejected at Stage 1) now carries an `absolute_quality` score once the mod is
+fully revealed, computed against the closest-fail variant instead of being
+left with no score at all. See "No-match SELL now scores against the
+closest rule" under "How evaluations work". The paragraphs below (stale
+branch/commit anchors — `recommendation-caution-strip` / `ff87784` — predate
+`a350449` and the `#2` merge on `main`, not re-verified in this pass) plus
+everything else below.
+
+Earlier: uncommitted work on branch
 `recommendation-caution-strip` (off `ff87784`) plus everything below. That
 branch adds the **recommendation caution strip** on `ModGridPage` — see
 "Recommendation caution strip" under "How evaluations work". Everything after
@@ -424,6 +434,34 @@ instead of running them through the quality gate. `PASS_RULES` mods are
 then bucketed by `actionOf` in `modDisposition.ts` into the `slice` and
 `maxed` actions (the latter is a 6-dot A-tier mod with no further upgrade).
 See `evaluationEngine.ts` around the L15 branch.
+
+### No-match SELL now scores against the closest rule
+
+A SELL from Stage 1 (`passing.length === 0` in `evaluateMod` — every variant
+in the set rejected the mod) used to carry no `absolute_quality` at all: the
+mod had no winning variant to score against, so it fell straight to the
+badge with nothing to grade it by. It now scores against the same
+**reference** variant already picked for the match breakdown — the rejected
+variant with the highest `requiredCount`, i.e. the one the mod came closest
+to matching (`scoreModForVariant(mod, reference, statDefs)`). This does
+**not** promote the mod to a pass, set `winning_variant_id`, or change the
+`SELL` verdict itself — it only attaches a number so a no-match mod can be
+graded on the same quality-band scale as everything else, instead of being
+the one case with nothing to show.
+
+Gated on `isInScoringZone(mod.rarity, mod.tier, mod.level)` — a mod that
+hasn't fully revealed its secondaries yet would score against stats it
+hasn't rolled, reading as a false-bad grade before it's even eligible to be
+judged. A 6-dot mod is always in scoring zone; a 5-dot mod isn't until its
+tier's `FIRST_EVAL_LEVEL`. Below that, `absolute_quality` stays `undefined`
+on the SELL exactly as before.
+
+This is presentation-adjacent groundwork, not a UI change by itself:
+`ModDetailModal`'s "What the score means:" block already renders off any
+finite `absolute_quality` regardless of verdict, so it now also appears for
+these mods automatically. Nothing yet reads this score on `ModCard`'s badge
+or the `InventoryReadout` quality lens for a SELL mod — wiring the letter-
+grade badge to it is a separate, following change.
 
 ### Variant tiebreaking
 
