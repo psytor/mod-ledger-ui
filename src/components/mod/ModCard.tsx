@@ -55,7 +55,7 @@ function verdictBandClass(band: QualityBand): string {
 // is to replace the bare directive word. Falls back to the literal verdict
 // (i.e. "SELL") only when there's no score to grade by at all.
 function verdictLabel(v: VerdictResult, isPilot: boolean, band: QualityBand | null): string {
-  if (isPilot && v.verdict === 'SELL') return 'FOR PILOT';
+  if (isPilot && v.verdict === 'SELL') return band ? `FOR PILOT · ${qualityBandLabel(band)}` : 'FOR PILOT';
   if (v.verdict === 'SELL' && band) return qualityBandLabel(band);
   if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
   if (v.verdict === 'PASS_RULES') return 'PASS';
