@@ -1,8 +1,0 @@
-/* Widen the TopBar's inner content. shared-ui caps it at
-   --container-max-width (1280px) and centres it, which left the bar narrower
-   than the full-width page body below. Target the content div (the header's
-   direct child) and align it to the mod grid's own 1400px max-width so the
-   bar's edges line up with the main content. */
-.topBar > div {
-  max-width: 1400px;
-}

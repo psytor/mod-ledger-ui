@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { NavBar, Footer, Container, RosterRefresh, useAuth } from 'astrogators-shared-ui';
 import MigrationPromptDialog from '@/components/evaluation/MigrationPromptDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
@@ -7,8 +7,6 @@ import { pilotAssignmentStorage } from '@/services/pilotAssignmentStorage';
 import { useMods } from '@/contexts/ModContext';
 import { useEvaluation } from '@/contexts/EvaluationContext';
 import { PILOT_MIGRATED_EVENT } from '@/contexts/PilotAssignmentContext';
-import { canModerate } from '@/utils/permissions';
-import styles from './Layout.module.css';
 
 // Dispatched on `window` after a successful evaluation migration. Any
 // component that derives state from the eval list (e.g. EvaluationsPage)
@@ -20,10 +18,11 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, isAuthenticated, isLoading: isAuthLoading, selectedAllyCode } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, selectedAllyCode } = useAuth();
   const { refreshMods, isLoadingMods, cachedAt, refreshAvailableAt } = useMods();
   const { clearVerdicts } = useEvaluation();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Manual inventory refresh — re-pulls the selected ally code's mods. The
   // fetch lives in ModContext (not shared-ui): refreshing a mod inventory is a
@@ -100,32 +99,16 @@ export default function Layout({ children }: LayoutProps) {
   const showPilotMigrationPrompt =
     !isAuthLoading && isAuthenticated && localCount === 0 && pilotLocalCount > 0;
 
-  const navItems = [
-    {
-      label: 'Grid',
-      href: '/',
-      active: location.pathname === '/',
-      render: (p: { className: string; children: ReactNode }) => <Link to="/" {...p} />,
-    },
-    {
-      label: 'Evaluations',
-      href: '/evaluations',
-      active: location.pathname.startsWith('/evaluations'),
-      render: (p: { className: string; children: ReactNode }) => <Link to="/evaluations" {...p} />,
-    },
-    ...(canModerate(user)
-      ? [
-          {
-            label: 'Moderation',
-            href: '/moderation',
-            active: location.pathname === '/moderation',
-            render: (p: { className: string; children: ReactNode }) => (
-              <Link to="/moderation" {...p} />
-            ),
-          },
-        ]
-      : []),
-  ];
+  // Which of SUITE_NAV's mod-ledger sections (shared-ui) is active, derived
+  // from the router — NavBar doesn't compute this itself since apps detect
+  // "where am I" differently.
+  const activeSectionId = location.pathname === '/'
+    ? 'grid'
+    : location.pathname.startsWith('/evaluations')
+    ? 'evaluations'
+    : location.pathname === '/moderation'
+    ? 'moderation'
+    : undefined;
 
   // App-specific control for the NavBar's right cluster: the shared
   // RosterRefresh (the "Updated X ago" readout + manual inventory re-pull).
@@ -142,12 +125,16 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <NavBar
-        className={styles.topBar}
-        hubUrl="/"
-        appName="Mod Ledger"
-        appHref="/mod-ledger/"
-        navItems={navItems}
-        showAllyCode
+        currentApp="mod-ledger"
+        activeSectionId={activeSectionId}
+        onNavigate={(section, event) => {
+          event.preventDefault();
+          // Manifest hrefs are absolute ('/mod-ledger/evaluations'); this
+          // router is mounted with basename="/mod-ledger", so navigate()
+          // needs the basename stripped or it lands on
+          // '/mod-ledger/mod-ledger/evaluations'.
+          navigate(section.href.replace(/^\/mod-ledger/, ''));
+        }}
         rightExtras={rightExtras}
       />
       <Container maxWidth="full" style={{ flex: 1, paddingTop: '2rem', paddingBottom: '2rem' }}>
