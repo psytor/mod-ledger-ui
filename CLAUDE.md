@@ -557,14 +557,25 @@ and `qualityBandAction`. Where each surfaces:
   carrying the letter, and a maxed-specific tooltip (no slice instruction —
   it is already fully sliced).
 - **`ModCard` verdict badge** (top-right) — **always the plain status word**
-  (SELL / FOR PILOT / ↑L9 / PASS / UNCONFIGURED), on its own, never combined
-  with the grade — the grade is the chip above, not badge text. UPGRADE keeps
-  its pre-existing band-tinted badge colour (unchanged by this work); SELL
-  and FOR PILOT keep their original flat colours. An earlier pass tried
-  putting the letter *into* the badge text (replacing "SELL", then
-  concatenating "FOR PILOT · B") — reverted, because it collided with
-  `ParsedMod.tier_name` (see below) and because the badge's job is the
-  status, the chip's job is the grade; don't re-merge them.
+  (FOR PILOT / ↑L9 / PASS / UNCONFIGURED), on its own, never combined with
+  the grade — the grade is the chip above, not badge text. UPGRADE keeps its
+  pre-existing band-tinted badge colour (unchanged by this work); FOR PILOT
+  keeps its original flat colour. An earlier pass tried putting the letter
+  *into* the badge text (replacing "SELL", then concatenating
+  "FOR PILOT · B") — reverted, because it collided with `ParsedMod.tier_name`
+  (see below) and because the badge's job is the status, the chip's job is
+  the grade; don't re-merge them.
+
+  **A plain (non-pilot) SELL with a grade omits the badge entirely** — same
+  rule as `PASS_RULES` (its slice/maxed chip already says "keeper", so a
+  redundant badge is dropped): the letter chip already conveys the grade, so
+  a "SELL" word badge next to it would just repeat the same information in a
+  harsher, more directive-sounding form — exactly what this whole change set
+  exists to remove. `SELL` as literal badge text now appears **only** when
+  there's no grade at all (pre-eval-adjacent, or the instant "N-dot, no
+  longer farmable" sell) — there's no chip to fall back on, so the word is
+  the only signal. `FOR PILOT` is a distinct, actionable flag (not a
+  restatement of the grade), so it always shows regardless of grade.
 
   **`ParsedMod.tier_name` is a DIFFERENT, pre-existing letter grade — SWGOH's
   own native mod-quality rating** (`mod-ledger/src/schemas/mod.py`: "From

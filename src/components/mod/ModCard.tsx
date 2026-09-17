@@ -162,7 +162,12 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
           regardless of how it currently evaluates — even a now-good slice/maxed
           mod, whose left quality chip still renders. Otherwise the verdict badge
           shows, with SELL re-skinned to "FOR PILOT" for built mods. PASS_RULES
-          is omitted (the left slice/maxed chip already says "keeper"). */}
+          is omitted (the left slice/maxed chip already says "keeper") — and so
+          is a plain (non-pilot) graded SELL, for the same reason: the letter
+          chip already conveys the grade, so a "SELL" word badge next to it
+          would be a redundant, harsher-reading repeat of the same information.
+          FOR PILOT always shows regardless of grade — it's a distinct,
+          actionable flag (assign this mod), not a restatement of the grade. */}
       {assigned ? (
         <div
           className={`${styles.verdictBadge} ${styles.verdictAssigned}`}
@@ -172,7 +177,8 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
         </div>
       ) : (
         verdict &&
-        verdict.verdict !== 'PASS_RULES' && (
+        verdict.verdict !== 'PASS_RULES' &&
+        !(verdict.verdict === 'SELL' && !pilotMod && band) && (
           <div
             className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict, pilotMod, band)}`}
             title={verdictTooltip(verdict, { rarity: mod.rarity, isPilot: pilotMod, band })}
