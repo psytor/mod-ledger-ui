@@ -552,6 +552,20 @@ and `qualityBandAction`. Where each surfaces:
   a score, instead of a flat "SELL"/`↑L9` word. See "No-match SELL now scores
   against the closest rule" and "Verdict labels & explanations" — this is the
   actual fix for evaluations reading as a harsh, certain directive.
+
+  **`ParsedMod.tier_name` is a DIFFERENT, pre-existing letter grade — SWGOH's
+  own native mod-quality rating** (`mod-ledger/src/schemas/mod.py`: "From
+  mod_tiers API (E, D, C, B, A)"), shown as `ModCard`'s bottom `{level} -
+  {tier_name}` text and `ModDetailModal`'s "Tier:" row. It has nothing to do
+  with this evaluation grade and the two alphabets overlap on A/B/C/D. The
+  compact `ModCard` badge shows our grade as a bare letter anyway (space is
+  tight, and it isn't directly adjacent to the tier text) — but
+  `ModDetailModal`, where "Tier: A" sits right above the Evaluation section,
+  spells the badge out as **"Grade B"** (`verdictLabel`/the FOR-PILOT dual
+  badge, both in `ModDetailModal.tsx`) specifically to avoid reading as the
+  same scale. Found by testing a real "FOR PILOT / B" mod next to "Tier: A"
+  in dev — if you extend bare letters to a new surface, check `tier_name`
+  isn't visible nearby first.
 - **`InventoryReadout`** (the framed console at the top of the flat view) renders
   the key — each legend item shows colour + range + letter + **priority**, with
   `priority — action` in its tooltip, and the distribution bar segments carry the
@@ -810,9 +824,13 @@ references). When `mod.rarity === 6` the SELL copy is still investment-aware:
 it leads with "you invested a lot to reach 6 dots, so there's no rush." A
 6-dot mod is a fully sliced mod, so the SELL is never about wasted levels —
 the `meaning` line deliberately never claims it is "not worth leveling
-further." The **`isPilot`** branch (built + L15) is untouched by any of this —
-it was already action-oriented about assigning to a pilot, never a directive
-on the mod's worth.
+further." The **`isPilot`** branch (built + L15) was already action-oriented
+about assigning to a pilot, never a directive on the mod's worth — untouched
+by the directive-removal above, but it now **also names the grade and
+explicitly disambiguates it from `tier_name`** ("a separate number from this
+mod's own Tier rating above") when one exists, added after testing surfaced a
+real "FOR PILOT / B" mod sitting right below "Tier: A" with nothing
+explaining what the grade even was. See the `tier_name` gotcha above.
 
 `verdictExplain.ts` also exports **`explainQualityScore(quality)`** →
 `{ line, note }`: plain-language prose for the 0-100 `absolute_quality` score

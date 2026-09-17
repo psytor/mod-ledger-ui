@@ -77,13 +77,23 @@ export function explainVerdict(
       };
 
     case 'SELL': {
+      // The letter grade, when there's a score — names the grade in the
+      // headline/meaning instead of the bare word "Sell". Absent only for
+      // the narrower case where the mod has no score at all (pre-eval, or
+      // the instant "N-dot, no longer farmable" sell a few lines up, which
+      // never reaches this branch since it returns earlier in the engine).
+      const grade = mod?.band ? qualityBandLabel(mod.band) : null;
+
       // A built mod that fails the rules is still a great pilot mod — a ship
       // draws power from dots + level, not stats. Lead with that framing.
       if (mod?.isPilot) {
         return {
           label: 'For pilot',
           meaning:
-            'This mod does not meet your current scoring rules, but it is already fully built (L15) — and a ship gains power from a mod’s dots and level, not its stats. That makes it a great pilot mod.',
+            'This mod does not meet your current scoring rules, but it is already fully built (L15) — and a ship gains power from a mod’s dots and level, not its stats. That makes it a great pilot mod.' +
+            (grade
+              ? ` The “Grade ${grade}” next to it is a read on how well it rolled against your rules — a separate number from this mod’s own Tier rating above, and irrelevant for pilot use either way, since a pilot only cares about dots and level.`
+              : ''),
           detail: v.reason ?? null,
           nextStep:
             'If one of your pilots needs a mod, use this one. Open the mod and “Assign to a pilot” to keep it out of the Sell pile.',
@@ -91,12 +101,6 @@ export function explainVerdict(
             'Until you assign it, it stays in the Sell bucket. Assigning is reversible — you can unassign and put it on a character later.',
         };
       }
-      // The letter grade, when there's a score — names the grade in the
-      // headline/meaning instead of the bare word "Sell". Absent only for
-      // the narrower case where the mod has no score at all (pre-eval, or
-      // the instant "N-dot, no longer farmable" sell a few lines up, which
-      // never reaches this branch since it returns earlier in the engine).
-      const grade = mod?.band ? qualityBandLabel(mod.band) : null;
 
       // Road 2 — quality-gate SELL: the mod DID match a scoring rule, but its
       // roll quality fell below the bar for its current level (Stage 2 flipped

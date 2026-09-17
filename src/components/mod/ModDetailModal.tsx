@@ -51,7 +51,7 @@ function gradeBadgeClass(band: QualityBand): string {
 }
 
 function verdictLabel(v: VerdictResult, band: QualityBand | null): string {
-  if (v.verdict === 'SELL' && band) return qualityBandLabel(band);
+  if (v.verdict === 'SELL' && band) return `Grade ${qualityBandLabel(band)}`;
   if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
   if (v.verdict === 'PASS_RULES') return 'PASS';
   return v.verdict;
@@ -192,7 +192,7 @@ export default function ModDetailModal({ mod, isOpen, onClose }: ModDetailModalP
                   </span>
                   <span className={styles.evalBadgeSeparator}>/</span>
                   <span className={`${styles.evalBadge} ${gradeBand ? gradeBadgeClass(gradeBand) : styles.evalBadgeSell}`}>
-                    {gradeBand ? qualityBandLabel(gradeBand) : 'SELL'}
+                    {gradeBand ? `Grade ${qualityBandLabel(gradeBand)}` : 'SELL'}
                   </span>
                 </>
               ) : (
