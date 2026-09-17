@@ -84,7 +84,7 @@ export default function ModerationPage() {
             <h1 className={styles.title}>Shared Evaluations</h1>
             <p className={styles.subtitle}>
               Every Manifest (link-only shared evaluation) across every user. Publish a good one
-              into the public Protocols list.
+              to the Official list.
             </p>
           </Card>
 
@@ -211,7 +211,7 @@ function ManifestCard({
         <div className={styles.cardFooter}>
           {publishedProtocol ? (
             <Link to={`/evaluations/${publishedProtocol.id}`} className={styles.cardOpen}>
-              View Protocol →
+              Open →
             </Link>
           ) : (
             <Button variant="outline" size="sm" onClick={openModal}>
@@ -221,14 +221,14 @@ function ManifestCard({
         </div>
       </Card>
 
-      <Modal isOpen={modalOpen} onClose={closeModal} title="Publish as Protocol" size="sm">
+      <Modal isOpen={modalOpen} onClose={closeModal} title="Publish as Official" size="sm">
         <div>
           <p>
-            Promote "{e.name}" to a Protocol. Anyone will be able to find it in the Protocols
+            Promote "{e.name}" to Official. Anyone will be able to find it in the Official
             list — including logged-out users.
           </p>
           <label>
-            <span>Protocol slug</span>
+            <span>Slug</span>
             <input
               type="text"
               value={slug}

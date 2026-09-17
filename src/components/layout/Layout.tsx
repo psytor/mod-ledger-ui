@@ -101,11 +101,14 @@ export default function Layout({ children }: LayoutProps) {
 
   // Which of SUITE_NAV's mod-ledger sections (shared-ui) is active, derived
   // from the router — NavBar doesn't compute this itself since apps detect
-  // "where am I" differently.
+  // "where am I" differently. "My Evaluations" and "Official" are anchors
+  // into the same /evaluations page (both sections always render there),
+  // not separate destinations, so every /evaluations* route just highlights
+  // the page's primary entry.
   const activeSectionId = location.pathname === '/'
     ? 'grid'
     : location.pathname.startsWith('/evaluations')
-    ? 'evaluations'
+    ? 'my-evaluations'
     : location.pathname === '/moderation'
     ? 'moderation'
     : undefined;

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Card, Container, useAuth } from 'astrogators-shared-ui';
 import Layout, { EVALS_MIGRATED_EVENT } from '@/components/layout/Layout';
 import ImportEvaluationDialog from '@/components/evaluation/ImportEvaluationDialog';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { evaluationsApi } from '@/services/evaluationsApi';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { EvaluationImportError, type EvaluationExportV1 } from '@/types/evaluationExport';
 import type { Evaluation } from '@/types/evaluation';
 import styles from './EvaluationsPage.module.css';
@@ -18,23 +17,16 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   minute: '2-digit',
 };
 
-// Mobile breakpoint mirrors the existing CSS @media (max-width: 640px).
-// Above this width: stack both sections; below: render tabs.
-const MOBILE_QUERY = '(max-width: 640px)';
-
-type Tab = 'mine' | 'protocols';
-
 export default function EvaluationsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const isMobile = useMediaQuery(MOBILE_QUERY);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [isLoadingEvals, setIsLoadingEvals] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [protocols, setProtocols] = useState<Evaluation[]>([]);
   const [isLoadingProtocols, setIsLoadingProtocols] = useState(true);
   const [protocolsError, setProtocolsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('mine');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<{
     payload: EvaluationExportV1;
@@ -65,7 +57,7 @@ export default function EvaluationsPage() {
       setProtocols(list);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Failed to load Protocols.';
+        err instanceof Error ? err.message : 'Failed to load the official evaluations.';
       setProtocolsError(message);
       setProtocols([]);
     } finally {
@@ -96,6 +88,17 @@ export default function EvaluationsPage() {
     window.addEventListener(EVALS_MIGRATED_EVENT, onMigrated);
     return () => window.removeEventListener(EVALS_MIGRATED_EVENT, onMigrated);
   }, [reload]);
+
+  // Both sections are always on the page now — NavBar's "My Evaluations" /
+  // "Official" links are just anchors into it (SUITE_NAV:
+  // /evaluations, /evaluations#official). Scroll to whichever one was
+  // clicked, whether arriving fresh or already on this page (same-route
+  // hash-only navigations don't remount this component, so this needs to
+  // re-run on every hash change, not just on mount).
+  useEffect(() => {
+    if (!location.hash) return;
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [location.hash]);
 
   const handleImportClick = () => {
     setImportError(null);
@@ -200,38 +203,8 @@ export default function EvaluationsPage() {
             )}
           </Card>
 
-          {isMobile ? (
-            <>
-              <div className={styles.tabs} role="tablist" aria-label="Evaluations">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'mine'}
-                  data-active={activeTab === 'mine'}
-                  onClick={() => setActiveTab('mine')}
-                  className={styles.tab}
-                >
-                  My Evaluations
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'protocols'}
-                  data-active={activeTab === 'protocols'}
-                  onClick={() => setActiveTab('protocols')}
-                  className={styles.tab}
-                >
-                  Protocols
-                </button>
-              </div>
-              {activeTab === 'mine' ? mineSection : protocolsSection}
-            </>
-          ) : (
-            <>
-              {mineSection}
-              {protocolsSection}
-            </>
-          )}
+          {mineSection}
+          {protocolsSection}
         </div>
       </Container>
       <ImportEvaluationDialog
@@ -259,7 +232,7 @@ function MineSection({
   currentUserId,
 }: MineSectionProps) {
   return (
-    <section className={styles.section} aria-label="My Evaluations">
+    <section id="my-evaluations" className={styles.section} aria-label="My Evaluations">
       <p className={styles.divider}>My Evaluations</p>
       {loadError && (
         <p className={styles.importError} role="alert">
@@ -322,8 +295,8 @@ function ProtocolsSection({
   loadError,
 }: ProtocolsSectionProps) {
   return (
-    <section className={styles.section} aria-label="Protocols">
-      <p className={styles.divider}>Protocols</p>
+    <section id="official" className={styles.section} aria-label="Official">
+      <p className={styles.divider}>Official</p>
       {loadError && (
         <p className={styles.importError} role="alert">
           {loadError}
@@ -337,7 +310,7 @@ function ProtocolsSection({
           edgeColor="var(--color-primary)"
           className={styles.empty}
         >
-          <p className={styles.emptyText}>Loading Protocols…</p>
+          <p className={styles.emptyText}>Loading…</p>
         </Card>
       ) : protocols.length === 0 ? (
         <Card
@@ -348,8 +321,8 @@ function ProtocolsSection({
           className={styles.empty}
         >
           <p className={styles.emptyText}>
-            No Protocols yet. Admin-curated rule sets show up here once
-            they&apos;re published.
+            Nothing here yet. Evaluations picked by the site's admins show up
+            here once they&apos;re published.
           </p>
         </Card>
       ) : (
@@ -359,7 +332,7 @@ function ProtocolsSection({
               key={e.id}
               evaluation={e}
               currentUserId={null}
-              eyebrowOverride="Protocol"
+              eyebrowOverride="Official"
             />
           ))}
         </div>
