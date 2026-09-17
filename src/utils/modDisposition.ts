@@ -77,7 +77,7 @@ export type QualityBand =
   | 'a' // 65-85   Purple (High Priority — rolls beat your targets)
   | 'b' // 45-65   Blue   (Priority      — 50 = rolls hit your targets)
   | 'c' // 30-45   Green  (Low Priority  — rolls a bit short of your targets)
-  | 'd' // 15-30   Orange (Minimal       — rolls well short)
+  | 'd' // 15-30   White  (Minimal       — rolls well short)
   | 'f'; // 0-15   Grey   (Skip          — rolls far short)
 
 // Ascending order so index 0 is the lowest band. The boundaries split the

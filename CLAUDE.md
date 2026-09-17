@@ -510,9 +510,15 @@ reintroduce any "50 = average / bell centred at 50" framing anywhere.
 
 `qualityBand` in `modDisposition.ts` splits 0-100 into six **uneven** bands
 (`QUALITY_BAND_BOUNDARIES = [15, 30, 45, 65, 85]` in `scoringConstants.ts`)
-mapped to a six-colour scale (five of them the game's own quality colours,
-plus a new orange for the D grade — the game only has five mod-tier colours,
-so there's no sixth "official" one to reuse). **The bands are deliberately
+mapped to a six-colour scale: S/A/B/C/F reuse the game's own five mod-tier
+colours (Gold/Purple/Blue/Green/Grey) in the same ascending order, and D — the
+one grade with no game-native colour to borrow, sitting between Grey and
+Green — is an off-white, matching the widely-used item-rarity convention
+(Grey → White → Green → Blue → Purple → Gold) where white sits one notch
+above grey as "common, unremarkable" rather than the literal floor. An
+earlier pass used orange here on a generic bad→good heat-map instinct;
+wrong call — orange reads as **top tier** in that exact convention (WoW/
+Diablo legendaries), the opposite of what D needed to say. **The bands are deliberately
 uneven so 50 lands inside B, not the literal middle letter C** — a straight
 100/6 split would put "the rolls hit your target" inside a letter that reads
 as mediocre in both school-grade and gaming-tier-list culture, undoing the
@@ -539,7 +545,7 @@ rule, however well it happened to roll.
 | 65–85 | `a` | Purple | A | High Priority | Slice soon |
 | 45–65 | `b` | Blue | B | Priority | Already meets your bar — slice normally |
 | 30–45 | `c` | Green | C | Low Priority | Slice only if you have spare materials |
-| 15–30 | `d` | Orange | D | Minimal Priority | Well below your bar — not worth materials yet |
+| 15–30 | `d` | White (off) | D | Minimal Priority | Well below your bar — not worth materials yet |
 | 0–15 | `f` | Grey | F | Skip | Not worth your materials |
 
 The label/priority/action come from `qualityBandLabel`, `qualityBandPriority`,

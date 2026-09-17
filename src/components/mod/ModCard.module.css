@@ -394,9 +394,9 @@
 }
 
 .verdictGradeD {
-  background: rgba(217, 119, 6, 0.92);
-  color: white;
-  box-shadow: 0 0 8px rgba(217, 119, 6, 0.35);
+  background: rgba(203, 213, 225, 0.92);
+  color: #1f2937;
+  box-shadow: 0 0 6px rgba(203, 213, 225, 0.3);
 }
 
 .verdictGradeF {
@@ -497,8 +497,9 @@
 }
 
 .qualityGradeD {
-  background: rgba(217, 119, 6, 0.96);   /* orange */
-  box-shadow: 0 0 7px rgba(217, 119, 6, 0.4);
+  background: rgba(203, 213, 225, 0.96); /* off-white/light grey */
+  color: #1f2937;
+  box-shadow: 0 0 6px rgba(203, 213, 225, 0.35);
 }
 
 .qualityGradeF {
@@ -521,5 +522,5 @@
 .maxedGradeA { background: #3a2c52; color: #ddccf2; }
 .maxedGradeB { background: #243a5c; color: #c2d6f2; }
 .maxedGradeC { background: #234a30; color: #c2e4ca; }
-.maxedGradeD { background: #4a3220; color: #f0d2af; }
+.maxedGradeD { background: #3f4451; color: #e5e7eb; }
 .maxedGradeF { background: #33373f; color: #cdd4de; }
