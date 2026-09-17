@@ -101,16 +101,18 @@ export default function Layout({ children }: LayoutProps) {
 
   // Which of SUITE_NAV's mod-ledger sections (shared-ui) is active, derived
   // from the router — NavBar doesn't compute this itself since apps detect
-  // "where am I" differently. "My Evaluations" and "Official" are anchors
-  // into the same /evaluations page (both sections always render there),
-  // not separate destinations, so every /evaluations* route just highlights
-  // the page's primary entry.
+  // "where am I" differently. "My Evaluations" / "Official" / "Moderation"
+  // are all anchors into the same /evaluations page (every section always
+  // renders there, Moderation only for admin/mod), not separate
+  // destinations — the hash decides which one highlights, defaulting to
+  // "My Evaluations" on a bare /evaluations* visit or an unrecognized hash
+  // (e.g. one of the detail/new/edit sub-routes, which carry no hash today).
+  const EVALUATIONS_HASH_IDS = new Set(['official', 'moderation']);
+  const evaluationsHash = location.hash.slice(1);
   const activeSectionId = location.pathname === '/'
-    ? 'grid'
+    ? 'overview'
     : location.pathname.startsWith('/evaluations')
-    ? 'my-evaluations'
-    : location.pathname === '/moderation'
-    ? 'moderation'
+    ? (EVALUATIONS_HASH_IDS.has(evaluationsHash) ? evaluationsHash : 'my-evaluations')
     : undefined;
 
   // App-specific control for the NavBar's right cluster: the shared

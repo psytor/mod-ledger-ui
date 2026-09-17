@@ -1,8 +1,9 @@
 import type { User } from 'astrogators-shared-ui';
 
-// Shared by EvaluationDetailPage and RuleBuilderPage (and now ModerationPage)
-// so the admin/mod check doesn't drift between copies. `role` is a required
-// field on shared-ui's `User` type as of 0.10.4 — no widening cast needed.
+// Shared by EvaluationDetailPage, RuleBuilderPage, and EvaluationsPage's
+// Moderation section so the admin/mod check doesn't drift between copies.
+// `role` is a required field on shared-ui's `User` type as of 0.10.4 — no
+// widening cast needed.
 
 export function isAdmin(user: User | null): boolean {
   return user?.role === 'admin';
