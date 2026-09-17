@@ -46,7 +46,7 @@ function visibilityBadge(v: EvaluationVisibility): {
   label: string;
   variant: 'default' | 'info' | 'success';
 } {
-  if (v === 'protocol') return { label: 'Protocol', variant: 'info' };
+  if (v === 'protocol') return { label: 'Official', variant: 'info' };
   if (v === 'manifest') return { label: 'Manifest', variant: 'success' };
   return { label: 'Private', variant: 'default' };
 }
@@ -390,7 +390,7 @@ export default function EvaluationDetailPage() {
                 )}
                 {canPublish && (
                   <Button variant="outline" onClick={openPublishModal}>
-                    Publish as Protocol
+                    Publish as Official
                   </Button>
                 )}
                 <Button variant="outline" onClick={handleExport}>
@@ -399,7 +399,7 @@ export default function EvaluationDetailPage() {
                 {canDelete && (
                   <span className={styles.danger}>
                     <Button variant="danger" onClick={handleDelete}>
-                      {canManageProtocol && !owner ? 'Delete Protocol' : 'Delete'}
+                      {canManageProtocol && !owner ? 'Delete Official' : 'Delete'}
                     </Button>
                   </span>
                 )}
@@ -453,16 +453,16 @@ export default function EvaluationDetailPage() {
       <Modal
         isOpen={publishModal}
         onClose={closePublishModal}
-        title="Publish as Protocol"
+        title="Publish as Official"
         size="sm"
       >
         <div className={styles.publishBody}>
           <p>
-            Promote this Manifest to a Protocol. Anyone will be able to
-            find it in the Protocols list — including logged-out users.
+            Promote this Manifest to Official. Anyone will be able to
+            find it in the Official list — including logged-out users.
           </p>
           <label className={styles.publishLabel}>
-            <span>Protocol slug</span>
+            <span>Slug</span>
             <input
               type="text"
               value={publishSlug}
