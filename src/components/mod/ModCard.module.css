@@ -365,35 +365,41 @@
   box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
 }
 
-/* "Level Up" badge — graded on the same 5-band quality scale as the
-   QUALITY BAND CHIP below (identical colour values) whenever the mod has a
-   real absolute_quality already. verdictUpgradeNoData is the fallback for
-   the narrower case where the mod is too low-level to have a score yet. */
-.verdictUpgradePerfect {
+/* Letter-grade badge — shared by the "Level Up" badge AND a graded "Sell"
+   badge (identical colour values to the QUALITY BAND CHIP below) whenever the
+   mod has a real absolute_quality already. verdictUpgradeNoData is the
+   fallback for the narrower case where there's no score yet at all. */
+.verdictGradeS {
   background: rgba(234, 179, 8, 0.92);
   color: #1a1206;
   box-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
 }
 
-.verdictUpgradeNearlyPerfect {
+.verdictGradeA {
   background: rgba(147, 51, 234, 0.92);
   color: white;
   box-shadow: 0 0 8px rgba(147, 51, 234, 0.4);
 }
 
-.verdictUpgradeOnTarget {
+.verdictGradeB {
   background: rgba(37, 99, 235, 0.92);
   color: white;
   box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
 }
 
-.verdictUpgradeUnderTarget {
+.verdictGradeC {
   background: rgba(22, 163, 74, 0.92);
   color: white;
   box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
 }
 
-.verdictUpgradeBad {
+.verdictGradeD {
+  background: rgba(203, 213, 225, 0.92);
+  color: #1f2937;
+  box-shadow: 0 0 6px rgba(203, 213, 225, 0.3);
+}
+
+.verdictGradeF {
   background: rgba(107, 114, 128, 0.92);
   color: #f3f4f6;
 }
@@ -469,28 +475,34 @@
   border-left: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.qualityPerfect {
+.qualityGradeS {
   background: rgba(234, 179, 8, 0.96);   /* gold */
   color: #1a1206;
   box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
 }
 
-.qualityNearlyPerfect {
+.qualityGradeA {
   background: rgba(147, 51, 234, 0.96);  /* purple */
   box-shadow: 0 0 9px rgba(147, 51, 234, 0.45);
 }
 
-.qualityOnTarget {
+.qualityGradeB {
   background: rgba(37, 99, 235, 0.96);   /* blue */
   box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
 }
 
-.qualityUnderTarget {
+.qualityGradeC {
   background: rgba(22, 163, 74, 0.96);   /* green */
   box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
 }
 
-.qualityBad {
+.qualityGradeD {
+  background: rgba(203, 213, 225, 0.96); /* off-white/light grey */
+  color: #1f2937;
+  box-shadow: 0 0 6px rgba(203, 213, 225, 0.35);
+}
+
+.qualityGradeF {
   background: rgba(107, 114, 128, 0.95); /* grey */
   color: #f3f4f6;
 }
@@ -506,8 +518,9 @@
   font-weight: 700;
 }
 
-.maxedPerfect       { background: #5c4d1f; color: #f0e2af; }
-.maxedNearlyPerfect { background: #3a2c52; color: #ddccf2; }
-.maxedOnTarget      { background: #243a5c; color: #c2d6f2; }
-.maxedUnderTarget   { background: #234a30; color: #c2e4ca; }
-.maxedBad           { background: #33373f; color: #cdd4de; }
+.maxedGradeS { background: #5c4d1f; color: #f0e2af; }
+.maxedGradeA { background: #3a2c52; color: #ddccf2; }
+.maxedGradeB { background: #243a5c; color: #c2d6f2; }
+.maxedGradeC { background: #234a30; color: #c2e4ca; }
+.maxedGradeD { background: #3f4451; color: #e5e7eb; }
+.maxedGradeF { background: #33373f; color: #cdd4de; }

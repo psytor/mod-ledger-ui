@@ -486,10 +486,21 @@ export function evaluateMod(
       .filter((r): r is Extract<VariantChainResult, { kind: 'fail' }> => r.kind === 'fail')
       .sort((a, b) => b.requiredCount - a.requiredCount);
     const reference = sortedFails[0]?.variant;
+    // A mod that matched no rule still gets scored against the rule it came
+    // closest to (the same reference used for the match breakdown below), so
+    // it lands on the quality-band scale instead of carrying no score at all
+    // — the caller can grade it rather than only ever seeing a bare SELL.
+    // Gated on full reveal (isInScoringZone): a partial-reveal mod would score
+    // against secondaries it hasn't rolled yet, reading as a false-bad grade
+    // before it's even eligible to be judged.
+    const gradeable = reference && isInScoringZone(mod.rarity, mod.tier, mod.level);
     return {
       verdict: 'SELL',
       reason: sortedFails[0]?.reason ?? 'no variant passed',
       all_results: results,
+      absolute_quality: gradeable
+        ? scoreModForVariant(mod, reference, statDefs)
+        : undefined,
       match_breakdown: reference
         ? buildMatchBreakdown(mod, reference, statDefs, statIdLookup)
         : undefined,

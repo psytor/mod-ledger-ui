@@ -40,11 +40,12 @@ const TIER_COLOR_BY_LETTER: Record<string, string> = {
 // the card chip tints (ModCard.module.css) so the whole readout speaks one
 // colour language.
 const bandClass: Record<QualityBand, string> = {
-  perfect: styles.perfect,
-  'nearly-perfect': styles.nearlyPerfect,
-  'on-target': styles.onTarget,
-  'under-target': styles.underTarget,
-  bad: styles.bad,
+  s: styles.gradeS,
+  a: styles.gradeA,
+  b: styles.gradeB,
+  c: styles.gradeC,
+  d: styles.gradeD,
+  f: styles.gradeF,
 };
 
 interface InventoryReadoutProps {

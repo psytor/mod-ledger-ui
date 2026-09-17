@@ -5,6 +5,30 @@ Guide for Claude Code when working inside this submodule.
 ## Documentation currency (update when you edit docs)
 
 **Docs current as of:** uncommitted work on branch
+`feat/mod-ledger-ui-score-unmatched-mods` — two changes, folded into one
+branch/PR because the second only makes sense once the first exists:
+
+1. A no-match SELL (every variant rejected at Stage 1) now carries an
+   `absolute_quality` score once the mod is fully revealed, computed against
+   the closest-fail variant instead of being left with no score at all. See
+   "No-match SELL now scores against the closest rule" under "How
+   evaluations work".
+2. The old five word-band quality scale (Elite/Strong/On Target/Weak/Poor)
+   is now six letters (S/A/B/C/D/F), and **Level/Sell mods now get the grade
+   chip too** — the existing top-left quality chip (previously Slice/Maxed
+   only) now also renders for Level and Sell, standalone, next to the
+   unchanged verdict badge (still the plain word — SELL/FOR PILOT/↑L9 —
+   never merged with the letter). `verdictExplain.ts`'s SELL copy no longer
+   issues a sell/keep directive. See "Letter grade
+   (S/A/B/C/D/F)" and "Verdict labels & explanations" under "How evaluations
+   work". Prompted by beta feedback (a SWGOH content creator reviewing the
+   public Protocol) that the tool read as too harsh/certain.
+
+The paragraphs below (stale branch/commit anchors —
+`recommendation-caution-strip` / `ff87784` — predate `a350449` and the `#2`
+merge on `main`, not re-verified in this pass) plus everything else below.
+
+Earlier: uncommitted work on branch
 `recommendation-caution-strip` (off `ff87784`) plus everything below. That
 branch adds the **recommendation caution strip** on `ModGridPage` — see
 "Recommendation caution strip" under "How evaluations work". Everything after
@@ -425,6 +449,34 @@ then bucketed by `actionOf` in `modDisposition.ts` into the `slice` and
 `maxed` actions (the latter is a 6-dot A-tier mod with no further upgrade).
 See `evaluationEngine.ts` around the L15 branch.
 
+### No-match SELL now scores against the closest rule
+
+A SELL from Stage 1 (`passing.length === 0` in `evaluateMod` — every variant
+in the set rejected the mod) used to carry no `absolute_quality` at all: the
+mod had no winning variant to score against, so it fell straight to the
+badge with nothing to grade it by. It now scores against the same
+**reference** variant already picked for the match breakdown — the rejected
+variant with the highest `requiredCount`, i.e. the one the mod came closest
+to matching (`scoreModForVariant(mod, reference, statDefs)`). This does
+**not** promote the mod to a pass, set `winning_variant_id`, or change the
+`SELL` verdict itself — it only attaches a number so a no-match mod can be
+graded on the same quality-band scale as everything else, instead of being
+the one case with nothing to show.
+
+Gated on `isInScoringZone(mod.rarity, mod.tier, mod.level)` — a mod that
+hasn't fully revealed its secondaries yet would score against stats it
+hasn't rolled, reading as a false-bad grade before it's even eligible to be
+judged. A 6-dot mod is always in scoring zone; a 5-dot mod isn't until its
+tier's `FIRST_EVAL_LEVEL`. Below that, `absolute_quality` stays `undefined`
+on the SELL exactly as before.
+
+This is presentation-adjacent groundwork, not a UI change by itself:
+`ModDetailModal`'s "What the score means:" block already renders off any
+finite `absolute_quality` regardless of verdict, so it now also appears for
+these mods automatically. Nothing yet reads this score on `ModCard`'s badge
+or the `InventoryReadout` quality lens for a SELL mod — wiring the letter-
+grade badge to it is a separate, following change.
+
 ### Variant tiebreaking
 
 When multiple variants match a mod, the winner is selected by this exact
@@ -444,57 +496,124 @@ priority (`evaluationEngine.ts` ~line 282-291):
 old raw running total (`score`) was only ever consumed by the removed cohort
 percentile, so it is no longer returned or stored on `VerdictResult`.
 
-### Slicing advice (quality bands)
+### Letter grade (S/A/B/C/D/F) — replaces the old word bands
 
-A `slice`-action mod's recommendation is decided **per-mod** from its own
-`absolute_quality`, with **no cross-mod comparison**. The score answers one
-question: **how close did the mod's rolls get to the targets YOU set?** In
-`curveScore` a single roll scores exactly 50 when it lands on your target (0 at
-nothing, 100 at a perfect max roll), so the mod's overall `absolute_quality`
-reads: **50 = the rolls met your targets** (this mod already does what you want —
-push it forward), **above 50 = the rolls beat your targets** (your best bets),
-**below 50 = the rolls fell short**. **50 is the TARGET, not an average roll** —
-do not reintroduce any "50 = average / bell centred at 50" framing anywhere.
+A mod's grade is decided **per-mod** from its own `absolute_quality`, with
+**no cross-mod comparison**. The score answers one question: **how close did
+the mod's rolls get to the targets YOU set?** In `curveScore` a single roll
+scores exactly 50 when it lands on your target (0 at nothing, 100 at a perfect
+max roll), so the mod's overall `absolute_quality` reads: **50 = the rolls met
+your targets** (this mod already does what you want — push it forward),
+**above 50 = the rolls beat your targets** (your best bets), **below 50 = the
+rolls fell short**. **50 is the TARGET, not an average roll** — do not
+reintroduce any "50 = average / bell centred at 50" framing anywhere.
 
-`qualityBand` in `modDisposition.ts` splits 0-100 into five **even 20-point**
-bands (`QUALITY_BAND_BOUNDARIES = [20, 40, 60, 80]` in `scoringConstants.ts`)
-mapped to the game's own quality colours. The band that contains 50 is **On
-Target** — a green light, never "Average". It is a fixed per-mod scale, **not** a
-live cohort percentile.
+`qualityBand` in `modDisposition.ts` splits 0-100 into six **uneven** bands
+(`QUALITY_BAND_BOUNDARIES = [15, 30, 45, 65, 85]` in `scoringConstants.ts`)
+mapped to a six-colour scale: S/A/B/C/F reuse the game's own five mod-tier
+colours (Gold/Purple/Blue/Green/Grey) in the same ascending order, and D — the
+one grade with no game-native colour to borrow, sitting between Grey and
+Green — is an off-white, matching the widely-used item-rarity convention
+(Grey → White → Green → Blue → Purple → Gold) where white sits one notch
+above grey as "common, unremarkable" rather than the literal floor. An
+earlier pass used orange here on a generic bad→good heat-map instinct;
+wrong call — orange reads as **top tier** in that exact convention (WoW/
+Diablo legendaries), the opposite of what D needed to say. **The bands are deliberately
+uneven so 50 lands inside B, not the literal middle letter C** — a straight
+100/6 split would put "the rolls hit your target" inside a letter that reads
+as mediocre in both school-grade and gaming-tier-list culture, undoing the
+whole point of grading instead of shouting. The band that contains 50 is
+**B** — a real yes, never "Average" or "C-average". It is a fixed per-mod
+scale, **not** a live cohort percentile. Internal band ids are the lowercase
+letters (`'s' | 'a' | 'b' | 'c' | 'd' | 'f'`), ascending worst→best in
+`BAND_ORDER`.
 
 Each band carries three pieces of copy in `QUALITY_BAND_INFO` (`modDisposition.ts`):
-a one-word **label** (the card chip), a **priority**, and a plain-language
-**action**. The target band is **"Priority"** — a full yes, the actual goal —
-**not "medium"**; the bands above stack Top/High Priority on top of it (bonus past
-target), and below it falls off to Low Priority / Skip. Do not demote the target
-band to a middling tier.
+the **label** (the letter itself, shown on the card chip/badge), a
+**priority**, and a plain-language **action**. `priority`/`action` are
+**slicing-context copy only** — used for mods that already matched a rule
+(slice/maxed/level); B is **"Priority"**, a full yes, the actual goal — **not
+"medium"**; the bands above stack Top/High Priority on top of it (bonus past
+target), and below it falls off toward Skip. A no-match SELL grade uses its
+own fit-description copy instead (see "Verdict labels & explanations" below)
+— "slice this first" makes no sense for a mod that doesn't match any current
+rule, however well it happened to roll.
 
-| % range | Band id | Colour | Label (card) | Priority | What to do |
+| % range | Band id | Colour | Letter | Priority | What to do (slice/maxed/level only) |
 |---|---|---|---|---|---|
-| 80–100 | `perfect` | Gold | Elite | Top Priority | Slice this first |
-| 60–80 | `nearly-perfect` | Purple | Strong | High Priority | Slice soon |
-| 40–60 | `on-target` | Blue | On Target | Priority | Already meets your bar — slice normally |
-| 20–40 | `under-target` | Green | Weak | Low Priority | Slice only if you have spare materials |
-| 0–20 | `bad` | Grey | Poor | Skip | Not worth your materials |
+| 85–100 | `s` | Gold | S | Top Priority | Slice this first |
+| 65–85 | `a` | Purple | A | High Priority | Slice soon |
+| 45–65 | `b` | Blue | B | Priority | Already meets your bar — slice normally |
+| 30–45 | `c` | Green | C | Low Priority | Slice only if you have spare materials |
+| 15–30 | `d` | White (off) | D | Minimal Priority | Well below your bar — not worth materials yet |
+| 0–15 | `f` | Grey | F | Skip | Not worth your materials |
 
 The label/priority/action come from `qualityBandLabel`, `qualityBandPriority`,
 and `qualityBandAction`. Where each surfaces:
 
-- **`ModCard` chip** — the one-word **label**, tinted by colour (slice mods only);
-  the chip's `title` tooltip carries `priority — action`. A maxed (6d-A) mod gets a
-  "Maxed" chip carrying the band word, and a maxed-specific tooltip (no slice
-  instruction — it is already fully sliced). Level/sell mods rely on the verdict
-  badge.
+- **`ModCard` chip** (top-left) — the letter, tinted by colour, standalone —
+  its own element, never merged into the verdict badge's text. Originally
+  Slice/Maxed only; now **also renders for Level and Sell** whenever the mod
+  has a score (`action === 'slice' || 'level' || 'sell'`), so a graded mod
+  shows its letter here regardless of which bucket it's in. The chip's
+  `title` tooltip carries `priority — action` for slice/level; Sell gets its
+  own tooltip copy instead ("how well the rolls did against the rule it came
+  closest to matching") — slicing language doesn't apply to a mod that
+  doesn't match any current rule. A maxed (6d-A) mod gets a "Maxed" chip
+  carrying the letter, and a maxed-specific tooltip (no slice instruction —
+  it is already fully sliced).
+- **`ModCard` verdict badge** (top-right) — **always the plain status word**
+  (FOR PILOT / ↑L9 / PASS / UNCONFIGURED), on its own, never combined with
+  the grade — the grade is the chip above, not badge text. UPGRADE keeps its
+  pre-existing band-tinted badge colour (unchanged by this work); FOR PILOT
+  keeps its original flat colour. An earlier pass tried putting the letter
+  *into* the badge text (replacing "SELL", then concatenating
+  "FOR PILOT · B") — reverted, because it collided with `ParsedMod.tier_name`
+  (see below) and because the badge's job is the status, the chip's job is
+  the grade; don't re-merge them.
+
+  **A plain (non-pilot) SELL with a grade omits the badge entirely** — same
+  rule as `PASS_RULES` (its slice/maxed chip already says "keeper", so a
+  redundant badge is dropped): the letter chip already conveys the grade, so
+  a "SELL" word badge next to it would just repeat the same information in a
+  harsher, more directive-sounding form — exactly what this whole change set
+  exists to remove. `SELL` as literal badge text now appears **only** when
+  there's no grade at all (pre-eval-adjacent, or the instant "N-dot, no
+  longer farmable" sell) — there's no chip to fall back on, so the word is
+  the only signal. `FOR PILOT` is a distinct, actionable flag (not a
+  restatement of the grade), so it always shows regardless of grade.
+
+  **`ParsedMod.tier_name` is a DIFFERENT, pre-existing letter grade — SWGOH's
+  own native mod-quality rating** (`mod-ledger/src/schemas/mod.py`: "From
+  mod_tiers API (E, D, C, B, A)"), shown as `ModCard`'s bottom `{level} -
+  {tier_name}` text and `ModDetailModal`'s "Tier:" row. It has nothing to do
+  with this evaluation grade and the two alphabets overlap on A/B/C/D. No
+  text-based workaround for this — the grade stays a bare letter everywhere
+  (card chip and modal badge alike); if the collision turns out to matter in
+  practice, the fix is a placement/visual one, not a wordier label. If you
+  extend bare letters to a new surface, check `tier_name` isn't visible
+  nearby first.
 - **`InventoryReadout`** (the framed console at the top of the flat view) renders
-  the key — each legend item shows colour + range + label + **priority**, with
+  the key — each legend item shows colour + range + letter + **priority**, with
   `priority — action` in its tooltip, and the distribution bar segments carry the
   same in their tooltips. See "Top-of-page readout" below.
-- **`ModDetailModal`** — a "Slicing advice:" line in the Evaluation section shows
-  `Priority (Label) — action` for slice mods (and a fully-sliced note for maxed).
+- **`ModDetailModal`** — the Evaluation badge shows the letter for a graded
+  SELL (same as the card); a "Slicing advice:" line further down shows
+  `Priority (Label) — action` for slice/maxed mods only.
 
 Because the band is intrinsic to the mod, **filtering and sorting never change a
-mod's band** — they only change what's shown and in what order, and a lone mod
-still gets a real verdict.
+mod's grade** — they only change what's shown and in what order, and a lone mod
+still gets a real grade.
+
+> **History:** before this, the five bands were even 20-point splits
+> (`[20, 40, 60, 80]`) with word labels (Elite/Strong/On Target/Weak/Poor),
+> and only slice/maxed/level mods were graded at all — a Sell verdict was
+> always the bare red word "SELL" with no grade. Beta feedback (a SWGOH
+> content creator reviewing the public Protocol) was that this read as too
+> harsh/certain for mods that were actually fine, just outside the
+> currently-authored rules. Replaced with the letter scale here, plus scoring
+> a no-match SELL against its closest rule (see the next section) so it has
+> something to grade.
 
 ### Top-of-page readout
 
@@ -710,50 +829,70 @@ The four verdicts above are terse. `src/utils/verdictExplain.ts` turns any
 that for a native `title` tooltip. It is presentation-only: it reads existing
 verdict fields (`reason`, `all_results`, `winning_variant_name`,
 `absolute_quality`) and never re-runs the engine. The optional second arg is an
-`ExplainModContext` (`{ rarity }`) — used **only for tone**, never to re-derive
-the verdict.
+`ExplainModContext` (`{ rarity, isPilot?, band? }`) — used **only for tone**
+(the letter grade to name in `label`/`meaning`, and pilot-relabel state),
+never to re-derive the verdict.
 
-`caveat` is softening context shown beneath `nextStep`. Today only the **`SELL`**
-verdict sets it: a sell call is a verdict against the *current* scoring rules,
-not the mod itself — the mod may still suit a character that wants those
-secondaries together, and any sell-rated mod makes a fine ship-pilot mod because
-a ship draws power from a mod's **dots + level**, not its secondary stats (a real
-game mechanic; see the EA/gaming-fans references). When `mod.rarity === 6` the
-SELL copy is investment-aware: it leads with "you invested a lot to reach 6 dots,"
-and `nextStep` softens from "Safe to sell for credits." to "Keep it for now, or
-sell …". A 6-dot mod is a fully sliced mod, so the SELL is never about wasted
-levels — the `meaning` line deliberately no longer claims it is "not worth
-leveling further."
+**SELL no longer issues a sell/keep directive.** It used to: `nextStep` said
+"Safe to sell for credits." / "stop leveling it — sell it for credits". That
+read as certain when the tool only knows what it's been told to look for —
+the exact beta complaint this rewrite addresses (see "Letter grade" above).
+Now `label`/`meaning` name the letter grade when one exists (`mod.band`), and
+`nextStep` describes *why* the mod is sitting in the Sell pile — "nothing
+currently claims it" (no rule matched) or "the rolls haven't caught up yet at
+this level" (matched a rule but graded below the level's bar) — and invites
+tuning or adding a rule instead of commanding a sale. `caveat` is still the
+softening context beneath `nextStep`: a sell call is a read against the
+*current* scoring rules, not the mod itself — the mod may still suit a
+character that wants those secondaries together, and any sell-rated mod makes
+a fine ship-pilot mod because a ship draws power from a mod's **dots + level**,
+not its secondary stats (a real game mechanic; see the EA/gaming-fans
+references). When `mod.rarity === 6` the SELL copy is still investment-aware:
+it leads with "you invested a lot to reach 6 dots, so there's no rush." A
+6-dot mod is a fully sliced mod, so the SELL is never about wasted levels —
+the `meaning` line deliberately never claims it is "not worth leveling
+further." The **`isPilot`** branch (built + L15) was already action-oriented
+about assigning to a pilot, never a directive on the mod's worth — untouched
+by the directive-removal above, but its `meaning` now also names the letter
+grade and explicitly disambiguates it from `tier_name` ("separate from this
+mod's own Tier rating above") when one exists, added after testing surfaced a
+real "FOR PILOT" mod graded B sitting right below "Tier: A" with nothing
+explaining what the letter even was. See the `tier_name` gotcha above.
 
 `verdictExplain.ts` also exports **`explainQualityScore(quality)`** →
 `{ line, note }`: plain-language prose for the 0-100 `absolute_quality` score
 itself (not a verdict). `line` states the score and whether the rolls met / beat
-/ fell short of the targets (boundaries 40 / 60 align with the "On Target" band),
+/ fell short of the targets (boundaries 45 / 65 align with the "B" grade band),
 and reiterates **50 = on target, it scores roll quality not how many stats
 matched**; `note` makes the distinction players trip on — **matching your rule
 and rolling well are two different things** (a mod can hit every Required stat
 and still score low if those rolls were weak). It renders in `ModDetailModal` as
 a "What the score means:" block (purple-bordered, between the slicing-advice line
 and the winning-rule row) whenever the engine produced a finite
-`absolute_quality`. This exists to answer the exact "all 4 required are there, so
-why only 40/100?" confusion.
+`absolute_quality` — this now includes a graded no-match SELL, not just
+slice/maxed/level mods. This exists to answer the exact "all 4 required are
+there, so why only 40/100?" confusion.
 
 It surfaces in two places:
 
 - **`ModCard`** — the top-right verdict badge has a `title` tooltip
-  (`verdictTooltip(verdict, { rarity })`); the tooltip appends `caveat`. **Both
-  the verdict badge and the top-left quality chip set `pointer-events: auto`
-  (+ `cursor: help`)** so their native `title` tooltips actually fire — they were
-  `pointer-events: none` before, which silently killed every card tooltip. The
-  tradeoff: a click landing exactly on a badge no longer opens the modal (the rest
-  of the card still does). The badge
-  is shown for **SELL / UPGRADE / UNCONFIGURED only** — `PASS_RULES` is
+  (`verdictTooltip(verdict, { rarity, isPilot, band })`); the tooltip appends
+  `caveat`. **Both the verdict badge and the top-left quality chip set
+  `pointer-events: auto`** (+ `cursor: help`) so their native `title` tooltips
+  actually fire — they were `pointer-events: none` before, which silently
+  killed every card tooltip. The tradeoff: a click landing exactly on a badge
+  no longer opens the modal (the rest of the card still does). The badge is
+  shown for **SELL / UPGRADE / UNCONFIGURED only** — `PASS_RULES` is
   intentionally **not** badged on the card, because a Pass mod always carries a
   slice/maxed band chip (top-left) that already conveys "keeper", making a "PASS"
   badge redundant. (`PASS` still appears in `ModDetailModal` and in the per-rule
-  results table.)
-- **`ModDetailModal`** — the Evaluation section shows the badge + `meaning`,
-  an explanation block (`detail` + `Next step` + muted italic `caveat`), the
+  results table.) The badge itself always shows the plain word — the grade
+  lives in the top-left quality chip instead (see "Letter grade" above),
+  standalone, never merged into badge text.
+- **`ModDetailModal`** — the Evaluation section shows the badge (same plain
+  word as the card, or a bare letter when Sell has a score — see
+  `verdictLabel`/`gradeBadgeClass` in `ModDetailModal.tsx`) + `meaning`, an
+  explanation block (`detail` + `Next step` + muted italic `caveat`), the
   winning scoring rule, and a per-rule breakdown table.
 
 The engine only emits a `reason` string on failures; `verdictExplain`
