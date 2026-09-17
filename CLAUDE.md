@@ -14,10 +14,12 @@ branch/PR because the second only makes sense once the first exists:
    "No-match SELL now scores against the closest rule" under "How
    evaluations work".
 2. The old five word-band quality scale (Elite/Strong/On Target/Weak/Poor)
-   is now six letters (S/A/B/C/D/F), and **SELL itself is graded** — the
-   `ModCard`/`ModDetailModal` verdict badge shows the letter instead of the
-   flat word "SELL" whenever the mod has a score, and `verdictExplain.ts`'s
-   SELL copy no longer issues a sell/keep directive. See "Letter grade
+   is now six letters (S/A/B/C/D/F), and **Level/Sell mods now get the grade
+   chip too** — the existing top-left quality chip (previously Slice/Maxed
+   only) now also renders for Level and Sell, standalone, next to the
+   unchanged verdict badge (still the plain word — SELL/FOR PILOT/↑L9 —
+   never merged with the letter). `verdictExplain.ts`'s SELL copy no longer
+   issues a sell/keep directive. See "Letter grade
    (S/A/B/C/D/F)" and "Verdict labels & explanations" under "How evaluations
    work". Prompted by beta feedback (a SWGOH content creator reviewing the
    public Protocol) that the tool read as too harsh/certain.
@@ -543,29 +545,37 @@ rule, however well it happened to roll.
 The label/priority/action come from `qualityBandLabel`, `qualityBandPriority`,
 and `qualityBandAction`. Where each surfaces:
 
-- **`ModCard` chip** (top-left, slice/maxed only) — the letter, tinted by
-  colour; the chip's `title` tooltip carries `priority — action`. A maxed
-  (6d-A) mod gets a "Maxed" chip carrying the letter, and a maxed-specific
-  tooltip (no slice instruction — it is already fully sliced).
-- **`ModCard` verdict badge** (top-right) — Level Up **and now Sell** both
-  show the letter (same colour scale as the chip above) whenever the mod has
-  a score, instead of a flat "SELL"/`↑L9` word. See "No-match SELL now scores
-  against the closest rule" and "Verdict labels & explanations" — this is the
-  actual fix for evaluations reading as a harsh, certain directive.
+- **`ModCard` chip** (top-left) — the letter, tinted by colour, standalone —
+  its own element, never merged into the verdict badge's text. Originally
+  Slice/Maxed only; now **also renders for Level and Sell** whenever the mod
+  has a score (`action === 'slice' || 'level' || 'sell'`), so a graded mod
+  shows its letter here regardless of which bucket it's in. The chip's
+  `title` tooltip carries `priority — action` for slice/level; Sell gets its
+  own tooltip copy instead ("how well the rolls did against the rule it came
+  closest to matching") — slicing language doesn't apply to a mod that
+  doesn't match any current rule. A maxed (6d-A) mod gets a "Maxed" chip
+  carrying the letter, and a maxed-specific tooltip (no slice instruction —
+  it is already fully sliced).
+- **`ModCard` verdict badge** (top-right) — **always the plain status word**
+  (SELL / FOR PILOT / ↑L9 / PASS / UNCONFIGURED), on its own, never combined
+  with the grade — the grade is the chip above, not badge text. UPGRADE keeps
+  its pre-existing band-tinted badge colour (unchanged by this work); SELL
+  and FOR PILOT keep their original flat colours. An earlier pass tried
+  putting the letter *into* the badge text (replacing "SELL", then
+  concatenating "FOR PILOT · B") — reverted, because it collided with
+  `ParsedMod.tier_name` (see below) and because the badge's job is the
+  status, the chip's job is the grade; don't re-merge them.
 
   **`ParsedMod.tier_name` is a DIFFERENT, pre-existing letter grade — SWGOH's
   own native mod-quality rating** (`mod-ledger/src/schemas/mod.py`: "From
   mod_tiers API (E, D, C, B, A)"), shown as `ModCard`'s bottom `{level} -
   {tier_name}` text and `ModDetailModal`'s "Tier:" row. It has nothing to do
-  with this evaluation grade and the two alphabets overlap on A/B/C/D. The
-  compact `ModCard` badge shows our grade as a bare letter anyway (space is
-  tight, and it isn't directly adjacent to the tier text) — but
-  `ModDetailModal`, where "Tier: A" sits right above the Evaluation section,
-  spells the badge out as **"Grade B"** (`verdictLabel`/the FOR-PILOT dual
-  badge, both in `ModDetailModal.tsx`) specifically to avoid reading as the
-  same scale. Found by testing a real "FOR PILOT / B" mod next to "Tier: A"
-  in dev — if you extend bare letters to a new surface, check `tier_name`
-  isn't visible nearby first.
+  with this evaluation grade and the two alphabets overlap on A/B/C/D. No
+  text-based workaround for this — the grade stays a bare letter everywhere
+  (card chip and modal badge alike); if the collision turns out to matter in
+  practice, the fix is a placement/visual one, not a wordier label. If you
+  extend bare letters to a new surface, check `tier_name` isn't visible
+  nearby first.
 - **`InventoryReadout`** (the framed console at the top of the flat view) renders
   the key — each legend item shows colour + range + letter + **priority**, with
   `priority — action` in its tooltip, and the distribution bar segments carry the
@@ -826,11 +836,11 @@ it leads with "you invested a lot to reach 6 dots, so there's no rush." A
 the `meaning` line deliberately never claims it is "not worth leveling
 further." The **`isPilot`** branch (built + L15) was already action-oriented
 about assigning to a pilot, never a directive on the mod's worth — untouched
-by the directive-removal above, but it now **also names the grade and
-explicitly disambiguates it from `tier_name`** ("a separate number from this
+by the directive-removal above, but its `meaning` now also names the letter
+grade and explicitly disambiguates it from `tier_name` ("separate from this
 mod's own Tier rating above") when one exists, added after testing surfaced a
-real "FOR PILOT / B" mod sitting right below "Tier: A" with nothing
-explaining what the grade even was. See the `tier_name` gotcha above.
+real "FOR PILOT" mod graded B sitting right below "Tier: A" with nothing
+explaining what the letter even was. See the `tier_name` gotcha above.
 
 `verdictExplain.ts` also exports **`explainQualityScore(quality)`** →
 `{ line, note }`: plain-language prose for the 0-100 `absolute_quality` score
@@ -859,15 +869,14 @@ It surfaces in two places:
   intentionally **not** badged on the card, because a Pass mod always carries a
   slice/maxed band chip (top-left) that already conveys "keeper", making a "PASS"
   badge redundant. (`PASS` still appears in `ModDetailModal` and in the per-rule
-  results table.) SELL and UPGRADE both show a letter grade instead of a flat
-  word whenever `verdict.absolute_quality` is finite — see `verdictBandClass`/
-  `verdictLabel` in `ModCard.tsx`.
-- **`ModDetailModal`** — the Evaluation section shows the badge (same
-  letter-grade treatment as the card for SELL) + `meaning`, an explanation
-  block (`detail` + `Next step` + muted italic `caveat`), the winning scoring
-  rule, and a per-rule breakdown table. `UPGRADE`'s modal badge is still the
-  flat `↑L9` word (a pre-existing inconsistency with the card predating this
-  change, not addressed here).
+  results table.) The badge itself always shows the plain word — the grade
+  lives in the top-left quality chip instead (see "Letter grade" above),
+  standalone, never merged into badge text.
+- **`ModDetailModal`** — the Evaluation section shows the badge (same plain
+  word as the card, or a bare letter when Sell has a score — see
+  `verdictLabel`/`gradeBadgeClass` in `ModDetailModal.tsx`) + `meaning`, an
+  explanation block (`detail` + `Next step` + muted italic `caveat`), the
+  winning scoring rule, and a per-rule breakdown table.
 
 The engine only emits a `reason` string on failures; `verdictExplain`
 synthesises the "why it passed" line for passing mods from `required_count`

@@ -92,7 +92,7 @@ export function explainVerdict(
           meaning:
             'This mod does not meet your current scoring rules, but it is already fully built (L15) — and a ship gains power from a mod’s dots and level, not its stats. That makes it a great pilot mod.' +
             (grade
-              ? ` The “Grade ${grade}” next to it is a read on how well it rolled against your rules — a separate number from this mod’s own Tier rating above, and irrelevant for pilot use either way, since a pilot only cares about dots and level.`
+              ? ` The letter (${grade}) next to it is a read on how well it rolled against your rules — separate from this mod’s own Tier rating above, and irrelevant for pilot use either way, since a pilot only cares about dots and level.`
               : ''),
           detail: v.reason ?? null,
           nextStep:

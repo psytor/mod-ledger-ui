@@ -22,18 +22,16 @@ import styles from './ModCard.module.css';
 // it's a fine pilot mod rather than a literal sell. It stays in the Sell bucket
 // until the user assigns it.
 //
-// UPGRADE ("Level Up") and SELL are both graded by the same letter scale as
-// the Slice chip whenever a score exists — a graded SELL mod (one that either
-// matched no rule but scored against its closest one, or matched a rule but
-// fell below the level's quality bar) shows its letter instead of the bare
-// word "SELL", same colour scale as everywhere else. `verdictBandClass` falls
-// back to a flat neutral only for the narrower case where there's no score at
-// all yet (a pre-eval mod, or the instant "N-dot mod, no longer farmable"
-// SELL, which is an objective game-legality fact, not a graded call).
+// The verdict badge (this function) always shows the plain status word — SELL
+// / FOR PILOT / ↑L9 / PASS / UNCONFIGURED — standalone, never merged with the
+// grade. The grade gets its OWN chip (see the quality chip render below,
+// extended to slice/level/sell), same place Slice/Maxed have always shown it.
+// UPGRADE keeps its pre-existing band-tinted badge colour; SELL/FOR PILOT stay
+// their original flat colours — the badge's job is the status, not the grade.
 function verdictClassName(verdict: Verdict, isPilot: boolean, band: QualityBand | null): string {
   if (isPilot && verdict === 'SELL') return styles.verdictForPilot;
   switch (verdict) {
-    case 'SELL': return band ? verdictBandClass(band) : styles.verdictSell;
+    case 'SELL': return styles.verdictSell;
     case 'UPGRADE': return band ? verdictBandClass(band) : styles.verdictUpgradeNoData;
     case 'PASS_RULES': return styles.verdictPass;
     case 'UNCONFIGURED': return styles.verdictUnconfigured;
@@ -51,12 +49,8 @@ function verdictBandClass(band: QualityBand): string {
   }
 }
 
-// SELL shows its letter grade when it has one — the whole point of the grade
-// is to replace the bare directive word. Falls back to the literal verdict
-// (i.e. "SELL") only when there's no score to grade by at all.
-function verdictLabel(v: VerdictResult, isPilot: boolean, band: QualityBand | null): string {
-  if (isPilot && v.verdict === 'SELL') return band ? `FOR PILOT · ${qualityBandLabel(band)}` : 'FOR PILOT';
-  if (v.verdict === 'SELL' && band) return qualityBandLabel(band);
+function verdictLabel(v: VerdictResult, isPilot: boolean): string {
+  if (isPilot && v.verdict === 'SELL') return 'FOR PILOT';
   if (v.verdict === 'UPGRADE' && v.target_level) return `↑L${v.target_level}`;
   if (v.verdict === 'PASS_RULES') return 'PASS';
   return v.verdict;
@@ -183,15 +177,24 @@ export default function ModCard({ mod, onClick }: ModCardProps) {
             className={`${styles.verdictBadge} ${verdictClassName(verdict.verdict, pilotMod, band)}`}
             title={verdictTooltip(verdict, { rarity: mod.rarity, isPilot: pilotMod, band })}
           >
-            {verdictLabel(verdict, pilotMod, band)}
+            {verdictLabel(verdict, pilotMod)}
           </div>
         )
       )}
 
-      {action === 'slice' && band && (
+      {/* The grade's own chip — standalone, next to (not merged into) the verdict
+          badge. Slice always had this; Level and Sell now get it too, so a
+          graded mod shows its letter here regardless of which bucket it's in.
+          Sell gets its own tooltip copy — "slice this first" makes no sense
+          for a mod that doesn't match any current rule. */}
+      {(action === 'slice' || action === 'level' || action === 'sell') && band && (
         <div
           className={`${styles.qualityChip} ${qualityBandClass(band)}`}
-          title={`${qualityBandPriority(band)} — ${qualityBandAction(band)}`}
+          title={
+            action === 'sell'
+              ? 'Grade — how well the rolls did against the rule it came closest to matching.'
+              : `${qualityBandPriority(band)} — ${qualityBandAction(band)}`
+          }
         >
           {qualityBandLabel(band)}
         </div>
