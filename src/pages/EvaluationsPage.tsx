@@ -269,8 +269,8 @@ export default function EvaluationsPage() {
             )}
           </Card>
 
-          {mineSection}
           {protocolsSection}
+          {mineSection}
           {moderationSection}
         </div>
       </Container>
