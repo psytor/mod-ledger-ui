@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Card, Container, Modal, fetchUsernames, useAuth } from 'astrogators-shared-ui';
 import Layout, { EVALS_MIGRATED_EVENT } from '@/components/layout/Layout';
 import ImportEvaluationDialog from '@/components/evaluation/ImportEvaluationDialog';
+import { useEvaluation } from '@/contexts/EvaluationContext';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { evaluationsApi } from '@/services/evaluationsApi';
 import { canModerate } from '@/utils/permissions';
@@ -616,6 +617,8 @@ function EvaluationCard({
   currentUserId,
   eyebrowOverride,
 }: EvaluationCardProps) {
+  const navigate = useNavigate();
+  const { setActiveEvaluationId } = useEvaluation();
   const dateLabel = new Date(e.createdAt).toLocaleDateString(
     undefined,
     DATE_FORMAT
@@ -626,34 +629,45 @@ function EvaluationCard({
       : null;
   const eyebrow =
     eyebrowOverride ?? (otherAuthor ? 'Imported' : 'Evaluation');
+
+  // Pre-selects this evaluation in EvaluationSelector (Grid page) without
+  // running it — same "Use" concept as opening a Star Chart drops you
+  // straight into working with it, but scoring mods is a deliberate,
+  // separate click (the Grid's own Evaluate button), not automatic.
+  function handleUse() {
+    setActiveEvaluationId(e.id);
+    navigate('/');
+  }
+
   return (
-    <Link to={`/evaluations/${e.id}`} className={styles.cardLink}>
-      <Card
-        chamfered
-        hoverable
-        padding="none"
-        showDiagonalBorders
-        edgeColor="var(--color-border)"
-        className={styles.card}
-      >
-        <span className={styles.cardAccent} aria-hidden="true" />
-        <p className={styles.cardEyebrow}>{eyebrow}</p>
-        <h2 className={styles.cardName}>{e.name}</h2>
-        {e.description && <p className={styles.cardDesc}>{e.description}</p>}
-        <p className={styles.cardMeta}>
-          {otherAuthor && (
-            <>
-              <span>by {otherAuthor}</span>
-              <span aria-hidden="true"> · </span>
-            </>
-          )}
-          <span>{dateLabel}</span>
-        </p>
-        <div className={styles.cardFooter}>
-          <span>Loadout</span>
-          <span className={styles.cardOpen}>Open →</span>
-        </div>
-      </Card>
-    </Link>
+    <Card
+      chamfered
+      padding="none"
+      showDiagonalBorders
+      edgeColor="var(--color-border)"
+      className={styles.card}
+    >
+      <span className={styles.cardAccent} aria-hidden="true" />
+      <p className={styles.cardEyebrow}>{eyebrow}</p>
+      <h2 className={styles.cardName}>{e.name}</h2>
+      {e.description && <p className={styles.cardDesc}>{e.description}</p>}
+      <p className={styles.cardMeta}>
+        {otherAuthor && (
+          <>
+            <span>by {otherAuthor}</span>
+            <span aria-hidden="true"> · </span>
+          </>
+        )}
+        <span>{dateLabel}</span>
+      </p>
+      <div className={styles.cardFooter}>
+        <Link to={`/evaluations/${e.id}`} className={styles.cardView}>
+          View
+        </Link>
+        <button type="button" className={styles.cardUse} onClick={handleUse}>
+          Use →
+        </button>
+      </div>
+    </Card>
   );
 }
