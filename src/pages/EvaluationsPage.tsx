@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button, Card, Container, useAuth } from 'astrogators-shared-ui';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Button, Card, Container, Modal, fetchUsernames, useAuth } from 'astrogators-shared-ui';
 import Layout, { EVALS_MIGRATED_EVENT } from '@/components/layout/Layout';
 import ImportEvaluationDialog from '@/components/evaluation/ImportEvaluationDialog';
+import { useEvaluation } from '@/contexts/EvaluationContext';
 import { evaluationStorage } from '@/services/evaluationStorage';
 import { evaluationsApi } from '@/services/evaluationsApi';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { canModerate } from '@/utils/permissions';
 import { EvaluationImportError, type EvaluationExportV1 } from '@/types/evaluationExport';
 import type { Evaluation } from '@/types/evaluation';
 import styles from './EvaluationsPage.module.css';
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   month: 'short',
@@ -18,23 +21,24 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   minute: '2-digit',
 };
 
-// Mobile breakpoint mirrors the existing CSS @media (max-width: 640px).
-// Above this width: stack both sections; below: render tabs.
-const MOBILE_QUERY = '(max-width: 640px)';
-
-type Tab = 'mine' | 'protocols';
-
 export default function EvaluationsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const isMobile = useMediaQuery(MOBILE_QUERY);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [isLoadingEvals, setIsLoadingEvals] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [protocols, setProtocols] = useState<Evaluation[]>([]);
   const [isLoadingProtocols, setIsLoadingProtocols] = useState(true);
   const [protocolsError, setProtocolsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('mine');
+  const [manifests, setManifests] = useState<Evaluation[]>([]);
+  const [isLoadingManifests, setIsLoadingManifests] = useState(true);
+  const [manifestsError, setManifestsError] = useState<string | null>(null);
+  const [manifestUsernames, setManifestUsernames] = useState<Record<number, string>>({});
+  // id -> newly-created Protocol, once published this session (the source
+  // Manifest is untouched by /publish, so the row stays — this just swaps
+  // the action for a link to what got created).
+  const [published, setPublished] = useState<Record<string, Evaluation>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<{
     payload: EvaluationExportV1;
@@ -65,11 +69,38 @@ export default function EvaluationsPage() {
       setProtocols(list);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Failed to load Protocols.';
+        err instanceof Error ? err.message : 'Failed to load the official evaluations.';
       setProtocolsError(message);
       setProtocols([]);
     } finally {
       setIsLoadingProtocols(false);
+    }
+  }, []);
+
+  const reloadManifests = useCallback(async () => {
+    setManifestsError(null);
+    setIsLoadingManifests(true);
+    try {
+      const list = await evaluationsApi.listAllManifests();
+      setManifests(list);
+
+      const ownerIds = [
+        ...new Set(list.map((e) => e.ownerUserId).filter((id): id is number => id !== null)),
+      ];
+      try {
+        const names = await fetchUsernames(ownerIds);
+        setManifestUsernames(names);
+      } catch {
+        // Non-fatal — cards fall back to a raw "User #N" label.
+        setManifestUsernames({});
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load shared evaluations.';
+      setManifestsError(message);
+      setManifests([]);
+    } finally {
+      setIsLoadingManifests(false);
     }
   }, []);
 
@@ -87,6 +118,17 @@ export default function EvaluationsPage() {
     void reloadProtocols();
   }, [reloadProtocols]);
 
+  // Moderation (the Manifest review queue) is admin/mod-only — same gate as
+  // the section's own render below. Always fetched alongside the other two
+  // once auth resolves for an admin/mod, same as Protocols always fetching
+  // regardless of which section you're actually looking at.
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (!canModerate(user)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void reloadManifests();
+  }, [isAuthLoading, user, reloadManifests]);
+
   // Refetch Mine after the migration prompt (owned by Layout) imports
   // local evals to the backend.
   useEffect(() => {
@@ -96,6 +138,17 @@ export default function EvaluationsPage() {
     window.addEventListener(EVALS_MIGRATED_EVENT, onMigrated);
     return () => window.removeEventListener(EVALS_MIGRATED_EVENT, onMigrated);
   }, [reload]);
+
+  // Both sections are always on the page now — NavBar's "My Evaluations" /
+  // "Official" links are just anchors into it (SUITE_NAV:
+  // /evaluations, /evaluations#official). Scroll to whichever one was
+  // clicked, whether arriving fresh or already on this page (same-route
+  // hash-only navigations don't remount this component, so this needs to
+  // re-run on every hash change, not just on mount).
+  useEffect(() => {
+    if (!location.hash) return;
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [location.hash]);
 
   const handleImportClick = () => {
     setImportError(null);
@@ -153,6 +206,23 @@ export default function EvaluationsPage() {
     />
   );
 
+  // Same client-side gate ModerationPage used to enforce as a whole-route
+  // redirect — now scoped to just this section, since the NavBar's own
+  // roles gate only hides the link, it doesn't stop a direct #moderation
+  // visit. Real enforcement stays server-side either way.
+  const moderationSection = canModerate(user) ? (
+    <ModerationSection
+      manifests={manifests}
+      isLoading={isLoadingManifests}
+      loadError={manifestsError}
+      usernames={manifestUsernames}
+      published={published}
+      onPublished={(manifestId, protocol) =>
+        setPublished((prev) => ({ ...prev, [manifestId]: protocol }))
+      }
+    />
+  ) : null;
+
   return (
     <Layout>
       <Container maxWidth="lg">
@@ -200,38 +270,9 @@ export default function EvaluationsPage() {
             )}
           </Card>
 
-          {isMobile ? (
-            <>
-              <div className={styles.tabs} role="tablist" aria-label="Evaluations">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'mine'}
-                  data-active={activeTab === 'mine'}
-                  onClick={() => setActiveTab('mine')}
-                  className={styles.tab}
-                >
-                  My Evaluations
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'protocols'}
-                  data-active={activeTab === 'protocols'}
-                  onClick={() => setActiveTab('protocols')}
-                  className={styles.tab}
-                >
-                  Protocols
-                </button>
-              </div>
-              {activeTab === 'mine' ? mineSection : protocolsSection}
-            </>
-          ) : (
-            <>
-              {mineSection}
-              {protocolsSection}
-            </>
-          )}
+          {protocolsSection}
+          {mineSection}
+          {moderationSection}
         </div>
       </Container>
       <ImportEvaluationDialog
@@ -259,7 +300,7 @@ function MineSection({
   currentUserId,
 }: MineSectionProps) {
   return (
-    <section className={styles.section} aria-label="My Evaluations">
+    <section id="my-evaluations" className={styles.section} aria-label="My Evaluations">
       <p className={styles.divider}>My Evaluations</p>
       {loadError && (
         <p className={styles.importError} role="alert">
@@ -322,8 +363,8 @@ function ProtocolsSection({
   loadError,
 }: ProtocolsSectionProps) {
   return (
-    <section className={styles.section} aria-label="Protocols">
-      <p className={styles.divider}>Protocols</p>
+    <section id="official" className={styles.section} aria-label="Official">
+      <p className={styles.divider}>Official</p>
       {loadError && (
         <p className={styles.importError} role="alert">
           {loadError}
@@ -337,7 +378,7 @@ function ProtocolsSection({
           edgeColor="var(--color-primary)"
           className={styles.empty}
         >
-          <p className={styles.emptyText}>Loading Protocols…</p>
+          <p className={styles.emptyText}>Loading…</p>
         </Card>
       ) : protocols.length === 0 ? (
         <Card
@@ -348,8 +389,8 @@ function ProtocolsSection({
           className={styles.empty}
         >
           <p className={styles.emptyText}>
-            No Protocols yet. Admin-curated rule sets show up here once
-            they&apos;re published.
+            Nothing here yet. Evaluations picked by the site's admins show up
+            here once they&apos;re published.
           </p>
         </Card>
       ) : (
@@ -359,12 +400,209 @@ function ProtocolsSection({
               key={e.id}
               evaluation={e}
               currentUserId={null}
-              eyebrowOverride="Protocol"
+              eyebrowOverride="Official"
             />
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+interface ModerationSectionProps {
+  manifests: Evaluation[];
+  isLoading: boolean;
+  loadError: string | null;
+  usernames: Record<number, string>;
+  published: Record<string, Evaluation>;
+  onPublished: (manifestId: string, protocol: Evaluation) => void;
+}
+
+function ModerationSection({
+  manifests,
+  isLoading,
+  loadError,
+  usernames,
+  published,
+  onPublished,
+}: ModerationSectionProps) {
+  return (
+    <section id="moderation" className={styles.section} aria-label="Moderation">
+      <p className={styles.divider}>Moderation</p>
+      <p className={styles.emptyText}>
+        Every Manifest (link-only shared evaluation) across every user. Publish a good one to
+        the Official list.
+      </p>
+      {loadError && (
+        <p className={styles.importError} role="alert">
+          {loadError}
+        </p>
+      )}
+      {isLoading ? (
+        <Card
+          chamfered
+          padding="none"
+          showDiagonalBorders
+          edgeColor="var(--color-primary)"
+          className={styles.empty}
+        >
+          <p className={styles.emptyText}>Loading shared evaluations…</p>
+        </Card>
+      ) : manifests.length === 0 ? (
+        <Card
+          chamfered
+          padding="none"
+          showDiagonalBorders
+          edgeColor="var(--color-primary)"
+          className={styles.empty}
+        >
+          <p className={styles.emptyText}>
+            No Manifests shared yet. They&apos;ll show up here as soon as a user shares one.
+          </p>
+        </Card>
+      ) : (
+        <div className={styles.grid}>
+          {manifests.map((e) => (
+            <ManifestCard
+              key={e.id}
+              evaluation={e}
+              ownerUsername={e.ownerUserId != null ? usernames[e.ownerUserId] : undefined}
+              publishedProtocol={published[e.id]}
+              onPublished={(protocol) => onPublished(e.id, protocol)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+interface ManifestCardProps {
+  evaluation: Evaluation;
+  ownerUsername: string | undefined;
+  publishedProtocol: Evaluation | undefined;
+  onPublished: (protocol: Evaluation) => void;
+}
+
+function ManifestCard({
+  evaluation: e,
+  ownerUsername,
+  publishedProtocol,
+  onPublished,
+}: ManifestCardProps) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [slug, setSlug] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const dateLabel = new Date(e.createdAt).toLocaleDateString(undefined, DATE_FORMAT);
+  const ownerLabel = ownerUsername ?? (e.ownerUserId != null ? `User #${e.ownerUserId}` : 'Unknown');
+
+  const openModal = () => {
+    setSlug('');
+    setError(null);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (isPublishing) return;
+    setModalOpen(false);
+  };
+
+  const submit = async () => {
+    if (isPublishing) return;
+    const trimmed = slug.trim();
+    if (!SLUG_PATTERN.test(trimmed)) {
+      setError('Slug must be lowercase letters, numbers, and hyphens (e.g. speed-mod).');
+      return;
+    }
+    setError(null);
+    setIsPublishing(true);
+    try {
+      const protocol = await evaluationsApi.publish(e.id, trimmed);
+      onPublished(protocol);
+      setModalOpen(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to publish.';
+      setError(message);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  return (
+    <>
+      <Card
+        chamfered
+        padding="none"
+        showDiagonalBorders
+        edgeColor="var(--color-border)"
+        className={styles.card}
+      >
+        <span className={styles.cardAccent} aria-hidden="true" />
+        <p className={styles.cardEyebrow}>Manifest</p>
+        <h2 className={styles.cardName}>{e.name}</h2>
+        {e.description && <p className={styles.cardDesc}>{e.description}</p>}
+        <p className={styles.cardMeta}>
+          <span>shared by {ownerLabel}</span>
+          <span aria-hidden="true"> · </span>
+          <span>{dateLabel}</span>
+        </p>
+        <div className={styles.cardFooter}>
+          {publishedProtocol ? (
+            <Link to={`/evaluations/${publishedProtocol.id}`} className={styles.cardOpen}>
+              Open →
+            </Link>
+          ) : (
+            <Button variant="outline" size="sm" onClick={openModal}>
+              Publish
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <Modal isOpen={modalOpen} onClose={closeModal} title="Publish as Official" size="sm">
+        <div>
+          <p>
+            Promote "{e.name}" to Official. Anyone will be able to find it in the Official
+            list — including logged-out users.
+          </p>
+          <label>
+            <span>Slug</span>
+            <input
+              type="text"
+              value={slug}
+              onChange={(ev) => setSlug(ev.target.value)}
+              placeholder="speed-mod"
+              autoComplete="off"
+              disabled={isPublishing}
+            />
+            <small>
+              Lowercase letters, numbers, and hyphens. This is the permanent identifier and
+              can&apos;t be changed later.
+            </small>
+          </label>
+          {error && (
+            <p role="alert" style={{ color: 'var(--color-danger, #d33)' }}>
+              {error}
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <Button type="button" variant="outline" onClick={closeModal} disabled={isPublishing}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={submit}
+              disabled={isPublishing || slug.trim().length === 0}
+            >
+              {isPublishing ? 'Publishing…' : 'Publish'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
 
@@ -379,6 +617,8 @@ function EvaluationCard({
   currentUserId,
   eyebrowOverride,
 }: EvaluationCardProps) {
+  const navigate = useNavigate();
+  const { setActiveEvaluationId } = useEvaluation();
   const dateLabel = new Date(e.createdAt).toLocaleDateString(
     undefined,
     DATE_FORMAT
@@ -389,34 +629,45 @@ function EvaluationCard({
       : null;
   const eyebrow =
     eyebrowOverride ?? (otherAuthor ? 'Imported' : 'Evaluation');
+
+  // Pre-selects this evaluation in EvaluationSelector (Grid page) without
+  // running it — same "Use" concept as opening a Star Chart drops you
+  // straight into working with it, but scoring mods is a deliberate,
+  // separate click (the Grid's own Evaluate button), not automatic.
+  function handleUse() {
+    setActiveEvaluationId(e.id);
+    navigate('/');
+  }
+
   return (
-    <Link to={`/evaluations/${e.id}`} className={styles.cardLink}>
-      <Card
-        chamfered
-        hoverable
-        padding="none"
-        showDiagonalBorders
-        edgeColor="var(--color-border)"
-        className={styles.card}
-      >
-        <span className={styles.cardAccent} aria-hidden="true" />
-        <p className={styles.cardEyebrow}>{eyebrow}</p>
-        <h2 className={styles.cardName}>{e.name}</h2>
-        {e.description && <p className={styles.cardDesc}>{e.description}</p>}
-        <p className={styles.cardMeta}>
-          {otherAuthor && (
-            <>
-              <span>by {otherAuthor}</span>
-              <span aria-hidden="true"> · </span>
-            </>
-          )}
-          <span>{dateLabel}</span>
-        </p>
-        <div className={styles.cardFooter}>
-          <span>Loadout</span>
-          <span className={styles.cardOpen}>Open →</span>
-        </div>
-      </Card>
-    </Link>
+    <Card
+      chamfered
+      padding="none"
+      showDiagonalBorders
+      edgeColor="var(--color-border)"
+      className={styles.card}
+    >
+      <span className={styles.cardAccent} aria-hidden="true" />
+      <p className={styles.cardEyebrow}>{eyebrow}</p>
+      <h2 className={styles.cardName}>{e.name}</h2>
+      {e.description && <p className={styles.cardDesc}>{e.description}</p>}
+      <p className={styles.cardMeta}>
+        {otherAuthor && (
+          <>
+            <span>by {otherAuthor}</span>
+            <span aria-hidden="true"> · </span>
+          </>
+        )}
+        <span>{dateLabel}</span>
+      </p>
+      <div className={styles.cardFooter}>
+        <Link to={`/evaluations/${e.id}`} className={styles.cardView}>
+          View
+        </Link>
+        <button type="button" className={styles.cardUse} onClick={handleUse}>
+          Use →
+        </button>
+      </div>
+    </Card>
   );
 }

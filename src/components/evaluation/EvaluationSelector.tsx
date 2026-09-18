@@ -132,7 +132,7 @@ export default function EvaluationSelector() {
           </optgroup>
         )}
         {protocols.length > 0 && (
-          <optgroup label="Protocols">
+          <optgroup label="Official">
             {protocols.map((ev) => (
               <option key={ev.id} value={ev.id}>
                 {ev.name}

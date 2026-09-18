@@ -161,44 +161,6 @@
   gap: var(--spacing-lg);
 }
 
-.tabs {
-  display: flex;
-  width: 100%;
-  max-width: 560px;
-  gap: 2px;
-  padding: 2px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.tab {
-  flex: 1;
-  padding: 0.55rem 0.75rem;
-  font-family: var(--font-heading);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.tab:hover {
-  color: var(--color-text-primary);
-}
-
-.tab[data-active='true'] {
-  background: rgba(26, 115, 232, 0.18);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 8px rgba(26, 115, 232, 0.25);
-}
-
 .divider {
   width: 100%;
   max-width: 720px;
@@ -222,9 +184,10 @@
   background: linear-gradient(90deg, transparent, var(--color-border), transparent);
 }
 
-/* Desktop: the section labels are the only thing separating "My Evaluations"
-   from "Protocols" (mobile uses tabs instead), so make them read as real
-   headers — larger, brighter, with stronger rule lines and more breathing room. */
+/* My Evaluations and Official both always render, stacked — NavBar's two
+   entries for this page are anchors that scroll here, not a switch between
+   them. Give the divider more presence on wider screens, since it's each
+   section's only label. */
 @media (min-width: 641px) {
   .divider {
     max-width: 1024px;
@@ -302,21 +265,16 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* min(280px, 100%) caps the column floor at whatever width is actually
+     available, instead of a bare 280px, which grid.minmax() will not shrink
+     below even when the container (Container's own padding + .page's own
+     padding stack to eat ~64px at mobile) is narrower than that — the cause
+     of a real ~9px horizontal overflow at 320px, only visible once a card
+     with real content rendered here. */
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: var(--spacing-lg);
   width: 100%;
   max-width: 1024px;
-}
-
-.cardLink {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  outline: none;
-}
-
-.cardLink:focus-visible .card {
-  box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-md);
 }
 
 .card.card {
@@ -327,8 +285,10 @@
   flex-direction: column;
   gap: var(--spacing-sm);
   min-height: 180px;
-  /* Outline (border + corner lines) is drawn by the Card from edgeColor. The
-     hover feedback is the lift + shadow below, not an edge-colour change. */
+  /* Outline (border + corner lines) is drawn by the Card from edgeColor.
+     Not a link any more (View/Use are two separate real actions in the
+     footer, same pattern ManifestCard already used below) - no whole-card
+     hover lift, just the accent bar brightening below. */
 }
 
 .cardAccent {
@@ -349,7 +309,7 @@
   transition: opacity var(--transition-base);
 }
 
-.cardLink:hover .cardAccent {
+.card.card:hover .cardAccent {
   opacity: 1;
   box-shadow: 0 0 14px rgba(26, 115, 232, 0.7);
 }
@@ -418,7 +378,41 @@
   transition: transform var(--transition-base), color var(--transition-base);
 }
 
-.cardLink:hover .cardOpen {
+.cardOpen:hover {
+  transform: translateX(4px);
+}
+
+/* EvaluationCard's own two footer actions - View (a real navigation link
+   to the read-only detail page) and Use (pre-selects this evaluation in
+   EvaluationSelector on the Grid page, without running it - see
+   EvaluationCard's handleUse). */
+.cardView {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+.cardView:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
+.cardUse {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: transform var(--transition-base), color var(--transition-base);
+}
+
+.cardUse:hover {
   transform: translateX(4px);
 }
 

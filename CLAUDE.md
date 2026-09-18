@@ -4,6 +4,20 @@ Guide for Claude Code when working inside this submodule.
 
 ## Documentation currency (update when you edit docs)
 
+Migrated to `astrogators-shared-ui` 0.16.0's manifest-driven `NavBar`.
+`Layout.tsx`'s hand-built `navItems` array (Grid/Evaluations/`canModerate`-gated
+Moderation) is gone — those three sections now live once, suite-wide, in
+shared-ui's `SUITE_NAV` (Moderation's visibility moved from a `canModerate(user)`
+check here to a `roles: ['admin', 'mod']` field on the manifest entry, same
+effective gate). `NavBar` now takes `currentApp="mod-ledger"` and an
+`activeSectionId` derived from `useLocation()` (`'grid' | 'evaluations' |
+'moderation' | undefined`), plus an `onNavigate` handler that strips the
+`/mod-ledger` basename from the manifest's absolute href before calling
+`navigate()` — the router's `basename="/mod-ledger"` would otherwise double it.
+`Layout.module.css`'s `.topBar > div { max-width: 1400px }` override (and the
+file itself, since that was its only rule) is deleted — the bar is full-bleed
+in every app now, not just widened to match this one's grid.
+
 **Docs current as of:** uncommitted work on branch
 `feat/mod-ledger-ui-score-unmatched-mods` — two changes, folded into one
 branch/PR because the second only makes sense once the first exists:
