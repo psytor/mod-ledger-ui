@@ -32,15 +32,40 @@ RUN rm -rf /usr/share/nginx/html/* /etc/nginx/conf.d/default.conf
 # Minimal SPA config. App is mounted at /mod-ledger/ (matches Vite `base`), so
 # static assets live under that prefix and SPA fallback goes to
 # /mod-ledger/index.html. Listens on 4174.
+#
+# Cache split: Vite content-hashes every file under assets/ (a rebuild always
+# changes the filename), so those are safe to cache forever. Everything else
+# this location serves - index.html itself, and the SPA-fallback response for
+# every client-side route - is NOT hashed, so it must never be cached: without
+# an explicit header here neither nginx layer set one, and browsers fell back
+# to heuristic caching, silently serving a stale index.html (pointing at
+# assets/ files from a previous deploy that no longer exist) until a hard
+# refresh. `always` so the header still shows up on 404s.
+#
+# try_files' SPA fallback target is /mod-ledger/index.html, not bare
+# /index.html: the third try_files argument (when unmatched) triggers an
+# nginx-internal redirect that re-runs location matching from scratch, and
+# a bare /index.html doesn't start with /mod-ledger/ so it falls out of this
+# location entirely (served from the bare root/index defaults instead) -
+# silently losing the add_header above for every deep client-side route
+# (verified: curl -I on a real deep route came back with no Cache-Control at
+# all until this was prefixed). Keeping the prefix keeps the redirect inside
+# this same location, so the header always applies.
 RUN printf '%s\n' \
     'server {' \
     '  listen 4174;' \
     '  server_name _;' \
     '  root /usr/share/nginx/html;' \
     '  index index.html;' \
+    '  location /mod-ledger/assets/ {' \
+    '    alias /usr/share/nginx/html/assets/;' \
+    '    add_header Cache-Control "public, max-age=31536000, immutable" always;' \
+    '    try_files $uri =404;' \
+    '  }' \
     '  location /mod-ledger/ {' \
     '    alias /usr/share/nginx/html/;' \
-    '    try_files $uri $uri/ /index.html;' \
+    '    add_header Cache-Control "no-cache" always;' \
+    '    try_files $uri $uri/ /mod-ledger/index.html;' \
     '  }' \
     '  location = / { return 301 /mod-ledger/; }' \
     '}' > /etc/nginx/conf.d/mod-ledger-ui.conf
