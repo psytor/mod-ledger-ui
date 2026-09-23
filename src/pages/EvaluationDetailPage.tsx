@@ -171,11 +171,18 @@ export default function EvaluationDetailPage() {
     setIsCopying(true);
     try {
       const copy = await evaluationStorage.createCopy(evaluation.id, name);
+      // Close the modal explicitly, the same way submitPublish does below —
+      // navigating to another /evaluations/:id route reuses this same
+      // component instance (declarative router, no remount), so relying on
+      // navigation alone to dismiss the modal left it stuck open forever,
+      // even though the copy itself had already been created.
+      setCopyModalOpen(false);
       navigate(`/evaluations/${copy.id}`);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to create a copy.';
       window.alert(message);
+    } finally {
       setIsCopying(false);
     }
   };
