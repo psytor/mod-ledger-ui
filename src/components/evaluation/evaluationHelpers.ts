@@ -63,13 +63,13 @@ export type ChipState = {
 
 export const PRIMARY_CYCLE: ChipState[] = [
   { value: 'neutral', label: 'Neutral', swatchColor: 'transparent' },
-  { value: 'wanted', label: 'Wanted', swatchColor: 'var(--color-secondary)' },
+  { value: 'wanted', label: 'Wanted', swatchColor: 'var(--color-wanted)' },
   { value: 'not_wanted', label: 'Not wanted', swatchColor: 'var(--color-error)' },
 ];
 
 export const SECONDARY_CYCLE: ChipState[] = [
   { value: 'neutral', label: 'Neutral', swatchColor: 'transparent' },
-  { value: 'required', label: 'Required', swatchColor: 'var(--color-secondary)' },
+  { value: 'required', label: 'Required', swatchColor: 'var(--color-wanted)' },
   { value: 'complementary', label: 'Complementary', swatchColor: 'var(--color-info)' },
 ];
 

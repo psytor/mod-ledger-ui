@@ -6,6 +6,12 @@
   line-height: 1.5;
   font-weight: 400;
 
+  /* Wanted / Required — this app's own domain colour, not shared-ui's
+     --color-secondary (that token is shared-ui's generic Button/Badge
+     "secondary" variant and can change hue independent of what this app
+     needs Wanted/Required to mean). */
+  --color-wanted: #34a853;
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

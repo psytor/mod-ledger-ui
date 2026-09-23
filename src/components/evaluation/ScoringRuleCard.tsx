@@ -87,7 +87,7 @@ function ViewModeCard({
         groups={[
           {
             label: 'Wanted',
-            swatchColor: 'var(--color-secondary)',
+            swatchColor: 'var(--color-wanted)',
             stats: primaryGroups.wanted,
           },
           {
@@ -110,7 +110,7 @@ function ViewModeCard({
           },
           {
             label: 'Required',
-            swatchColor: 'var(--color-secondary)',
+            swatchColor: 'var(--color-wanted)',
             stats: secondaryGroups.required,
           },
           {
@@ -215,7 +215,7 @@ function EditModeCard({
         setClass={(sid, c) => onSetPrimary(sid, c as PrimaryClassification)}
         counts={[
           {
-            color: 'var(--color-secondary)',
+            color: 'var(--color-wanted)',
             label: 'Wanted',
             value: counts.wanted,
           },
@@ -243,7 +243,7 @@ function EditModeCard({
             value: counts.mandatory,
           },
           {
-            color: 'var(--color-secondary)',
+            color: 'var(--color-wanted)',
             label: 'Required',
             value: counts.required,
           },
