@@ -80,9 +80,9 @@
 .chip[data-state='wanted'],
 .chip[data-state='required'] {
   background: rgba(52, 168, 83, 0.18);
-  color: var(--color-secondary);
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 1px var(--color-secondary), 0 0 12px rgba(52, 168, 83, 0.25);
+  color: var(--color-wanted);
+  border-color: var(--color-wanted);
+  box-shadow: 0 0 0 1px var(--color-wanted), 0 0 12px rgba(52, 168, 83, 0.25);
 }
 
 .chip[data-state='not_wanted'] {
