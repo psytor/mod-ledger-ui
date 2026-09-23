@@ -51,12 +51,25 @@ RUN rm -rf /usr/share/nginx/html/* /etc/nginx/conf.d/default.conf
 # (verified: curl -I on a real deep route came back with no Cache-Control at
 # all until this was prefixed). Keeping the prefix keeps the redirect inside
 # this same location, so the header always applies.
+#
+# assets/sprites/ is carved out BEFORE the general assets/ rule: those PNGs
+# come from public/assets/sprites/ (Vite copies public/ verbatim, no content
+# hash), unlike everything else under assets/, which is Vite's own hashed
+# build output. Caching them "forever, immutable" like the hashed files
+# would mean a corrected sprite atlas stays stale in every visitor's browser
+# for a year. nginx picks the longest matching prefix, so this location
+# (longer) wins over the general assets/ one for anything under sprites/.
 RUN printf '%s\n' \
     'server {' \
     '  listen 4174;' \
     '  server_name _;' \
     '  root /usr/share/nginx/html;' \
     '  index index.html;' \
+    '  location /mod-ledger/assets/sprites/ {' \
+    '    alias /usr/share/nginx/html/assets/sprites/;' \
+    '    add_header Cache-Control "no-cache" always;' \
+    '    try_files $uri =404;' \
+    '  }' \
     '  location /mod-ledger/assets/ {' \
     '    alias /usr/share/nginx/html/assets/;' \
     '    add_header Cache-Control "public, max-age=31536000, immutable" always;' \
