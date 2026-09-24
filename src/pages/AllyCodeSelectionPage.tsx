@@ -39,6 +39,14 @@ export default function AllyCodeSelectionPage() {
     selectAllyCode(allyCode);
   };
 
+  // The input/button pair isn't inside a <form>, so Enter does nothing by
+  // default - wire it to the same handler the button's onClick uses.
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAddAllyCode();
+    }
+  };
+
   return (
     <Layout>
       <Container maxWidth="md">
@@ -61,6 +69,7 @@ export default function AllyCodeSelectionPage() {
                   placeholder="123-456-789"
                   value={newAllyCode}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAllyCode(e.target.value)}
+                  onKeyDown={handleInputKeyDown}
                   disabled={isAdding}
                 />
                 <Button
@@ -115,6 +124,7 @@ export default function AllyCodeSelectionPage() {
                     placeholder="123-456-789"
                     value={newAllyCode}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAllyCode(e.target.value)}
+                    onKeyDown={handleInputKeyDown}
                     disabled={isAdding}
                   />
                   <Button
