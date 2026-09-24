@@ -1,0 +1,22 @@
+# Keeps the Docker build context small and, more importantly, stops the
+# Dockerfile's `COPY . .` from re-copying the HOST's own node_modules over
+# the image's freshly `npm ci`-installed one (verified: a canary file
+# planted in host node_modules turned up inside the built image without
+# this file). Everything here must never end up inside a build layer.
+node_modules
+dist
+dist-ssr
+
+.env
+.env.*
+!.env.example
+
+.git
+.github
+
+*.log
+npm-debug.log*
+
+.vscode
+.idea
+.DS_Store
