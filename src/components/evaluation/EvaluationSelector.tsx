@@ -104,19 +104,36 @@ export default function EvaluationSelector() {
   return (
     <div
       style={{
+        // Matches .header / .contentArea in ModGridPage.module.css (and
+        // RecommendationCaution's .wrap) - without this, this was the one
+        // section that stretched edge-to-edge on a wide/fullscreen monitor
+        // instead of staying capped and centered like the rest of the page.
+        width: '100%',
+        maxWidth: '1400px',
+        margin: '0 auto 1rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.6rem',
         padding: '0.75rem 1rem',
         border: '1px solid var(--color-border, #333)',
         borderRadius: '4px',
-        marginBottom: '1rem',
       }}
     >
+      <h2
+        style={{
+          margin: 0,
+          fontSize: '1.15rem',
+          fontWeight: 700,
+          fontFamily: 'var(--font-heading)',
+        }}
+      >
+        Evaluation
+      </h2>
+
       {/* Row 1: the dropdown, on its own line at every viewport width -
           not just on mobile where it used to wrap here for lack of room. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <span style={{ fontWeight: 600 }}>Evaluation:</span>
+        <span style={{ fontWeight: 600 }}>Select:</span>
         <Select
           value={activeEvaluationId ?? ''}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
