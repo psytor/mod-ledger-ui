@@ -122,9 +122,22 @@ export default function EvaluationSelector() {
       <h2
         style={{
           margin: 0,
-          fontSize: '1.15rem',
+          fontSize: '1.4rem',
           fontWeight: 700,
           fontFamily: 'var(--font-heading)',
+          // Orbitron (the house heading font) is designed for bigger display
+          // sizes - "All Mods" at 2rem/8 characters reads clean, but this
+          // word is longer (10 characters) at a notably smaller size, and
+          // without room to breathe it comes out visually cramped. A touch
+          // of letter-spacing is the standard fix for a geometric font run
+          // small, rather than dropping the house font for this one label.
+          letterSpacing: '0.04em',
+          // --color-secondary, not --color-primary: primary is already the
+          // site logo, every link, and the Evaluate button - reusing it here
+          // would blend in rather than read as its own heading. Secondary
+          // pairs it with "Build Your Own Rules" instead of adding a third
+          // competing blue.
+          color: 'var(--color-secondary, #0f52ba)',
         }}
       >
         Evaluation
