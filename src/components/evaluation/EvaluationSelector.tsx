@@ -154,12 +154,27 @@ export default function EvaluationSelector() {
           {verdicts.size} mod{verdicts.size === 1 ? '' : 's'} evaluated
         </span>
       )}
-      <Link
-        to="/evaluations"
-        style={{ marginLeft: 'auto', fontSize: '0.9rem' }}
-      >
-        Manage →
-      </Link>
+      {mine.length === 0 ? (
+        // Nobody's made their own evaluation yet — a plain "Manage" link is
+        // easy to miss next to the solid Evaluate button, and doesn't hint
+        // that this is also where you'd create one. Real button, plain
+        // language, sitting right next to Evaluate instead of floated off
+        // to the corner.
+        <Link to="/evaluations">
+          <Button variant="outline" size="sm">
+            Build Your Own Rules →
+          </Button>
+        </Link>
+      ) : (
+        // Already have at least one of your own — you've found this once,
+        // a quiet link back in is enough.
+        <Link
+          to="/evaluations"
+          style={{ marginLeft: 'auto', fontSize: '0.9rem' }}
+        >
+          Manage →
+        </Link>
+      )}
       {active?.description && (
         <div
           style={{

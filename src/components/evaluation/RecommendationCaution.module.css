@@ -8,11 +8,21 @@
 
 /* Match ModGridPage's .header / .contentArea box so the strip aligns with the
  * mod grid instead of spanning the full page container. */
+/* Negative top/bottom margin pulls the strip closer to its neighbours than
+ * .pageContainer's shared 2rem flex gap allows, without touching that gap
+ * (which also spaces every other section on the page). Tighter still on
+ * mobile, where the fixed 2rem reads as disproportionately large. */
 .wrap {
   width: 100%;
   max-width: 1400px;
-  margin: 0 auto;
+  margin: -1rem auto;
   padding: 0 1rem;
+}
+
+@media (max-width: 768px) {
+  .wrap {
+    margin: -1.5rem auto;
+  }
 }
 
 .strip {
