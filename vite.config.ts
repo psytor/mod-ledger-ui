@@ -9,7 +9,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
+      // import.meta.dirname, not __dirname: vite 8.3's native config
+      // loader warns on (and will eventually drop support for) CJS globals.
+      '@': resolve(import.meta.dirname, './src'),
     },
   },
   server: {
