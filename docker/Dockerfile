@@ -2,9 +2,21 @@
 # Multi-stage: build static assets with Node, serve with nginx.
 
 # --- Stage 1: build ---
-FROM node:24-alpine AS builder
+# Pinned to the exact patch release so a rebuild can't silently land on a
+# different Node/npm than the last one - `node:24-alpine` floated with no
+# record of what actually shipped. Confirmed via `docker inspect` that this
+# tag currently resolves to the exact same digest as the floating one
+# (sha256:ebfe2f9...) - no behavior change today, just a pin against future
+# drift. Node 24 is the correct LTS line (became LTS Oct 2025, supported
+# into 2028); Node 25 was Current-only and is already EOL.
+FROM node:24.21.0-alpine AS builder
 
 WORKDIR /app
+
+# This image bundles npm 11.19.0; npm 12.1.0 is current. Bump explicitly
+# before `npm ci` so the pinned Node version doesn't also pin us to a stale
+# npm - same reasoning as the backend's POETRY_VERSION bump.
+RUN npm install -g npm@12.1.0
 
 # Install deps first for better layer caching
 COPY package.json package-lock.json ./
@@ -24,7 +36,12 @@ RUN npm run build
 
 
 # --- Stage 2: serve ---
-FROM nginx:alpine
+# Pinned for the same reason as the builder stage above. `nginx:1.31.6-alpine`
+# and the floating `nginx:alpine` report identical `nginx -v` (1.31.6) and
+# identical Alpine base (3.24.2) - confirmed by running both - even though
+# their manifest digests differ (expected: separately-tagged manifest lists
+# for the same content, not a version difference).
+FROM nginx:1.31.6-alpine
 
 # Drop the default nginx site
 RUN rm -rf /usr/share/nginx/html/* /etc/nginx/conf.d/default.conf
