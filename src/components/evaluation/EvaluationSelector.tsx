@@ -190,28 +190,19 @@ export default function EvaluationSelector() {
             {verdicts.size} mod{verdicts.size === 1 ? '' : 's'} evaluated
           </span>
         )}
-        {mine.length === 0 ? (
-          // Nobody's made their own evaluation yet — a plain "Manage" link is
-          // easy to miss next to the solid Evaluate button, and doesn't hint
-          // that this is also where you'd create one. `outline` read as
-          // barely-a-button against this dark theme (transparent fill, thin
-          // --color-border) - `secondary` gives it a real solid fill, still
-          // visually distinct from Evaluate's `primary` blue.
-          <Link to="/evaluations">
-            <Button variant="secondary" size="sm">
-              Build Your Own Rules →
-            </Button>
-          </Link>
-        ) : (
-          // Already have at least one of your own — you've found this once,
-          // a quiet link back in is enough.
-          <Link
-            to="/evaluations"
-            style={{ marginLeft: 'auto', fontSize: '0.9rem' }}
-          >
-            Manage →
-          </Link>
-        )}
+        {/* Always shown, regardless of mine.length - it and the old "Manage"
+            link both go to the same place (/evaluations), so there was no
+            functional reason to demote it once you'd made one of your own.
+            A plain "Manage" link was also easy to miss next to the solid
+            Evaluate button. `outline` variant read as barely-a-button
+            against this dark theme (transparent fill, thin --color-border)
+            - `secondary` gives it a real solid fill, still visually
+            distinct from Evaluate's `primary` blue. */}
+        <Link to="/evaluations">
+          <Button variant="secondary" size="sm">
+            Build Your Own Rules →
+          </Button>
+        </Link>
       </div>
       {active?.description && (
         <div
