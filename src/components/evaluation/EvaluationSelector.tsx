@@ -105,76 +105,84 @@ export default function EvaluationSelector() {
     <div
       style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
+        flexDirection: 'column',
+        gap: '0.6rem',
         padding: '0.75rem 1rem',
         border: '1px solid var(--color-border, #333)',
         borderRadius: '4px',
         marginBottom: '1rem',
-        flexWrap: 'wrap',
       }}
     >
-      <span style={{ fontWeight: 600 }}>Evaluation:</span>
-      <Select
-        value={activeEvaluationId ?? ''}
-        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-          setActiveEvaluationId(e.target.value || null)
-        }
-      >
-        <option value="">— None —</option>
-        {mine.length > 0 && (
-          <optgroup label="My Evaluations">
-            {mine.map((ev) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-        {protocols.length > 0 && (
-          <optgroup label="Official">
-            {protocols.map((ev) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </Select>
-      <Button
-        variant="primary"
-        size="sm"
-        disabled={!active || mods.length === 0}
-        onClick={() => runEvaluation(mods)}
-      >
-        Evaluate
-      </Button>
-      {verdicts.size > 0 && (
-        <span style={{ color: 'var(--color-text-secondary, #888)', fontSize: '0.9rem' }}>
-          {verdicts.size} mod{verdicts.size === 1 ? '' : 's'} evaluated
-        </span>
-      )}
-      {mine.length === 0 ? (
-        // Nobody's made their own evaluation yet — a plain "Manage" link is
-        // easy to miss next to the solid Evaluate button, and doesn't hint
-        // that this is also where you'd create one. Real button, plain
-        // language, sitting right next to Evaluate instead of floated off
-        // to the corner.
-        <Link to="/evaluations">
-          <Button variant="outline" size="sm">
-            Build Your Own Rules →
-          </Button>
-        </Link>
-      ) : (
-        // Already have at least one of your own — you've found this once,
-        // a quiet link back in is enough.
-        <Link
-          to="/evaluations"
-          style={{ marginLeft: 'auto', fontSize: '0.9rem' }}
+      {/* Row 1: the dropdown, on its own line at every viewport width -
+          not just on mobile where it used to wrap here for lack of room. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <span style={{ fontWeight: 600 }}>Evaluation:</span>
+        <Select
+          value={activeEvaluationId ?? ''}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+            setActiveEvaluationId(e.target.value || null)
+          }
         >
-          Manage →
-        </Link>
-      )}
+          <option value="">— None —</option>
+          {mine.length > 0 && (
+            <optgroup label="My Evaluations">
+              {mine.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {protocols.length > 0 && (
+            <optgroup label="Official">
+              {protocols.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </Select>
+      </div>
+
+      {/* Row 2: actions. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!active || mods.length === 0}
+          onClick={() => runEvaluation(mods)}
+        >
+          Evaluate
+        </Button>
+        {verdicts.size > 0 && (
+          <span style={{ color: 'var(--color-text-secondary, #888)', fontSize: '0.9rem' }}>
+            {verdicts.size} mod{verdicts.size === 1 ? '' : 's'} evaluated
+          </span>
+        )}
+        {mine.length === 0 ? (
+          // Nobody's made their own evaluation yet — a plain "Manage" link is
+          // easy to miss next to the solid Evaluate button, and doesn't hint
+          // that this is also where you'd create one. `outline` read as
+          // barely-a-button against this dark theme (transparent fill, thin
+          // --color-border) - `secondary` gives it a real solid fill, still
+          // visually distinct from Evaluate's `primary` blue.
+          <Link to="/evaluations">
+            <Button variant="secondary" size="sm">
+              Build Your Own Rules →
+            </Button>
+          </Link>
+        ) : (
+          // Already have at least one of your own — you've found this once,
+          // a quiet link back in is enough.
+          <Link
+            to="/evaluations"
+            style={{ marginLeft: 'auto', fontSize: '0.9rem' }}
+          >
+            Manage →
+          </Link>
+        )}
+      </div>
       {active?.description && (
         <div
           style={{
