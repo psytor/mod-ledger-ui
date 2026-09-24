@@ -52,10 +52,11 @@ export default function RecommendationCaution() {
         <p className={styles.text}>
           <strong>These are suggestions, not final verdicts.</strong>{' '}
           Evaluations come from a shared rule set that can&rsquo;t account for
-          every character, team, or play style &mdash; copy one and tweak it,
-          or build your own to match how you actually play. If you&rsquo;re
-          still unsure about a mod, keep it and double-check with someone
-          before selling.
+          every character, team, or play style.
+          <br />
+          Copy one and tweak it, or build your own to match how you actually
+          play. If you&rsquo;re still unsure about a mod, keep it and
+          double-check with someone before selling.
         </p>
         <button
           type="button"
