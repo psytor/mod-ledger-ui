@@ -19,7 +19,11 @@ function readDismissed(): boolean {
  * Context: the tool shipped to production and shared players were nervous that
  * following a SELL verdict at face value could cost them a genuinely good mod.
  * The evaluations are one shared rule set and can't cover every character or
- * team, so this is a standing reminder to sanity-check before selling.
+ * team, so this is a standing reminder to sanity-check before selling. Also
+ * doubles as the one place that tells people the default rule set isn't the
+ * only option — you can copy one and tweak it, or build your own — since
+ * that capability was going unnoticed (see EvaluationSelector's "Build Your
+ * Own Rules" CTA, which exists for the same reason).
  */
 export default function RecommendationCaution() {
   const [dismissed, setDismissed] = useState(readDismissed);
@@ -48,8 +52,10 @@ export default function RecommendationCaution() {
         <p className={styles.text}>
           <strong>These are suggestions, not final verdicts.</strong>{' '}
           Evaluations come from a shared rule set that can&rsquo;t account for
-          every character, team, or play style. If you&rsquo;re unsure about a
-          mod, keep it and double-check with someone before selling.
+          every character, team, or play style &mdash; copy one and tweak it,
+          or build your own to match how you actually play. If you&rsquo;re
+          still unsure about a mod, keep it and double-check with someone
+          before selling.
         </p>
         <button
           type="button"
