@@ -17,7 +17,7 @@
   bottom: 0;
   left: 0;
   background-image: url('/ModLedger_Background_blue.png');
-  background-size: 60%;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   opacity: 0.4;
